@@ -1,88 +1,89 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import MobileBottomBar from "@/components/MobileBottomBar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Droplets, Palette, Sparkles, Wrench, Sun, Package } from "lucide-react";
+import { Shield, Droplets, Palette, Sparkles, Wrench, Sun, Package, Zap } from "lucide-react";
 
 const Services = () => {
   const serviceDetails = [
     {
-      icon: <Shield className="w-8 h-8" />,
-      title: "Paint Protection Film (PPF)",
-      description: "Premium self-healing film that shields your vehicle from rock chips, scratches, and environmental damage.",
+      icon: <Wrench className="w-8 h-8" />,
+      title: "Auto Repair & Diagnostics",
+      description: "Advanced ECU diagnostics and full mechanical service for luxury and performance vehicles.",
       features: [
-        "Full-body or partial coverage",
-        "Self-healing technology",
-        "UV protection",
-        "10-year warranty",
-        "Maintains resale value",
-      ],
-    },
-    {
-      icon: <Droplets className="w-8 h-8" />,
-      title: "Ceramic Coating",
-      description: "Nano-ceramic protection creating a permanent bond with your paint for superior gloss and durability.",
-      features: [
-        "9H hardness protection",
-        "Hydrophobic properties",
-        "Chemical resistance",
-        "Enhanced depth & gloss",
-        "5-year protection",
+        "Advanced ECU diagnostics",
+        "Engine & transmission service",
+        "Brake system maintenance",
+        "Suspension & steering",
+        "Electrical system repair",
       ],
     },
     {
       icon: <Palette className="w-8 h-8" />,
-      title: "Vinyl Wrapping",
-      description: "Complete color change or custom designs with premium 3M and Avery Dennison vinyl films.",
+      title: "Paint & Bodywork",
+      description: "Factory-grade refinishing, color matching, and full body restorations in dust-controlled booth.",
       features: [
-        "Full or partial wraps",
-        "Matte, Gloss, Satin finishes",
-        "Chrome & specialty finishes",
-        "Paint protection",
-        "Reversible process",
+        "Factory-grade paint booth",
+        "Perfect color matching",
+        "Collision repair",
+        "Panel replacement",
+        "OEM-quality finish",
+      ],
+    },
+    {
+      icon: <Droplets className="w-8 h-8" />,
+      title: "Detailing & Ceramic Coating",
+      description: "Multi-stage detailing and nano-ceramic protection for superior gloss and durability.",
+      features: [
+        "Paint correction",
+        "9H ceramic coating",
+        "Interior detailing",
+        "Engine bay detailing",
+        "5-year protection",
+      ],
+    },
+    {
+      icon: <Shield className="w-8 h-8" />,
+      title: "PPF & Vinyl Wrapping",
+      description: "Premium XPEL/STEK/3M films and custom vinyl wraps for protection and transformation.",
+      features: [
+        "Self-healing PPF",
+        "Full-body wraps",
+        "Custom designs",
+        "Matte/Gloss finishes",
+        "10-year warranty",
       ],
     },
     {
       icon: <Sparkles className="w-8 h-8" />,
-      title: "Paint Correction",
-      description: "Multi-stage polishing to remove swirls, scratches, and oxidation for a flawless mirror finish.",
+      title: "Restoration & Customization",
+      description: "Bringing classics and exotics back to life with full teardown, rebuild, and modernization.",
       features: [
-        "Swirl mark removal",
-        "Scratch elimination",
-        "Oxidation treatment",
-        "Haze removal",
-        "Mirror-like clarity",
+        "Classic car restoration",
+        "Full vehicle rebuild",
+        "Custom modifications",
+        "Suspension upgrades",
+        "Performance tuning",
       ],
     },
     {
-      icon: <Wrench className="w-8 h-8" />,
-      title: "Body & Paint Repair",
-      description: "Expert collision repair, dent removal, and refinishing to factory specifications.",
+      icon: <Zap className="w-8 h-8" />,
+      title: "Off-Road & Performance",
+      description: "Suspension tuning, lift kits, and armor installs for 4x4s and high-performance builds.",
       features: [
-        "Paintless dent repair",
-        "Panel replacement",
-        "Color matching",
-        "Bumper restoration",
-        "Factory-quality finish",
-      ],
-    },
-    {
-      icon: <Sun className="w-8 h-8" />,
-      title: "Window Tinting",
-      description: "Premium ceramic tint films providing heat rejection, UV protection, and enhanced privacy.",
-      features: [
-        "Ceramic & carbon films",
-        "99% UV rejection",
-        "Heat reduction",
-        "Enhanced privacy",
-        "Lifetime warranty",
+        "Lift kit installation",
+        "Suspension tuning",
+        "Armor & protection",
+        "Performance exhaust",
+        "ECU remapping",
       ],
     },
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20 md:pb-0">
       <Navbar />
       
       {/* Hero Section */}
@@ -140,6 +141,7 @@ const Services = () => {
 
       <Footer />
       <WhatsAppButton />
+      <MobileBottomBar />
     </div>
   );
 };

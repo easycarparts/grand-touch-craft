@@ -1,10 +1,12 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import MobileBottomBar from "@/components/MobileBottomBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -35,7 +37,7 @@ const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20 md:pb-0">
       <Navbar />
       
       {/* Hero Section */}
@@ -106,13 +108,22 @@ const Contact = () => {
                   <label className="block text-sm font-medium mb-2 text-foreground">
                     Service of Interest
                   </label>
-                  <Input
-                    name="service"
+                  <Select 
                     value={formData.service}
-                    onChange={handleChange}
-                    placeholder="e.g., PPF, Ceramic Coating, Paint Correction"
-                    className="bg-background border-border"
-                  />
+                    onValueChange={(value) => setFormData({ ...formData, service: value })}
+                  >
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Select a service" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border z-50">
+                      <SelectItem value="repair">Repair & Diagnostics</SelectItem>
+                      <SelectItem value="paint">Paint & Bodywork</SelectItem>
+                      <SelectItem value="detailing">Detailing & Ceramic</SelectItem>
+                      <SelectItem value="ppf">PPF & Wrapping</SelectItem>
+                      <SelectItem value="restoration">Restoration</SelectItem>
+                      <SelectItem value="performance">Performance & Off-Road</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2 text-foreground">
@@ -133,7 +144,7 @@ const Contact = () => {
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
                 >
                   <Send className="mr-2 w-4 h-4" />
-                  Send Message
+                  Book Service or Detailing
                 </Button>
               </form>
             </Card>
@@ -208,6 +219,7 @@ const Contact = () => {
 
       <Footer />
       <WhatsAppButton />
+      <MobileBottomBar />
     </div>
   );
 };

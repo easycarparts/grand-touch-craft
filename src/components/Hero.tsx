@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Sparkles } from "lucide-react";
-import heroImage from "@/assets/hero-detailing.jpg";
+import { ArrowRight, Shield, Wrench } from "lucide-react";
+import heroImage from "@/assets/hero-workshop.jpg";
 
 const Hero = () => {
   return (
@@ -21,21 +21,19 @@ const Hero = () => {
         <div className="max-w-4xl animate-fade-up">
           {/* Badge */}
           <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 backdrop-blur-sm">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Dubai's Premier Automotive Studio</span>
+            <Wrench className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Dubai's Luxury Automotive Studio</span>
           </div>
 
           {/* Main Headline */}
           <h1 className="mb-6 leading-tight">
-            <span className="block text-foreground">Precision.</span>
-            <span className="block text-foreground">Protection.</span>
-            <span className="block text-primary">Perfection.</span>
+            <span className="block text-foreground">Dubai's Luxury</span>
+            <span className="block text-primary">Automotive Studio.</span>
           </h1>
 
           {/* Subheading */}
           <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl font-light">
-            Elevate your vehicle with expert detailing, paint protection film, 
-            ceramic coatings, and precision craftsmanship.
+            Repair. Paint. Protection. Detailing. Perfection.
           </p>
 
           {/* CTA Buttons */}
@@ -44,7 +42,7 @@ const Hero = () => {
               size="lg"
               className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold px-8 py-6 shadow-glow animate-glow group"
             >
-              Book Your Appointment
+              Book Your Service
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button

@@ -1,11 +1,12 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import MobileBottomBar from "@/components/MobileBottomBar";
 import { Award, Users, Shield, Sparkles } from "lucide-react";
 
 const About = () => {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20 md:pb-0">
       <Navbar />
       
       {/* Hero Section */}
@@ -33,18 +34,18 @@ const About = () => {
         <div className="container mx-auto max-w-4xl">
           <div className="prose prose-invert max-w-none">
             <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              For over 15 years, we've been the trusted partner for owners of luxury and performance 
-              vehicles across Dubai. Our team of master technicians brings together decades of 
-              specialized experience in paint protection, ceramic coating, vinyl wrapping, and 
-              precision detailing.
+              At Grand Touch Auto, we combine engineering expertise with artisan craftsmanship.
+              From diagnostics to detailing, every vehicle receives meticulous care using factory-grade 
+              tools, OEM materials, and certified techniques.
             </p>
             <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              We work exclusively with industry-leading brands like XPEL, 3M, Avery Dennison, 
-              and Gtechniq to ensure your vehicle receives only the finest materials and protection 
-              available.
+              Our team services brands such as Mercedes-AMG, Porsche, BMW M, Range Rover, and McLaren, 
+              ensuring every job meets the standards of excellence our clients expect. We work exclusively 
+              with industry-leading partners like XPEL, 3M, Avery Dennison, and Gtechniq.
             </p>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Every vehicle that enters our facility is treated as a masterpiece, deserving of 
+              Whether it's advanced diagnostics, factory-grade paintwork, or precision detailing — 
+              every vehicle that enters our facility is treated as a masterpiece, deserving of 
               meticulous care and attention to detail that only true craftsmen can provide.
             </p>
           </div>
@@ -108,6 +109,7 @@ const About = () => {
 
       <Footer />
       <WhatsAppButton />
+      <MobileBottomBar />
     </div>
   );
 };

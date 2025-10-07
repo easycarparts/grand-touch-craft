@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import MobileBottomBar from "@/components/MobileBottomBar";
 import { Card } from "@/components/ui/card";
 import { Camera } from "lucide-react";
 
@@ -16,7 +17,7 @@ const Portfolio = () => {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20 md:pb-0">
       <Navbar />
       
       {/* Hero Section */}
@@ -80,6 +81,7 @@ const Portfolio = () => {
 
       <Footer />
       <WhatsAppButton />
+      <MobileBottomBar />
     </div>
   );
 };

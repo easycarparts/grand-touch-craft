@@ -1,35 +1,49 @@
 import ServiceCard from "./ServiceCard";
-import { Shield, Droplets, Palette, Sparkles, Scissors } from "lucide-react";
-import ppfImage from "@/assets/service-ppf.jpg";
-import wrapImage from "@/assets/service-wrap.jpg";
+import { Shield, Droplets, Palette, Sparkles, Wrench, Zap } from "lucide-react";
+import repairImage from "@/assets/service-repair.jpg";
+import paintImage from "@/assets/service-paint.jpg";
 import ceramicImage from "@/assets/service-ceramic.jpg";
-import correctionImage from "@/assets/service-correction.jpg";
+import ppfImage from "@/assets/service-ppf.jpg";
+import restorationImage from "@/assets/service-restoration.jpg";
+import performanceImage from "@/assets/service-performance.jpg";
 
 const Services = () => {
   const services = [
     {
-      title: "Paint Protection Film",
-      description: "Invisible armor engineered for Dubai's roads — self-healing, UV-resistant, and built to last.",
-      image: ppfImage,
-      icon: <Shield className="w-6 h-6" />,
+      title: "Auto Repair & Diagnostics",
+      description: "Advanced ECU diagnostics to full mechanical service and maintenance for luxury vehicles.",
+      image: repairImage,
+      icon: <Wrench className="w-6 h-6" />,
     },
     {
-      title: "Ceramic Coating",
-      description: "Advanced nano-ceramic technology that bonds to your paint, creating an ultra-durable hydrophobic shield.",
+      title: "Paint & Bodywork",
+      description: "Factory-grade refinishing, color matching, and full restorations in a dust-controlled booth.",
+      image: paintImage,
+      icon: <Palette className="w-6 h-6" />,
+    },
+    {
+      title: "Detailing & Ceramic Coating",
+      description: "Multi-stage detailing, correction, and ceramic protection for flawless gloss.",
       image: ceramicImage,
       icon: <Droplets className="w-6 h-6" />,
     },
     {
-      title: "Vinyl Wrapping",
-      description: "Transform your car's personality with precision-cut vinyl wraps in gloss, satin, or stealth matte.",
-      image: wrapImage,
-      icon: <Palette className="w-6 h-6" />,
+      title: "PPF & Vinyl Wrapping",
+      description: "XPEL / STEK / 3M-grade films, full-body wraps, and custom designs.",
+      image: ppfImage,
+      icon: <Shield className="w-6 h-6" />,
     },
     {
-      title: "Paint Correction",
-      description: "From micro-polish to mirror finish — every surface is restored to its original brilliance.",
-      image: correctionImage,
+      title: "Restoration & Customization",
+      description: "Bringing classics and exotics back to life — full teardown, rebuild, or modernization.",
+      image: restorationImage,
       icon: <Sparkles className="w-6 h-6" />,
+    },
+    {
+      title: "Off-Road & Performance",
+      description: "Suspension tuning, lift kits, and armor installs for 4x4s and high-performance builds.",
+      image: performanceImage,
+      icon: <Zap className="w-6 h-6" />,
     },
   ];
 
@@ -44,19 +58,19 @@ const Services = () => {
         {/* Section Header */}
         <div className="text-center mb-16 space-y-4 animate-fade-up">
           <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm">
-            <Scissors className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Our Expertise</span>
+            <Wrench className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Full-Service Excellence</span>
           </div>
           <h2 className="text-foreground">
-            The Art of Surface Science
+            Comprehensive Automotive Care
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-light">
-            Every curve. Every detail. Every reflection — perfected by Dubai's master craftsmen.
+            From diagnostics to detailing — precision engineering meets artisan craftsmanship.
           </p>
         </div>
 
         {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-up">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-up">
           {services.map((service, index) => (
             <div
               key={service.title}
@@ -66,13 +80,6 @@ const Services = () => {
               <ServiceCard {...service} />
             </div>
           ))}
-        </div>
-
-        {/* Additional Services CTA */}
-        <div className="text-center mt-16">
-          <p className="text-muted-foreground mb-4">
-            Plus: Interior Detailing • Window Tinting • Paint Repair • Windscreen Protection
-          </p>
         </div>
       </div>
     </section>
