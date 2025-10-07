@@ -79,7 +79,7 @@
   <body>
     <div id="root">
       <!-- Critical content for search engines -->
-      <div id="seo-content" style="display: block; max-width: 1200px; margin: 0 auto; padding: 20px;">
+      <div id="seo-content" style="display: none; max-width: 1200px; margin: 0 auto; padding: 20px;">
         <h1>Grand Touch Auto - Dubai's Luxury Automotive Studio</h1>
         <p>Professional automotive services including repair, paint, detailing, PPF, and restoration in Dubai.</p>
         
@@ -135,9 +135,9 @@
     
     <!-- Loading and SEO optimization script -->
     <script>
-      // Hide SEO content when React loads
+      // Hide SEO content immediately when React loads
       document.addEventListener('DOMContentLoaded', function() {
-        // Small delay to ensure content is visible to crawlers
+        // Small delay to ensure React has time to load
         setTimeout(function() {
           const seoContent = document.getElementById('seo-content');
           if (seoContent) {
@@ -146,7 +146,7 @@
         }, 100);
       });
       
-      // Show loading indicator
+      // Also hide on window load
       window.addEventListener('load', function() {
         const seoContent = document.getElementById('seo-content');
         if (seoContent) {
