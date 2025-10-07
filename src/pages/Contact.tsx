@@ -15,19 +15,27 @@ const Contact = () => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
-    phone: "",
     service: "",
     message: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you within 24 hours.",
-    });
-    setFormData({ name: "", email: "", phone: "", service: "", message: "" });
+
+    const isDetailing = formData.service === "detailing";
+    const phoneNumber = isDetailing ? "971567191045" : "971547302243";
+
+    const selectedServiceLabel = isDetailing ? "Detailing & Protection" : "Workshop & Repair";
+
+    const composed = `New inquiry from website%0A%0A` +
+      `Name: ${encodeURIComponent(formData.name)}%0A` +
+      `Service: ${encodeURIComponent(selectedServiceLabel)}%0A%0A` +
+      `Message:%0A${encodeURIComponent(formData.message)}`;
+
+    const url = `https://wa.me/${phoneNumber}?text=${composed}`;
+    window.open(url, "_blank");
+
+    toast({ title: "Opening WhatsApp…", description: `Sending to ${selectedServiceLabel}` });
   };
 
   const handleChange = (
@@ -77,38 +85,12 @@ const Contact = () => {
                     className="bg-background border-border"
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-foreground">
-                      Email *
-                    </label>
-                    <Input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      className="bg-background border-border"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-foreground">
-                      Phone
-                    </label>
-                    <Input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="bg-background border-border"
-                    />
-                  </div>
-                </div>
+                {/* Email and phone removed as WhatsApp handles contact */}
                 <div>
                   <label className="block text-sm font-medium mb-2 text-foreground">
                     Service of Interest
                   </label>
-                  <Select 
+                  <Select
                     value={formData.service}
                     onValueChange={(value) => setFormData({ ...formData, service: value })}
                   >
@@ -116,12 +98,8 @@ const Contact = () => {
                       <SelectValue placeholder="Select a service" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border z-50">
-                      <SelectItem value="repair">Repair & Diagnostics</SelectItem>
-                      <SelectItem value="paint">Paint & Bodywork</SelectItem>
-                      <SelectItem value="detailing">Detailing & Ceramic</SelectItem>
-                      <SelectItem value="ppf">PPF & Wrapping</SelectItem>
-                      <SelectItem value="restoration">Restoration</SelectItem>
-                      <SelectItem value="performance">Performance & Off-Road</SelectItem>
+                      <SelectItem value="workshop">Workshop & Repair</SelectItem>
+                      <SelectItem value="detailing">Detailing & Protection</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -157,10 +135,22 @@ const Contact = () => {
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                     <MapPin className="w-6 h-6" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-1">Location</h3>
+                  <div className="w-full">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold text-foreground">Location</h3>
+                      <a
+                        href="https://maps.app.goo.gl/j6CZCqFX2bDYtCLf7"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80 transition-transform inline-flex items-center gap-1 text-sm hover:scale-110"
+                        aria-label="Open in Google Maps"
+                      >
+                        <MapPin className="w-8 h-8 md:w-9 md:h-9" />
+                      </a>
+                    </div>
                     <p className="text-muted-foreground">
-                      DIP 2, Dubai Industrial City<br />
+                      DIP 2, Dubai Investment Park - 2<br />
+                      Thani warehouse - 3 11b <br />
                       Dubai, United Arab Emirates
                     </p>
                   </div>
@@ -175,7 +165,8 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Phone</h3>
                     <p className="text-muted-foreground">
-                      +971 XX XXX XXXX<br />
+                      Work Shop +971 54 730 2243<br />
+                      Detailing +971 56 719 1045<br />
                       Available 9 AM - 7 PM
                     </p>
                   </div>
@@ -190,7 +181,7 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Email</h3>
                     <p className="text-muted-foreground">
-                      info@grandtouchauto.ae<br />
+                    info@grandtouchautorepair.com<br />
                       We reply within 24 hours
                     </p>
                   </div>
@@ -205,9 +196,8 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Hours</h3>
                     <div className="text-muted-foreground space-y-1">
-                      <p>Sunday - Thursday: 9:00 AM - 7:00 PM</p>
-                      <p>Saturday: 10:00 AM - 5:00 PM</p>
-                      <p>Friday: Closed</p>
+                      <p>Monday - Saturday: 9:00 AM - 6:00 PM</p>
+                      <p>Sunday: Closed</p>
                     </div>
                   </div>
                 </div>

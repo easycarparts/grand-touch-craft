@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface ServiceCardProps {
   title: string;
@@ -36,10 +37,10 @@ const ServiceCard = ({ title, description, image, icon }: ServiceCardProps) => {
         </p>
         
         {/* CTA */}
-        <div className="flex items-center text-primary font-medium pt-2 group-hover:translate-x-2 transition-transform">
+        <Link to="/services" className="inline-flex items-center text-primary font-medium pt-2 group-hover:translate-x-2 transition-transform">
           Learn More
           <ArrowRight className="ml-2 w-4 h-4" />
-        </div>
+        </Link>
       </div>
 
       {/* Hover Glow Effect */}

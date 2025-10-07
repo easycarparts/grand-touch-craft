@@ -4,7 +4,8 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import MobileBottomBar from "@/components/MobileBottomBar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Droplets, Palette, Sparkles, Wrench, Sun, Package, Zap } from "lucide-react";
+import BookServiceDialog from "@/components/BookServiceDialog";
+import { Shield, Droplets, Palette, Sparkles, Wrench, Sun, Package, Zap, MessageCircle } from "lucide-react";
 
 const Services = () => {
   const serviceDetails = [
@@ -100,6 +101,14 @@ const Services = () => {
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Comprehensive automotive care tailored for Dubai's most discerning vehicle owners
           </p>
+          <div className="mt-8 flex justify-center">
+            <BookServiceDialog>
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow">
+                <MessageCircle className="w-5 h-5 mr-2" />
+                Get in touch
+              </Button>
+            </BookServiceDialog>
+          </div>
         </div>
       </section>
 
@@ -130,11 +139,23 @@ const Services = () => {
                     </li>
                   ))}
                 </ul>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                  Request Quote
-                </Button>
+                {/* Per-card CTA removed in favor of global CTAs */}
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Bottom CTA */}
+      <section className="py-8 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto text-center">
+          <div className="inline-flex items-center justify-center">
+            <BookServiceDialog>
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow">
+                <MessageCircle className="w-5 h-5 mr-2" />
+                Get in touch
+              </Button>
+            </BookServiceDialog>
           </div>
         </div>
       </section>

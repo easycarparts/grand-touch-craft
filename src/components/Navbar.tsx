@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import BookServiceDialog from "@/components/BookServiceDialog";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -61,13 +62,15 @@ const Navbar = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
               </Link>
             ))}
-            <Button
-              size="sm"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow"
-            >
-              <Phone className="w-4 h-4 mr-2" />
-              Book Now
-            </Button>
+            <BookServiceDialog>
+              <Button
+                size="sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow"
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                Book Now
+              </Button>
+            </BookServiceDialog>
           </div>
 
           {/* Mobile Menu Button */}
@@ -96,13 +99,15 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
-            <Button
-              size="sm"
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-            >
-              <Phone className="w-4 h-4 mr-2" />
-              Book Now
-            </Button>
+            <BookServiceDialog>
+              <Button
+                size="sm"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                Book Now
+              </Button>
+            </BookServiceDialog>
           </div>
         )}
       </div>

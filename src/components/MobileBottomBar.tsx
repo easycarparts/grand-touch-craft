@@ -1,5 +1,6 @@
 import { Phone, MessageCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import BookServiceDialog from "@/components/BookServiceDialog";
 
 const MobileBottomBar = () => {
   const handleCall = () => {
@@ -36,13 +37,15 @@ const MobileBottomBar = () => {
           <span className="text-xs font-medium">WhatsApp</span>
         </Button>
         
-        <Button
-          size="sm"
-          className="flex flex-col items-center gap-1 h-auto py-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          <Calendar className="w-4 h-4" />
-          <span className="text-xs font-medium">Book</span>
-        </Button>
+        <BookServiceDialog>
+          <Button
+            size="sm"
+            className="flex flex-col items-center gap-1 h-auto py-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            <Calendar className="w-4 h-4" />
+            <span className="text-xs font-medium">Book</span>
+          </Button>
+        </BookServiceDialog>
       </div>
     </div>
   );
