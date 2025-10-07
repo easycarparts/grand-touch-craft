@@ -173,10 +173,21 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       "@type": "BlogPosting",
       "headline": article.title,
       "description": article.excerpt,
-      "image": article.image,
+      "image": {
+        "@type": "ImageObject",
+        "url": article.image,
+        "width": 800,
+        "height": 400,
+        "caption": `${article.title} - Professional automotive service in Dubai`
+      },
       "author": {
         "@type": "Person",
-        "name": article.author
+        "name": article.author,
+        "jobTitle": "Automotive Expert",
+        "worksFor": {
+          "@type": "Organization",
+          "name": "Grand Touch Auto"
+        }
       },
       "publisher": {
         "@type": "Organization",
@@ -184,7 +195,14 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
         "url": "https://grandtouchauto.com",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://grandtouchauto.com/placeholder.svg"
+          "url": "https://grandtouchauto.com/placeholder.svg",
+          "width": 200,
+          "height": 60
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Dubai",
+          "addressCountry": "AE"
         }
       },
       "datePublished": article.publishedAt,
@@ -195,7 +213,14 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       },
       "articleSection": article.category,
       "wordCount": article.content.split(' ').length,
-      "timeRequired": article.readTime
+      "timeRequired": article.readTime,
+      "keywords": article.tags?.join(', ') || '',
+      "inLanguage": "en-AE",
+      "isPartOf": {
+        "@type": "Blog",
+        "name": "Grand Touch Auto Blog",
+        "url": "https://grandtouchauto.com/blog"
+      }
     };
     
     const script = document.createElement('script');
@@ -235,16 +260,28 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       {/* Article Header */}
       <article className="pt-32 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-4xl">
-          {/* Back Button */}
-          <div className="mb-8">
-            <Link 
-              to="/blog" 
-              className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Blog
-            </Link>
-          </div>
+          {/* Breadcrumb Navigation */}
+          <nav aria-label="Breadcrumb" className="mb-8">
+            <ol className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <li>
+                <Link to="/" className="hover:text-primary transition-colors">
+                  Home
+                </Link>
+              </li>
+              <li className="flex items-center">
+                <span className="mx-2">/</span>
+                <Link to="/blog" className="hover:text-primary transition-colors">
+                  Blog
+                </Link>
+              </li>
+              <li className="flex items-center">
+                <span className="mx-2">/</span>
+                <span className="text-foreground font-medium" aria-current="page">
+                  {article.title}
+                </span>
+              </li>
+            </ol>
+          </nav>
 
           {/* Article Meta */}
           <div className="mb-8">
@@ -298,9 +335,32 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
           <div className="mb-12">
             <img 
               src={article.image} 
-              alt={article.title}
+              alt={`${article.title} - Professional automotive service in Dubai`}
               className="w-full h-64 md:h-96 object-cover rounded-lg shadow-lg"
+              loading="eager"
+              width="800"
+              height="400"
             />
+          </div>
+
+          {/* Table of Contents */}
+          <div className="mb-8 p-6 bg-card/50 rounded-lg border border-border/50">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Table of Contents</h3>
+            <nav className="space-y-2">
+              {article.content.split('\n').filter(line => line.startsWith('## ')).map((heading, index) => {
+                const headingText = heading.replace('## ', '');
+                const headingId = headingText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+                return (
+                  <a
+                    key={index}
+                    href={`#${headingId}`}
+                    className="block text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {headingText}
+                  </a>
+                );
+              })}
+            </nav>
           </div>
 
           {/* Article Content */}
@@ -363,8 +423,11 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
                   <div className="relative h-48 overflow-hidden">
                     <img 
                       src={relatedArticle.image} 
-                      alt={relatedArticle.title}
+                      alt={`${relatedArticle.title} - ${relatedArticle.category} service in Dubai`}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                      width="300"
+                      height="200"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                     <Badge 
