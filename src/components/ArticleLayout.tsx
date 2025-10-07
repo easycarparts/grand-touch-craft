@@ -9,6 +9,118 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, ArrowLeft, Share2, BookOpen, User, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { updatePageSEO } from "@/lib/seo";
+import "./ArticleContent.css";
+
+// ArticleContent component for proper HTML formatting
+const ArticleContent = ({ content }: { content: string }) => {
+  const formatContent = (text: string) => {
+    // Split content into paragraphs and process each
+    const paragraphs = text.split('\n\n');
+    
+    return paragraphs.map((paragraph, index) => {
+      const trimmed = paragraph.trim();
+      
+      // Handle headers with proper IDs for SEO and navigation
+      if (trimmed.startsWith('## ')) {
+        const headerText = trimmed.replace('## ', '');
+        const headerId = headerText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return (
+          <h2 
+            key={index} 
+            id={headerId}
+            className="text-3xl font-bold text-foreground mt-12 mb-6 first:mt-0 scroll-mt-20"
+          >
+            {headerText}
+          </h2>
+        );
+      }
+      
+      if (trimmed.startsWith('### ')) {
+        const headerText = trimmed.replace('### ', '');
+        const headerId = headerText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return (
+          <h3 
+            key={index} 
+            id={headerId}
+            className="text-2xl font-semibold text-foreground mt-10 mb-4 first:mt-0 scroll-mt-20"
+          >
+            {headerText}
+          </h3>
+        );
+      }
+      
+      if (trimmed.startsWith('#### ')) {
+        const headerText = trimmed.replace('#### ', '');
+        const headerId = headerText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return (
+          <h4 
+            key={index} 
+            id={headerId}
+            className="text-xl font-semibold text-foreground mt-8 mb-3 first:mt-0 scroll-mt-20"
+          >
+            {headerText}
+          </h4>
+        );
+      }
+      
+      // Handle bullet points
+      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        const items = trimmed.split('\n').filter(line => line.trim().startsWith('- ') || line.trim().startsWith('* '));
+        return (
+          <ul key={index} className="list-disc list-inside space-y-2 mb-6 text-foreground">
+            {items.map((item, itemIndex) => (
+              <li key={itemIndex} className="text-lg leading-relaxed">
+                {item.replace(/^[-*] /, '')}
+              </li>
+            ))}
+          </ul>
+        );
+      }
+      
+      // Handle numbered lists
+      if (/^\d+\. /.test(trimmed)) {
+        const items = trimmed.split('\n').filter(line => /^\d+\. /.test(line.trim()));
+        return (
+          <ol key={index} className="list-decimal list-inside space-y-2 mb-6 text-foreground">
+            {items.map((item, itemIndex) => (
+              <li key={itemIndex} className="text-lg leading-relaxed">
+                {item.replace(/^\d+\. /, '')}
+              </li>
+            ))}
+          </ol>
+        );
+      }
+      
+      // Handle bold text
+      const boldText = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // Handle italic text
+      const italicText = boldText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      
+      // Handle links
+      const linkText = italicText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:text-primary/80 underline" target="_blank" rel="noopener noreferrer">$1</a>');
+      
+      // Regular paragraphs
+      if (trimmed.length > 0) {
+        return (
+          <p 
+            key={index} 
+            className="text-lg leading-relaxed text-foreground mb-6"
+            dangerouslySetInnerHTML={{ __html: linkText }}
+          />
+        );
+      }
+      
+      return null;
+    }).filter(Boolean);
+  };
+
+  return (
+    <article className="article-content">
+      {formatContent(content)}
+    </article>
+  );
+};
 
 interface ArticleLayoutProps {
   article: {
@@ -29,6 +141,19 @@ interface ArticleLayoutProps {
 }
 
 const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) => {
+  // Helper function to generate SEO-friendly slugs
+  const getArticleSlug = (id: number) => {
+    const slugMap: { [key: number]: string } = {
+      1: 'ceramic-coating-guide',
+      2: 'ppf-vs-ceramic-coating', 
+      3: 'paint-correction-techniques',
+      4: 'custom-vinyl-wraps',
+      5: 'performance-tuning',
+      6: 'classic-car-restoration'
+    };
+    return slugMap[id] || `article-${id}`;
+  };
+
   // Update SEO metadata for individual article
   useEffect(() => {
     const customSEOData = {
@@ -66,7 +191,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       "dateModified": article.publishedAt,
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": `https://grandtouchauto.com/blog/${article.id}`
+        "@id": `https://grandtouchauto.com/blog/${getArticleSlug(article.id)}`
       },
       "articleSection": article.category,
       "wordCount": article.content.split(' ').length,
@@ -180,9 +305,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
 
           {/* Article Content */}
           <div className="prose prose-invert max-w-none">
-            <div className="text-lg leading-relaxed text-foreground whitespace-pre-line">
-              {article.content}
-            </div>
+            <ArticleContent content={article.content} />
           </div>
 
           {/* Tags */}
@@ -269,7 +392,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
                       {relatedArticle.excerpt}
                     </p>
                     <Link 
-                      to={`/blog/${relatedArticle.id}`}
+                      to={`/blog/${getArticleSlug(relatedArticle.id)}`}
                       className="inline-flex items-center text-primary hover:text-primary/80 font-medium"
                     >
                       Read More

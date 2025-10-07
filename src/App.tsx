@@ -33,12 +33,12 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/blog" element={<Blog />} />
           {/* Article Routes */}
-          <Route path="/blog/1" element={<CeramicCoatingGuide />} />
-          <Route path="/blog/2" element={<PPFvsCeramic />} />
-          <Route path="/blog/3" element={<PaintCorrectionTechniques />} />
-          <Route path="/blog/4" element={<CustomVinylWraps />} />
-          <Route path="/blog/5" element={<PerformanceTuning />} />
-          <Route path="/blog/6" element={<ClassicCarRestoration />} />
+          <Route path="/blog/ceramic-coating-guide" element={<CeramicCoatingGuide />} />
+          <Route path="/blog/ppf-vs-ceramic-coating" element={<PPFvsCeramic />} />
+          <Route path="/blog/paint-correction-techniques" element={<PaintCorrectionTechniques />} />
+          <Route path="/blog/custom-vinyl-wraps" element={<CustomVinylWraps />} />
+          <Route path="/blog/performance-tuning" element={<PerformanceTuning />} />
+          <Route path="/blog/classic-car-restoration" element={<ClassicCarRestoration />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

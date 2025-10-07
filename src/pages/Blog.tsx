@@ -11,6 +11,19 @@ import { Link } from "react-router-dom";
 import { updatePageSEO, generateBlogStructuredData } from "@/lib/seo";
 
 const Blog = () => {
+  // Helper function to generate SEO-friendly slugs
+  const getArticleSlug = (id: number) => {
+    const slugMap: { [key: number]: string } = {
+      1: 'ceramic-coating-guide',
+      2: 'ppf-vs-ceramic-coating', 
+      3: 'paint-correction-techniques',
+      4: 'custom-vinyl-wraps',
+      5: 'performance-tuning',
+      6: 'classic-car-restoration'
+    };
+    return slugMap[id] || `article-${id}`;
+  };
+
   // Sample blog posts data - in a real app, this would come from a CMS or API
   const blogPosts = [
     {
@@ -171,7 +184,7 @@ const Blog = () => {
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">By {post.author}</span>
-                    <Link to={`/blog/${post.id}`}>
+                    <Link to={`/blog/${getArticleSlug(post.id)}`}>
                       <Button variant="ghost" className="group-hover:bg-primary/10 group-hover:text-primary">
                         Read More
                         <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -254,7 +267,7 @@ const Blog = () => {
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">By {post.author}</span>
-                    <Link to={`/blog/${post.id}`}>
+                    <Link to={`/blog/${getArticleSlug(post.id)}`}>
                       <Button variant="ghost" size="sm" className="group-hover:bg-primary/10 group-hover:text-primary">
                         Read More
                         <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
