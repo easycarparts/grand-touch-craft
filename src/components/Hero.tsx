@@ -12,8 +12,11 @@ const Hero = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background z-10" />
         <img
           src={heroImage}
-          alt="Luxury automotive detailing"
+          alt="Professional automotive workshop in Dubai - luxury car repair, paint, and detailing services"
           className="w-full h-full object-cover"
+          loading="eager"
+          width="1920"
+          height="1080"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background/80 z-10" />
       </div>

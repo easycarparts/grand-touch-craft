@@ -137,6 +137,112 @@ export const updatePageSEO = (page: string, customData?: any) => {
   }
 };
 
+// Business schema markup for LocalBusiness
+export const generateBusinessStructuredData = () => {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Grand Touch Auto",
+    "description": "Dubai's luxury automotive studio for repair, paint, detailing, PPF, and restoration services",
+    "url": "https://grandtouchauto.com",
+    "telephone": "+971567191045",
+    "email": "info@grandtouchauto.com",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "DIP 2, Dubai Investment Park - 2, Thani warehouse - 3 11b",
+      "addressLocality": "Dubai",
+      "addressRegion": "Dubai",
+      "addressCountry": "AE"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "25.2048",
+      "longitude": "55.2708"
+    },
+    "openingHours": "Mo-Sa 09:00-18:00",
+    "priceRange": "$$$",
+    "serviceArea": {
+      "@type": "GeoCircle",
+      "geoMidpoint": {
+        "@type": "GeoCoordinates",
+        "latitude": "25.2048",
+        "longitude": "55.2708"
+      },
+      "geoRadius": "50000"
+    },
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://grandtouchauto.com/placeholder.svg",
+      "width": 200,
+      "height": 60
+    },
+    "image": [
+      "https://grandtouchauto.com/service-ceramic.jpg",
+      "https://grandtouchauto.com/service-ppf.jpg",
+      "https://grandtouchauto.com/service-correction.jpg"
+    ],
+    "sameAs": [
+      "https://www.instagram.com/grandtouchauto"
+    ],
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Automotive Services",
+      "itemListElement": [
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Auto Repair & Diagnostics",
+            "description": "Advanced ECU diagnostics and full mechanical service for luxury and performance vehicles"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Paint & Bodywork",
+            "description": "Factory-grade refinishing, color matching, and full body restorations"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Detailing & Ceramic Coating",
+            "description": "Multi-stage detailing and nano-ceramic protection for superior gloss and durability"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "PPF & Vinyl Wrapping",
+            "description": "Premium XPEL/STEK/3M films and custom vinyl wraps for protection and transformation"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Restoration & Customization",
+            "description": "Classic car restoration and custom modifications"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Off-Road & Performance",
+            "description": "Suspension tuning, lift kits, and performance upgrades"
+          }
+        }
+      ]
+    }
+  };
+  
+  return structuredData;
+};
+
 // Structured data for blog posts
 export const generateBlogStructuredData = (posts: any[]) => {
   const structuredData = {

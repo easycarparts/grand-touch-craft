@@ -1,11 +1,17 @@
+import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import MobileBottomBar from "@/components/MobileBottomBar";
 import { Card } from "@/components/ui/card";
 import { Camera } from "lucide-react";
+import { updatePageSEO } from "@/lib/seo";
 
 const Portfolio = () => {
+  // Update SEO metadata for portfolio page
+  useEffect(() => {
+    updatePageSEO('portfolio');
+  }, []);
   // Placeholder for portfolio - would be replaced with actual images
   const portfolioItems = [
     { id: 1, title: "Ferrari 488 GTB - Full PPF", category: "PPF" },

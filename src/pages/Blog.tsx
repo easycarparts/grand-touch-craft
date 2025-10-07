@@ -157,7 +157,7 @@ const Blog = () => {
                 <div className="relative h-64 lg:h-auto overflow-hidden">
                   <img 
                     src={post.image} 
-                    alt={`${post.title} - ${post.category} service in Dubai`}
+                    alt={`${post.title} - Professional ${post.category.toLowerCase()} service in Dubai by Grand Touch Auto`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                     width="400"
@@ -240,7 +240,7 @@ const Blog = () => {
                 <div className="relative h-48 overflow-hidden">
                   <img 
                     src={post.image} 
-                    alt={`${post.title} - ${post.category} service in Dubai`}
+                    alt={`${post.title} - Professional ${post.category.toLowerCase()} service in Dubai by Grand Touch Auto`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                     width="300"

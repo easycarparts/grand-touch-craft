@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -6,8 +7,28 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import BookServiceDialog from "@/components/BookServiceDialog";
 import { Shield, Droplets, Palette, Sparkles, Wrench, Sun, Package, Zap, MessageCircle } from "lucide-react";
+import { updatePageSEO, generateBusinessStructuredData } from "@/lib/seo";
 
 const Services = () => {
+  // Update SEO metadata for services page
+  useEffect(() => {
+    updatePageSEO('services');
+    
+    // Add business structured data with services
+    const structuredData = generateBusinessStructuredData();
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(structuredData);
+    document.head.appendChild(script);
+    
+    return () => {
+      // Clean up structured data script on unmount
+      const existingScript = document.querySelector('script[type="application/ld+json"]');
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, []);
   const serviceDetails = [
     {
       icon: <Wrench className="w-8 h-8" />,

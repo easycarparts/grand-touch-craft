@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -10,8 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { updatePageSEO } from "@/lib/seo";
 
 const Contact = () => {
+  // Update SEO metadata for contact page
+  useEffect(() => {
+    updatePageSEO('contact');
+  }, []);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",

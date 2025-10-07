@@ -1,10 +1,32 @@
+import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import MobileBottomBar from "@/components/MobileBottomBar";
 import { Award, Users, Shield, Sparkles } from "lucide-react";
+import { updatePageSEO, generateBusinessStructuredData } from "@/lib/seo";
 
 const About = () => {
+  // Update SEO metadata for about page
+  useEffect(() => {
+    updatePageSEO('about');
+    
+    // Add business structured data
+    const structuredData = generateBusinessStructuredData();
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(structuredData);
+    document.head.appendChild(script);
+    
+    return () => {
+      // Clean up structured data script on unmount
+      const existingScript = document.querySelector('script[type="application/ld+json"]');
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, []);
+
   return (
     <div className="min-h-screen pb-20 md:pb-0">
       <Navbar />
