@@ -22,7 +22,7 @@ const Blog = () => {
       publishedAt: "2024-01-15",
       readTime: "8 min read",
       category: "Detailing",
-      image: "/src/assets/service-ceramic.jpg",
+      image: "/service-ceramic.jpg",
       featured: true,
     },
     {
@@ -34,7 +34,7 @@ const Blog = () => {
       publishedAt: "2024-01-10",
       readTime: "6 min read",
       category: "Protection",
-      image: "/src/assets/service-ppf.jpg",
+      image: "/service-ppf.jpg",
       featured: false,
     },
     {
@@ -46,7 +46,7 @@ const Blog = () => {
       publishedAt: "2024-01-05",
       readTime: "10 min read",
       category: "Detailing",
-      image: "/src/assets/service-correction.jpg",
+      image: "/service-correction.jpg",
       featured: false,
     },
     {
@@ -58,7 +58,7 @@ const Blog = () => {
       publishedAt: "2024-01-01",
       readTime: "7 min read",
       category: "Customization",
-      image: "/src/assets/service-wrap.jpg",
+      image: "/service-wrap.jpg",
       featured: false,
     },
     {
@@ -70,7 +70,7 @@ const Blog = () => {
       publishedAt: "2023-12-28",
       readTime: "9 min read",
       category: "Performance",
-      image: "/src/assets/service-performance.jpg",
+      image: "/service-performance.jpg",
       featured: false,
     },
     {
@@ -82,7 +82,7 @@ const Blog = () => {
       publishedAt: "2023-12-25",
       readTime: "12 min read",
       category: "Restoration",
-      image: "/src/assets/service-restoration.jpg",
+      image: "/service-restoration.jpg",
       featured: false,
     },
   ];
