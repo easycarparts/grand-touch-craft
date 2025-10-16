@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import MobileBottomBar from "@/components/MobileBottomBar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -290,7 +289,6 @@ const Blog = () => {
 
       <Footer />
       <WhatsAppButton />
-      <MobileBottomBar />
     </div>
   );
 };

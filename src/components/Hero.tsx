@@ -27,13 +27,13 @@ const Hero = () => {
           {/* Badge */}
           <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 backdrop-blur-sm">
             <Wrench className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Dubai's Luxury Automotive Studio</span>
+            <span className="text-sm font-medium text-primary">Dubai's All-In-One Car Care Hub</span>
           </div>
 
           {/* Main Headline */}
           <h1 className="mb-6 leading-tight">
-            <span className="block text-foreground">Dubai's Luxury</span>
-            <span className="block text-primary">Automotive Studio.</span>
+            <span className="block text-foreground">Dubai's Premier</span>
+            <span className="block text-primary">Automotive Hub.</span>
           </h1>
 
           {/* Subheading */}

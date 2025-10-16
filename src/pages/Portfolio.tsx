@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import MobileBottomBar from "@/components/MobileBottomBar";
 import { Card } from "@/components/ui/card";
 import { Camera } from "lucide-react";
 import { updatePageSEO } from "@/lib/seo";
@@ -87,7 +86,6 @@ const Portfolio = () => {
 
       <Footer />
       <WhatsAppButton />
-      <MobileBottomBar />
     </div>
   );
 };

@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import MobileBottomBar from "@/components/MobileBottomBar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import BookServiceDialog from "@/components/BookServiceDialog";
@@ -183,7 +182,6 @@ const Services = () => {
 
       <Footer />
       <WhatsAppButton />
-      <MobileBottomBar />
     </div>
   );
 };

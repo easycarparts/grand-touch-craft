@@ -5,7 +5,6 @@ import Services from "@/components/Services";
 import WorkshopShowcase from "@/components/WorkshopShowcase";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import MobileBottomBar from "@/components/MobileBottomBar";
 import { updatePageSEO, generateBusinessStructuredData } from "@/lib/seo";
 
 const Index = () => {
@@ -39,7 +38,6 @@ const Index = () => {
       </main>
       <Footer />
       <WhatsAppButton />
-      <MobileBottomBar />
     </div>
   );
 };

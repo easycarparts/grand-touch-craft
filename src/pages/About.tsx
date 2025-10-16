@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import MobileBottomBar from "@/components/MobileBottomBar";
 import { Award, Users, Shield, Sparkles } from "lucide-react";
 import { updatePageSEO, generateBusinessStructuredData } from "@/lib/seo";
 
@@ -131,7 +130,6 @@ const About = () => {
 
       <Footer />
       <WhatsAppButton />
-      <MobileBottomBar />
     </div>
   );
 };
