@@ -1,27 +1,31 @@
 import { Card } from "@/components/ui/card";
 import { Wrench } from "lucide-react";
+import paintBoothImg from "@/assets/workshop-paint-booth.jpg";
+import diagnosticImg from "@/assets/workshop-diagnostic.jpg";
+import ppfImg from "@/assets/workshop-ppf.jpg";
+import toolsImg from "@/assets/workshop-tools.jpg";
 
 const WorkshopShowcase = () => {
   const showcaseItems = [
     {
       title: "Precision Paint Booth",
       caption: "Factory-grade dust-controlled environment",
-      image: "linear-gradient(135deg, hsl(0 0% 15%), hsl(0 0% 8%))",
+      image: paintBoothImg,
     },
     {
       title: "Diagnostic Center",
       caption: "Advanced ECU & system analysis",
-      image: "linear-gradient(135deg, hsl(0 0% 12%), hsl(0 0% 6%))",
+      image: diagnosticImg,
     },
     {
       title: "PPF Installation Bay",
       caption: "Temperature-controlled precision application",
-      image: "linear-gradient(135deg, hsl(0 0% 14%), hsl(0 0% 7%))",
+      image: ppfImg,
     },
     {
       title: "Professional Tooling",
       caption: "OEM-grade equipment & technology",
-      image: "linear-gradient(135deg, hsl(0 0% 13%), hsl(0 0% 5%))",
+      image: toolsImg,
     },
   ];
 
@@ -54,10 +58,10 @@ const WorkshopShowcase = () => {
               className="flex-shrink-0 w-80 h-96 relative overflow-hidden bg-card border-border/50 hover:border-primary/50 transition-all duration-500 group"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              {/* Placeholder Background */}
+              {/* Background Image */}
               <div
-                className="absolute inset-0"
-                style={{ background: item.image }}
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${item.image})` }}
               />
               
               {/* Content Overlay */}
