@@ -247,7 +247,7 @@ const Booking = () => {
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory>("PPF");
   const [selectedService, setSelectedService] = useState<SelectedService | null>(null);
   const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("+971");
   const [vehicleInfo, setVehicleInfo] = useState("");
 
   // Helper to get PPF price based on vehicle size
@@ -392,7 +392,28 @@ Can you confirm availability and next steps?
   const scrollToBooking = () => {
     const element = document.getElementById('booking-checkout');
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Scroll with offset to account for navbar and keep title visible
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - 100; // 100px offset for title visibility
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const scrollToService = () => {
+    const element = document.getElementById('service-selection');
+    if (element) {
+      // Scroll with offset to account for fixed navbar and keep title visible
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - 100; // 100px offset for title visibility
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
@@ -443,7 +464,10 @@ Can you confirm availability and next steps?
             {(["Small", "Medium", "Large"] as VehicleSize[]).map((size) => (
               <button
                 key={size}
-                onClick={() => setSelectedSize(size)}
+                onClick={() => {
+                  setSelectedSize(size);
+                  scrollToService();
+                }}
                 className={`relative bg-white rounded-xl overflow-hidden transition-all duration-300 ${
                   selectedSize === size
                     ? "ring-2 ring-primary ring-offset-2 ring-offset-[#0f0f0f] shadow-[0_0_30px_rgba(248,180,0,0.5)]"
@@ -471,7 +495,7 @@ Can you confirm availability and next steps?
         </section>
 
         {/* STEP 2: Service Category Selection */}
-        <section className="mb-16">
+        <section id="service-selection" className="mb-16">
           <div className="relative flex items-center justify-center mb-8">
             <div className="flex-1 h-px bg-white/20"></div>
             <span className="px-6 text-sm font-semibold uppercase tracking-wider text-primary">
@@ -697,7 +721,7 @@ Can you confirm availability and next steps?
                       className="w-full rounded-lg bg-[#0f0f0f] border border-gray-700 text-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F8B400] transition-all"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="+971 XX XXX XXXX"
+                      placeholder="XX XXX XXXX"
                     />
                   </div>
                   <div>
