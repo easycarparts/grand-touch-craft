@@ -2,6 +2,14 @@ import { useState } from "react";
 import emailjs from "@emailjs/browser";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import carSmallGT3 from "@/assets/car-small-gt3.jpg";
+import carMediumCayenne from "@/assets/car-medium-cayenne.jpg";
+import carLargeGwagon from "@/assets/car-large-gwagon.jpg";
+import servicePPFDetail from "@/assets/service-ppf-detail.jpg";
+import serviceCeramicDetail from "@/assets/service-ceramic-detail.jpg";
+import serviceTintDetail from "@/assets/service-tint-detail.jpg";
+import servicePolishingDetail from "@/assets/service-polishing-detail.jpg";
+import { Shield, Sparkles, Sun, Gem, Gift } from "lucide-react";
 
 // NOTE: @emailjs/browser is already installed in package.json
 // EmailJS Constants
@@ -236,16 +244,39 @@ const Booking = () => {
     return service.prices[size];
   };
 
-  // Helper to get icon for category
-  const getCategoryIcon = (category: ServiceCategory): string => {
-    const icons: Record<ServiceCategory, string> = {
-      "Package Offers": "🎁",
-      "PPF": "🛡️",
-      "Ceramic": "✨",
-      "Tint": "🪟",
-      "Polishing": "💎"
+  // Helper to get icon component for category
+  const getCategoryIcon = (category: ServiceCategory) => {
+    const iconClass = "w-6 h-6";
+    const icons: Record<ServiceCategory, JSX.Element> = {
+      "Package Offers": <Gift className={iconClass} />,
+      "PPF": <Shield className={iconClass} />,
+      "Ceramic": <Sparkles className={iconClass} />,
+      "Tint": <Sun className={iconClass} />,
+      "Polishing": <Gem className={iconClass} />
     };
-    return icons[category] || "🚗";
+    return icons[category] || <Shield className={iconClass} />;
+  };
+
+  // Helper to get car image based on size
+  const getCarImage = (size: VehicleSize): string => {
+    const images: Record<VehicleSize, string> = {
+      "Small": carSmallGT3,
+      "Medium": carMediumCayenne,
+      "Large": carLargeGwagon
+    };
+    return images[size];
+  };
+
+  // Helper to get service image based on category
+  const getServiceImage = (category: ServiceCategory): string => {
+    const images: Record<ServiceCategory, string> = {
+      "Package Offers": servicePPFDetail,
+      "PPF": servicePPFDetail,
+      "Ceramic": serviceCeramicDetail,
+      "Tint": serviceTintDetail,
+      "Polishing": servicePolishingDetail
+    };
+    return images[category];
   };
 
   // Helper to generate WhatsApp link
@@ -379,11 +410,20 @@ Can you confirm availability and next steps?
                     : "ring-2 ring-transparent hover:ring-white/20"
                 }`}
               >
-                <div className="h-[160px] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                  <span className="text-4xl">🚗</span>
+                <div className="h-[200px] bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
+                  <img 
+                    src={getCarImage(size)} 
+                    alt={`${size} vehicle - ${size === 'Small' ? 'Porsche GT3' : size === 'Medium' ? 'Porsche Cayenne' : 'Mercedes G-Wagon'}`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="p-4 bg-white">
                   <p className="text-center font-semibold text-lg text-black">{size}</p>
+                  <p className="text-center text-xs text-gray-500 mt-1">
+                    {size === 'Small' && 'e.g., Porsche GT3'}
+                    {size === 'Medium' && 'e.g., Porsche Cayenne'}
+                    {size === 'Large' && 'e.g., Mercedes G-Wagon'}
+                  </p>
                 </div>
               </button>
             ))}
@@ -414,7 +454,7 @@ Can you confirm availability and next steps?
               <button
                 key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`relative flex flex-col items-center justify-center gap-2 px-6 py-4 rounded-xl min-w-[140px] transition-all duration-300 ${
+                  className={`relative flex flex-col items-center justify-center gap-3 px-6 py-4 rounded-xl min-w-[140px] transition-all duration-300 ${
                     selectedCategory === category
                       ? "bg-primary text-black"
                       : "bg-card border border-white/10 text-white hover:border-primary/50"
@@ -425,7 +465,7 @@ Can you confirm availability and next steps?
                       LIMITED OFFER
                     </span>
                   )}
-                  <div className="text-2xl flex items-center justify-center w-full">{getCategoryIcon(category)}</div>
+                  <div className="flex items-center justify-center w-full">{getCategoryIcon(category)}</div>
                   <span className="text-sm font-semibold text-center leading-tight">{category}</span>
                 </button>
               ))}
@@ -490,10 +530,14 @@ Can you confirm availability and next steps?
                     </div>
                   )}
 
-                  {/* Image Placeholder */}
-                  <div className="h-[200px] bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center relative overflow-hidden">
-                    <div className="text-6xl opacity-30">🚗</div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-card/50 to-transparent"></div>
+                  {/* Service Image */}
+                  <div className="h-[200px] bg-gradient-to-br from-gray-900 to-gray-800 relative overflow-hidden">
+                    <img 
+                      src={getServiceImage(selectedCategory)} 
+                      alt={`${serviceWithPrice.name} service`}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent"></div>
                   </div>
 
                   {/* Content */}
