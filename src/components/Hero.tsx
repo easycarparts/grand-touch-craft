@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import BookServiceDialog from "@/components/BookServiceDialog";
 import { ArrowRight, Shield, Wrench } from "lucide-react";
 import heroImage from "@/assets/hero-workshop.jpg";
 import { Link } from "react-router-dom";
@@ -43,7 +42,7 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-16">
-            <BookServiceDialog>
+            <Link to="/bookings">
               <Button
                 size="lg"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold px-8 py-6 shadow-glow animate-glow group"
@@ -51,7 +50,7 @@ const Hero = () => {
                 Book Your Service
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
-            </BookServiceDialog>
+            </Link>
             <Button
               asChild
               size="lg"

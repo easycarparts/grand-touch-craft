@@ -56,16 +56,16 @@ interface ServicesData {
 const servicesData: ServicesData = {
   PPF: [
     {
-      name: "C-Clear",
+      name: "Dyno Shield",
       description: [
-        "Gloss finish for clean, clear shine",
-        "Hydrophobic top coat repels water",
-        "Self-healing surface for light scratches",
-        "UV & stain resistant protection",
-        "3-year warranty coverage"
+        "Nano-ceramic top coat",
+        "Extreme gloss & clarity",
+        "Maximum chip protection",
+        "Stain & UV resistant",
+        "10-year warranty coverage"
       ],
-      prices: { Small: 5499, Medium: 5999, Large: 6999 },
-      tag: "Entry Level"
+      prices: { Small: 10999, Medium: 12000, Large: 14500 },
+      tag: "Premium"
     },
     {
       name: "Force Shield",
@@ -80,19 +80,31 @@ const servicesData: ServicesData = {
       tag: "Recommended"
     },
     {
-      name: "Dyno Shield",
+      name: "C-Clear",
       description: [
-        "Nano-ceramic top coat",
-        "Extreme gloss & clarity",
-        "Maximum chip protection",
-        "Stain & UV resistant",
-        "10-year warranty coverage"
+        "Gloss finish for clean, clear shine",
+        "Hydrophobic top coat repels water",
+        "Self-healing surface for light scratches",
+        "UV & stain resistant protection",
+        "3-year warranty coverage"
       ],
-      prices: { Small: 10999, Medium: 12000, Large: 14500 },
-      tag: "Premium"
+      prices: { Small: 5499, Medium: 5999, Large: 6999 },
+      tag: "Entry Level"
     }
   ],
   Ceramic: [
+    {
+      name: "Full Ceramic Coating",
+      description: [
+        "Full exterior ceramic protection",
+        "Full interior ceramic protection",
+        "Deep gloss & hydrophobic finish outside",
+        "Interior stain + UV protection",
+        "Bundle pricing (save vs separate)"
+      ],
+      price: 1749,
+      tag: "Best Value"
+    },
     {
       name: "Exterior Ceramic",
       description: [
@@ -112,33 +124,9 @@ const servicesData: ServicesData = {
         "Anti-fade / anti-aging treatment"
       ],
       price: 749
-    },
-    {
-      name: "Full Ceramic Coating",
-      description: [
-        "Full exterior ceramic protection",
-        "Full interior ceramic protection",
-        "Deep gloss & hydrophobic finish outside",
-        "Interior stain + UV protection",
-        "Bundle pricing (save vs separate)"
-      ],
-      price: 1749,
-      tag: "Best Value"
     }
   ],
   Tint: [
-    {
-      name: "STEK SMARTseries (Nano-Ceramic)",
-      description: [
-        "Nano-ceramic heat rejection",
-        "Up to 60% total solar energy rejection",
-        "Cuts glare, cooler cabin",
-        "99% UV protection",
-        "Lifetime warranty"
-      ],
-      price: 1999,
-      tag: "Recommended"
-    },
     {
       name: "STEK NEXseries (Graphene Nano-Ceramic)",
       description: [
@@ -150,6 +138,18 @@ const servicesData: ServicesData = {
       ],
       price: 2499,
       tag: "Premium"
+    },
+    {
+      name: "STEK SMARTseries (Nano-Ceramic)",
+      description: [
+        "Nano-ceramic heat rejection",
+        "Up to 60% total solar energy rejection",
+        "Cuts glare, cooler cabin",
+        "99% UV protection",
+        "Lifetime warranty"
+      ],
+      price: 1999,
+      tag: "Recommended"
     },
     {
       name: "STEK ACTIONseries (Carbon)",
@@ -210,18 +210,6 @@ const servicesData: ServicesData = {
       tag: "Premium"
     },
     {
-      name: "Tint & Detail Package",
-      description: [
-        "Nano-carbon tint + full detail",
-        "Protects cabin from heat & UV",
-        "Deep clean, interior + exterior",
-        "Free polish + inspection",
-        "Perfect for daily drivers"
-      ],
-      price: 1749,
-      tag: "Popular"
-    },
-    {
       name: "Ceramic & Interior Protection Package",
       description: [
         "Deep gloss ceramic coating",
@@ -232,6 +220,18 @@ const servicesData: ServicesData = {
       ],
       price: 2249,
       tag: "Refinement"
+    },
+    {
+      name: "Tint & Detail Package",
+      description: [
+        "Nano-carbon tint + full detail",
+        "Protects cabin from heat & UV",
+        "Deep clean, interior + exterior",
+        "Free polish + inspection",
+        "Perfect for daily drivers"
+      ],
+      price: 1749,
+      tag: "Popular"
     }
   ]
 };
@@ -413,7 +413,7 @@ Can you confirm availability and next steps?
     <div className="min-h-screen bg-[#0f0f0f] pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-12 max-w-7xl">
+      <main className="container mx-auto px-4 pt-24 pb-12 max-w-7xl">
         {/* Header Section */}
         <div className="text-center mb-12">
           <div className="relative flex items-center justify-center mb-8">
@@ -467,12 +467,6 @@ Can you confirm availability and next steps?
                 </div>
               </button>
             ))}
-          </div>
-
-          <div className="text-center">
-            <button className="bg-primary text-black font-semibold px-8 py-3 rounded-lg hover:bg-primary/90 transition-colors">
-              Car Size Guide
-            </button>
           </div>
         </section>
 
@@ -723,7 +717,7 @@ Can you confirm availability and next steps?
                   className="w-full bg-[#F8B400] text-black font-semibold rounded-lg py-3 text-center mt-6 hover:brightness-110 transition disabled:opacity-40"
                   disabled={!selectedService}
                 >
-                  Complete Booking on WhatsApp
+                  Complete Booking
                 </button>
 
                 <p className="text-xs text-gray-500 text-center mt-2">
