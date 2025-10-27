@@ -571,7 +571,7 @@ Can you confirm availability and next steps?
                     isSelected
                       ? "border-2 border-primary shadow-[0_0_30px_rgba(248,180,0,0.5)]"
                       : selectedService
-                      ? "border border-white/5 opacity-40"
+                      ? "border border-white/5 opacity-85"
                       : "border border-white/5 hover:border-primary/20"
                   }`}
                 >
