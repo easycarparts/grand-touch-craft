@@ -5,10 +5,21 @@ import Footer from "@/components/Footer";
 import carSmallGT3 from "@/assets/car-small-gt3.jpg";
 import carMediumCayenne from "@/assets/car-medium-cayenne.jpg";
 import carLargeGwagon from "@/assets/car-large-gwagon.jpg";
-import servicePPFDetail from "@/assets/service-ppf-detail.jpg";
-import serviceCeramicDetail from "@/assets/service-ceramic-detail.jpg";
-import serviceTintDetail from "@/assets/service-tint-detail.jpg";
-import servicePolishingDetail from "@/assets/service-polishing-detail.jpg";
+import packagePPFElite from "@/assets/package-ppf-elite.jpg";
+import packageTintDetail from "@/assets/package-tint-detail.jpg";
+import packageCeramicInterior from "@/assets/package-ceramic-interior.jpg";
+import ppfCClear from "@/assets/ppf-cclear-entry.jpg";
+import ppfForceShield from "@/assets/ppf-forceshield-recommended.jpg";
+import ppfDynoShield from "@/assets/ppf-dynoshield-premium.jpg";
+import ceramicExterior from "@/assets/ceramic-exterior-only.jpg";
+import ceramicInterior from "@/assets/ceramic-interior-only.jpg";
+import ceramicFull from "@/assets/ceramic-full-bundle.jpg";
+import tintSmart from "@/assets/tint-smart-recommended.jpg";
+import tintNex from "@/assets/tint-nex-premium.jpg";
+import tintAction from "@/assets/tint-action-entry.jpg";
+import polishFull from "@/assets/polish-full-detailing.jpg";
+import polishOnly from "@/assets/polish-only-correction.jpg";
+import detailingOnly from "@/assets/detailing-only-interior.jpg";
 import { Shield, Sparkles, Sun, Gem, Gift } from "lucide-react";
 
 // NOTE: @emailjs/browser is already installed in package.json
@@ -267,16 +278,45 @@ const Booking = () => {
     return images[size];
   };
 
-  // Helper to get service image based on category
-  const getServiceImage = (category: ServiceCategory): string => {
-    const images: Record<ServiceCategory, string> = {
-      "Package Offers": servicePPFDetail,
-      "PPF": servicePPFDetail,
-      "Ceramic": serviceCeramicDetail,
-      "Tint": serviceTintDetail,
-      "Polishing": servicePolishingDetail
-    };
-    return images[category];
+  // Helper to get specific service image based on service name and category
+  const getServiceImage = (serviceName: string, category: ServiceCategory): string => {
+    // Package Offers
+    if (category === "Package Offers") {
+      if (serviceName === "PPF Elite Package") return packagePPFElite;
+      if (serviceName === "Tint & Detail Package") return packageTintDetail;
+      if (serviceName === "Ceramic & Interior Protection Package") return packageCeramicInterior;
+    }
+    
+    // PPF Services
+    if (category === "PPF") {
+      if (serviceName === "C-Clear") return ppfCClear;
+      if (serviceName === "Force Shield") return ppfForceShield;
+      if (serviceName === "Dyno Shield") return ppfDynoShield;
+    }
+    
+    // Ceramic Services
+    if (category === "Ceramic") {
+      if (serviceName === "Exterior Ceramic") return ceramicExterior;
+      if (serviceName === "Interior Ceramic") return ceramicInterior;
+      if (serviceName === "Full Ceramic Coating") return ceramicFull;
+    }
+    
+    // Tint Services
+    if (category === "Tint") {
+      if (serviceName === "STEK SMARTseries (Nano-Ceramic)") return tintSmart;
+      if (serviceName === "STEK NEXseries (Graphene Nano-Ceramic)") return tintNex;
+      if (serviceName === "STEK ACTIONseries (Carbon)") return tintAction;
+    }
+    
+    // Polishing Services
+    if (category === "Polishing") {
+      if (serviceName === "Detailing & Polishing (Full)") return polishFull;
+      if (serviceName === "Polishing Only") return polishOnly;
+      if (serviceName === "Detailing Only") return detailingOnly;
+    }
+    
+    // Fallback
+    return packagePPFElite;
   };
 
   // Helper to generate WhatsApp link
@@ -533,7 +573,7 @@ Can you confirm availability and next steps?
                   {/* Service Image */}
                   <div className="h-[200px] bg-gradient-to-br from-gray-900 to-gray-800 relative overflow-hidden">
                     <img 
-                      src={getServiceImage(selectedCategory)} 
+                      src={getServiceImage(serviceWithPrice.name, selectedCategory)} 
                       alt={`${serviceWithPrice.name} service`}
                       className="w-full h-full object-cover"
                     />
