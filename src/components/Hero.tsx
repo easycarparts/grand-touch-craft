@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Wrench } from "lucide-react";
+import { ArrowRight, Wrench } from "lucide-react";
 import heroImage from "@/assets/hero-workshop.jpg";
 import { Link } from "react-router-dom";
 
@@ -51,17 +51,6 @@ const Hero = () => {
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="border-2 border-primary/30 text-foreground hover:bg-primary/10 text-base font-semibold px-8 py-6 backdrop-blur-sm"
-            >
-              <Link to="/portfolio">
-                <Shield className="mr-2 w-5 h-5" />
-                View Our Work
-              </Link>
-            </Button>
           </div>
 
           {/* Stats */}
