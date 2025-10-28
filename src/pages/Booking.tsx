@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -243,6 +244,7 @@ interface SelectedService {
 }
 
 const Booking = () => {
+  const navigate = useNavigate();
   const [selectedSize, setSelectedSize] = useState<VehicleSize>("Medium");
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory>("PPF");
   const [selectedService, setSelectedService] = useState<SelectedService | null>(null);
@@ -386,6 +388,21 @@ Can you confirm availability and next steps?
     // Open WhatsApp chat with prefilled message
     const waUrl = `https://wa.me/971567191045?text=${encodeURIComponent(message)}`;
     window.open(waUrl, "_blank");
+
+    // Navigate to thank you page with booking data
+    navigate("/thank-you", {
+      state: {
+        bookingData: {
+          serviceName: selectedService.serviceName,
+          category: selectedService.category,
+          vehicleSize: selectedSize,
+          customerName: customerName,
+          customerPhone: customerPhone,
+          vehicleInfo: vehicleInfo,
+          price: selectedService.price
+        }
+      }
+    });
   };
 
   // Scroll to booking section
