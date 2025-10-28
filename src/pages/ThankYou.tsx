@@ -8,16 +8,6 @@ const ThankYou = () => {
   const bookingData = location.state?.bookingData;
 
   useEffect(() => {
-    // Meta Pixel tracking for conversion
-    if (typeof window !== 'undefined' && (window as any).fbq) {
-      (window as any).fbq('track', 'Purchase', {
-        value: bookingData?.price || 0,
-        currency: 'AED',
-        content_name: bookingData?.serviceName || 'Service Booking',
-        content_category: bookingData?.category || 'Automotive Service'
-      });
-    }
-
     // Google Analytics tracking (if you have it)
     if (typeof window !== 'undefined' && (window as any).gtag) {
       (window as any).gtag('event', 'purchase', {
