@@ -776,7 +776,7 @@ Can you confirm availability and next steps?
                       setDiscountCode(e.target.value.toUpperCase());
                       setDiscountError("");
                     }}
-                    placeholder="Enter code (e.g., GT15)"
+                    placeholder="Enter discount code"
                     className="flex-1 rounded-lg bg-[#1a1a1a] border border-gray-700 text-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F8B400] transition-all uppercase"
                     disabled={discountApplied}
                   />
