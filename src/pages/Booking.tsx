@@ -21,7 +21,7 @@ import tintAction from "@/assets/tint-action-entry.jpg";
 import polishFull from "@/assets/polish-full-detailing.jpg";
 import polishOnly from "@/assets/polish-only-correction.jpg";
 import detailingOnly from "@/assets/detailing-only-interior.jpg";
-import { Shield, Sparkles, Sun, Gem, Gift } from "lucide-react";
+import { Shield, Sparkles, Sun, Gem, Gift, Tag, CheckCircle2, XCircle } from "lucide-react";
 
 // NOTE: @emailjs/browser is already installed in package.json
 // EmailJS Constants
@@ -251,6 +251,9 @@ const Booking = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("+971");
   const [vehicleInfo, setVehicleInfo] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountApplied, setDiscountApplied] = useState(false);
+  const [discountError, setDiscountError] = useState("");
 
   // Helper to get PPF price based on vehicle size
   const getPPFPrice = (service: PPFService, size: VehicleSize): number => {
@@ -333,6 +336,33 @@ const Booking = () => {
     return `AED ${price.toLocaleString()}`;
   };
 
+  // Handle discount code application
+  const handleApplyDiscount = () => {
+    if (discountCode.trim().toUpperCase() === "GT15") {
+      setDiscountApplied(true);
+      setDiscountError("");
+    } else {
+      setDiscountApplied(false);
+      setDiscountError("Invalid discount code. Please try again.");
+    }
+  };
+
+  // Calculate final price with discount
+  const calculateFinalPrice = (originalPrice: number): number => {
+    if (discountApplied) {
+      return Math.round(originalPrice * 0.85); // 15% discount
+    }
+    return originalPrice;
+  };
+
+  // Calculate discount amount
+  const calculateDiscount = (originalPrice: number): number => {
+    if (discountApplied) {
+      return Math.round(originalPrice * 0.15);
+    }
+    return 0;
+  };
+
   // Handle complete booking
   const handleCompleteBooking = async () => {
     if (!selectedService) {
@@ -345,6 +375,8 @@ const Booking = () => {
       return;
     }
 
+    const finalPrice = calculateFinalPrice(selectedService.price);
+    
     // Payload for EmailJS
     const emailPayload = {
       customer_name: customerName,
@@ -354,6 +386,8 @@ const Booking = () => {
       service_name: selectedService.serviceName,
       service_category: selectedService.category,
       service_price: `AED ${selectedService.price.toLocaleString()}`,
+      final_price: discountApplied ? `AED ${finalPrice.toLocaleString()} (15% discount applied)` : `AED ${finalPrice.toLocaleString()}`,
+      discount_code: discountApplied ? "GT15" : "None",
       timestamp: new Date().toISOString(),
     };
 
@@ -376,7 +410,8 @@ Hi Sean, I'd like to book:
 - Category: ${selectedService.category}
 - Vehicle Size: ${selectedSize}
 - Vehicle: ${vehicleInfo}
-- Price: AED ${selectedService.price.toLocaleString()}
+- Original Price: AED ${selectedService.price.toLocaleString()}
+${discountApplied ? `- Discount (GT15): -AED ${calculateDiscount(selectedService.price).toLocaleString()}\n- Final Price: AED ${finalPrice.toLocaleString()}` : `- Final Price: AED ${finalPrice.toLocaleString()}`}
 
 My details:
 Name: ${customerName}
@@ -399,7 +434,9 @@ Can you confirm availability and next steps?
           customerName: customerName,
           customerPhone: customerPhone,
           vehicleInfo: vehicleInfo,
-          price: selectedService.price
+          price: selectedService.price,
+          finalPrice: finalPrice,
+          discountApplied: discountApplied
         }
       }
     });
@@ -706,11 +743,86 @@ Can you confirm availability and next steps?
               </div>
               <div>
                 <p className="text-sm text-gray-400 mb-1">Total Price:</p>
-                <p className="font-semibold text-white">
-                  {selectedService?.price ? `AED ${selectedService.price.toLocaleString()}` : "—"}
-                </p>
+                {selectedService?.price && discountApplied ? (
+                  <div>
+                    <p className="font-semibold text-white/50 line-through text-sm">
+                      AED {selectedService.price.toLocaleString()}
+                    </p>
+                    <p className="font-semibold text-green-400 text-lg">
+                      AED {calculateFinalPrice(selectedService.price).toLocaleString()}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="font-semibold text-white">
+                    {selectedService?.price ? `AED ${selectedService.price.toLocaleString()}` : "—"}
+                  </p>
+                )}
               </div>
             </div>
+
+            {/* Discount Code Section */}
+            {selectedService && (
+              <div className="mb-6 p-4 bg-[#0f0f0f] rounded-lg border border-white/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Tag className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold text-white">Have a Discount Code?</h3>
+                </div>
+                
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={discountCode}
+                    onChange={(e) => {
+                      setDiscountCode(e.target.value.toUpperCase());
+                      setDiscountError("");
+                    }}
+                    placeholder="Enter code (e.g., GT15)"
+                    className="flex-1 rounded-lg bg-[#1a1a1a] border border-gray-700 text-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F8B400] transition-all uppercase"
+                    disabled={discountApplied}
+                  />
+                  <button
+                    onClick={handleApplyDiscount}
+                    disabled={discountApplied || !discountCode.trim()}
+                    className="px-6 py-3 bg-primary text-black font-semibold rounded-lg hover:brightness-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {discountApplied ? "Applied" : "Apply"}
+                  </button>
+                </div>
+
+                {/* Success Message */}
+                {discountApplied && (
+                  <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-green-400 font-semibold text-sm">Discount Applied! 🎉</p>
+                      <p className="text-green-400/80 text-xs mt-1">
+                        You saved AED {calculateDiscount(selectedService.price).toLocaleString()} (15% off)
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setDiscountApplied(false);
+                        setDiscountCode("");
+                      }}
+                      className="text-green-400/60 hover:text-green-400 text-xs font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {discountError && !discountApplied && (
+                  <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
+                    <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-red-400 font-semibold text-sm">Invalid Code</p>
+                      <p className="text-red-400/80 text-xs mt-1">{discountError}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Form or Empty State */}
             {!selectedService ? (
