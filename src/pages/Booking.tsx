@@ -63,7 +63,7 @@ const servicesData: ServicesData = {
         "Extreme gloss & clarity",
         "Maximum chip protection",
         "Stain & UV resistant",
-        "10-year warranty coverage"
+        "12-year warranty coverage"
       ],
       prices: { Small: 10999, Medium: 12000, Large: 14500 },
       tag: "Premium"
@@ -75,7 +75,7 @@ const servicesData: ServicesData = {
         "Self-healing TPU film",
         "Enhanced hydrophobic coating",
         "Strong rock-chip resistance",
-        "5-year warranty – most popular"
+        "10-year warranty – most popular"
       ],
       prices: { Small: 6999, Medium: 7499, Large: 8999 },
       tag: "Recommended"
@@ -87,7 +87,7 @@ const servicesData: ServicesData = {
         "Hydrophobic top coat repels water",
         "Self-healing surface for light scratches",
         "UV & stain resistant protection",
-        "3-year warranty coverage"
+        "5-year warranty coverage"
       ],
       prices: { Small: 5499, Medium: 5999, Large: 6999 },
       tag: "Entry Level"
