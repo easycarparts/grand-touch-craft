@@ -21,7 +21,7 @@ import tintAction from "@/assets/tint-action-entry.jpg";
 import polishFull from "@/assets/polish-full-detailing.jpg";
 import polishOnly from "@/assets/polish-only-correction.jpg";
 import detailingOnly from "@/assets/detailing-only-interior.jpg";
-import { Shield, Sparkles, Sun, Gem, Gift, Tag, CheckCircle2, XCircle } from "lucide-react";
+import { Shield, Sparkles, Sun, Gem, Gift, Tag, CheckCircle2, XCircle, Star } from "lucide-react";
 
 // NOTE: @emailjs/browser is already installed in package.json
 // EmailJS Constants
@@ -498,6 +498,21 @@ Can you confirm availability and next steps?
             </span>
             <div className="flex-1 h-px bg-white/20"></div>
           </div>
+
+          {/* Google Reviews Trust Badge */}
+          <div className="flex items-center justify-center gap-3 mb-6 p-4 bg-white/5 border border-white/10 rounded-lg max-w-md mx-auto backdrop-blur-sm">
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4].map((star) => (
+                <Star key={star} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+              ))}
+              <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" style={{ clipPath: 'inset(0 10% 0 0)' }} />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-white">4.9</span>
+              <span className="text-xs text-white/60">Google Reviews</span>
+            </div>
+          </div>
+
           <p className="text-white/60 text-sm mb-4">STEK Certified PPF / STEK Tint / Ceramic / Detailing</p>
         </div>
 
