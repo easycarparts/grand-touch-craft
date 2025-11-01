@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import carSmallGT3 from "@/assets/car-small-gt3.jpg";
 import carMediumCayenne from "@/assets/car-medium-cayenne.jpg";
 import carLargeGwagon from "@/assets/car-large-gwagon.jpg";
@@ -487,6 +489,22 @@ Can you confirm availability and next steps?
   return (
     <div className="min-h-screen bg-[#0f0f0f] pb-20 md:pb-0">
       <Navbar />
+
+      {/* WhatsApp Button - Booking Page Specific */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          size="lg"
+          className="w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#20BD5A] text-white shadow-elegant animate-glow p-0"
+          aria-label="Contact us on WhatsApp"
+          onClick={() => {
+            const message = "I would like to learn more about your services.";
+            const waUrl = `https://wa.me/971567191045?text=${encodeURIComponent(message)}`;
+            window.open(waUrl, "_blank");
+          }}
+        >
+          <MessageCircle className="w-6 h-6" />
+        </Button>
+      </div>
       
       <main className="container mx-auto px-4 pt-24 pb-12 max-w-7xl">
         {/* Header Section */}
