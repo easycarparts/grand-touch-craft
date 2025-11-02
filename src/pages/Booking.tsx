@@ -256,6 +256,7 @@ const Booking = () => {
   const [discountCode, setDiscountCode] = useState("");
   const [discountApplied, setDiscountApplied] = useState(false);
   const [discountError, setDiscountError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
 
   // Helper to get PPF price based on vehicle size
   const getPPFPrice = (service: PPFService, size: VehicleSize): number => {
@@ -365,6 +366,31 @@ const Booking = () => {
     return 0;
   };
 
+  // Validate phone number - accepts any international format
+  const validatePhoneNumber = (phone: string): boolean => {
+    // Remove spaces and dashes for validation
+    const cleaned = phone.replace(/[\s-]/g, "");
+    
+    // Must start with + and contain only digits after that
+    // Format: +[country code][number]
+    // Examples: +1 5551234567 (US), +44 7123456789 (UK), +971 501234567 (UAE)
+    // Minimum 10 characters total to ensure it's a complete number (not just country code)
+    // This allows for various country code lengths (1-3 digits) and ensures enough digits follow
+    const internationalPhoneRegex = /^\+[0-9]{9,}$/;
+    
+    // Minimum 10 characters ensures we have country code + enough digits for a valid number
+    return internationalPhoneRegex.test(cleaned) && cleaned.length >= 10;
+  };
+
+  // Check if form is valid for submission
+  const isFormValid = (): boolean => {
+    if (!selectedService) return false;
+    if (!customerName.trim()) return false;
+    if (!validatePhoneNumber(customerPhone)) return false;
+    if (!vehicleInfo.trim()) return false;
+    return true;
+  };
+
   // Handle complete booking
   const handleCompleteBooking = async () => {
     if (!selectedService) {
@@ -372,8 +398,18 @@ const Booking = () => {
       return;
     }
 
-    if (!customerName || !customerPhone || !vehicleInfo) {
-      alert("Please fill in your name, phone, and vehicle details.");
+    if (!customerName.trim()) {
+      alert("Please enter your full name.");
+      return;
+    }
+
+    if (!validatePhoneNumber(customerPhone)) {
+      setPhoneError("Please enter a valid international phone number with country code (e.g., +971 50 123 4567 or +1 555 123 4567)");
+      return;
+    }
+
+    if (!vehicleInfo.trim()) {
+      alert("Please enter your vehicle make and model.");
       return;
     }
 
@@ -884,13 +920,41 @@ Can you confirm availability and next steps?
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-gray-300 mb-1 block">Phone / WhatsApp Number</label>
+                    <label className="text-sm text-gray-300 mb-1 block">Phone / WhatsApp Number *</label>
                     <input
-                      className="w-full rounded-lg bg-[#0f0f0f] border border-gray-700 text-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F8B400] transition-all"
+                      type="tel"
+                      className={`w-full rounded-lg bg-[#0f0f0f] border text-white p-3 text-sm focus:outline-none focus:ring-2 transition-all ${
+                        phoneError 
+                          ? "border-red-500 focus:ring-red-500" 
+                          : "border-gray-700 focus:ring-[#F8B400]"
+                      }`}
                       value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="XX XXX XXXX"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setCustomerPhone(value);
+                        // Clear error when user starts typing
+                        if (phoneError) {
+                          setPhoneError("");
+                        }
+                      }}
+                      onBlur={() => {
+                        // Validate when user leaves the field
+                        if (customerPhone && !validatePhoneNumber(customerPhone)) {
+                          setPhoneError("Please enter a valid international phone number with country code");
+                        } else {
+                          setPhoneError("");
+                        }
+                      }}
+                      placeholder="+971 50 123 4567 or +1 555 123 4567"
                     />
+                    {phoneError && (
+                      <p className="text-red-400 text-xs mt-1">{phoneError}</p>
+                    )}
+                    {!phoneError && customerPhone && !validatePhoneNumber(customerPhone) && (
+                      <p className="text-yellow-400 text-xs mt-1">
+                        Enter a complete phone number to continue
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="text-sm text-gray-300 mb-1 block">Vehicle Make & Model</label>
@@ -906,8 +970,8 @@ Can you confirm availability and next steps?
                 {/* Submit Button */}
                 <button
                   onClick={handleCompleteBooking}
-                  className="w-full bg-[#F8B400] text-black font-semibold rounded-lg py-3 text-center mt-6 hover:brightness-110 transition disabled:opacity-40"
-                  disabled={!selectedService}
+                  className="w-full bg-[#F8B400] text-black font-semibold rounded-lg py-3 text-center mt-6 hover:brightness-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={!isFormValid()}
                 >
                   Complete Booking
                 </button>
