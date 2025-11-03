@@ -87,9 +87,17 @@ const Footer = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-border/30 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <p className="text-sm text-muted-foreground">
-            © 2025 Grand Touch Auto. All rights reserved.
-          </p>
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              © 2025 Grand Touch Auto. All rights reserved.
+            </p>
+            <Link
+              to="/privacy-policy"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Privacy Policy
+            </Link>
+          </div>
           <div className="flex items-center space-x-4">
             <a
               href="https://www.instagram.com/grandtouchauto/"
