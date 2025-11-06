@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Wrench, Star } from "lucide-react";
-import heroImage from "@/assets/hero-workshop-new.jpg";
+import heroImage from "@/assets/hero-workshop-final.jpg";
 import { Link } from "react-router-dom";
 
 const Hero = () => {
