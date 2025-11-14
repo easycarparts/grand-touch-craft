@@ -1,5 +1,6 @@
 import { MapPin, Phone, Mail, Instagram, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import footerLogo from "@/assets/logo-footer.svg";
 
 const Footer = () => {
   return (
@@ -8,10 +9,11 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="space-y-4">
-            <h3 className="text-2xl font-bold">
-              <span className="text-primary">GRAND</span>
-              <span className="text-foreground"> TOUCH</span>
-            </h3>
+            <img 
+              src={footerLogo} 
+              alt="Grand Touch Auto Logo" 
+              className="h-10 w-auto"
+            />
             <p className="text-muted-foreground text-sm leading-relaxed">
             Dubai's luxury automotive studio for workshop repairs, diagnostics, servicing, paint & bodywork,
             premium detailing, ceramic coatings, PPF, vinyl wraps, restorations, and performance upgrades.
