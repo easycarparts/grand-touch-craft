@@ -12,6 +12,7 @@ import Contact from "./pages/Contact";
 import Blog from "./pages/Blog";
 import Booking from "./pages/Booking";
 import ThankYou from "./pages/ThankYou";
+import ThankYouPayment from "./pages/ThankYouPayment";
 import CeramicCoatingGuide from "./pages/articles/CeramicCoatingGuide";
 import PPFvsCeramic from "./pages/articles/PPFvsCeramic";
 import PaintCorrectionTechniques from "./pages/articles/PaintCorrectionTechniques";
@@ -55,6 +56,7 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/bookings" element={<Booking />} />
             <Route path="/thank-you" element={<ThankYou />} />
+            <Route path="/thankyou" element={<ThankYouPayment />} />
             {/* Article Routes */}
             <Route path="/blog/ceramic-coating-guide" element={<CeramicCoatingGuide />} />
             <Route path="/blog/ppf-vs-ceramic-coating" element={<PPFvsCeramic />} />
