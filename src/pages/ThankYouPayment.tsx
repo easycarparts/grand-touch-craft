@@ -28,30 +28,17 @@ const ThankYouPayment = () => {
             </p>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              asChild
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-            >
-              <Link to="/">
-                <Home className="mr-2 w-4 h-4" />
-                Return Home
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary/10"
-            >
-              <Link to="/bookings">
-                Book Again
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
-            </Button>
-          </div>
+          {/* Action Button */}
+          <Button
+            asChild
+            size="lg"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+          >
+            <Link to="/">
+              <Home className="mr-2 w-4 h-4" />
+              Return Home
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>
