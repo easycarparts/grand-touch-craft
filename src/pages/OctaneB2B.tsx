@@ -223,6 +223,47 @@ export default function OctaneB2B() {
           <p className="text-muted-foreground text-xs mt-4">All pricing in AED excl. 5% VAT. Subject to vehicle condition and inspection.</p>
         </section>
 
+        {/* PPF Film Disclaimer */}
+        <section className="rounded-xl border border-border/50 bg-card/30 p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4 tracking-tight">PPF Film & Wrap Selection & Warranty</h3>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              We reserve the right to select the PPF film or wrap brand used for each installation, provided it meets the warranty specifications agreed upon with Octane's customer. Our standard film selections are as follows:
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              <div>
+                <p className="font-medium text-foreground mb-2">Clear PPF Brands:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>STEK</li>
+                  <li>KDX</li>
+                  <li>DiamondPro</li>
+                  <li>Protect +</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-foreground mb-2">Color PPF Brands:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Protect +</li>
+                  <li>HyperPro</li>
+                  <li>KDX</li>
+                  <li>TopCar</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-foreground mb-2">Wrap Brands:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>KKVinyl</li>
+                  <li>3M</li>
+                  <li>Avery Dennison</li>
+                </ul>
+              </div>
+            </div>
+            <p className="mt-4 pt-4 border-t border-border/30">
+              While we can accommodate specific PPF or wrap brand requests from customers, we reserve the right to adjust pricing accordingly should the requested brand result in increased material costs for us.
+            </p>
+          </div>
+        </section>
+
         {/* Gallery */}
         <section>
           <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-6 tracking-tight">Work Examples</h2>
