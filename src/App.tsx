@@ -22,6 +22,7 @@ import ClassicCarRestoration from "./pages/articles/ClassicCarRestoration";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
+import OctaneB2B from "./pages/OctaneB2B";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ function App() {
             <Route path="/blog/classic-car-restoration" element={<ClassicCarRestoration />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+            <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
