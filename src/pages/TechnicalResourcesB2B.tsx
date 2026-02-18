@@ -13,9 +13,9 @@ import gallery7 from "@/assets/octane-gallery-7.jpg";
 import gallery8 from "@/assets/octane-gallery-8.jpg";
 
 // SECURITY NOTE: Password is hardcoded here. For better security,
-// use VITE_OCTANE_B2B_PASSWORD env var in production.
-const PORTAL_PASSWORD = import.meta.env.VITE_OCTANE_B2B_PASSWORD || "Octane";
-const AUTH_KEY = "octane_b2b_auth";
+// use VITE_TECHNICAL_RESOURCES_B2B_PASSWORD env var in production.
+const PORTAL_PASSWORD = import.meta.env.VITE_TECHNICAL_RESOURCES_B2B_PASSWORD || "Technical";
+const AUTH_KEY = "technical_resources_b2b_auth";
 const EXPIRY_HOURS = 24;
 
 function isAuthenticated(): boolean {
@@ -43,11 +43,10 @@ function clearAuth() {
 
 // Pricing data
 const pricingRows = [
-  { service: "5 Years Warranty", sedan: "5,500", midSuv: "6,000", largeSuv: "7,000" },
-  { service: "10 Years Warranty", sedan: "7,000", midSuv: "7,500", largeSuv: "8,500" },
-  { service: "12 Years Warranty", sedan: "9,000", midSuv: "9,500", largeSuv: "11,000" },
+  { service: "5 Years Warranty (Clear PPF - Matt or Gloss)", sedan: "6,500", midSuv: "7,000", largeSuv: "7,500" },
+  { service: "10 Years Warranty (Clear PPF - Matt or Gloss)", sedan: "7,500", midSuv: "8,000", largeSuv: "8,500" },
+  { service: "Color Change PPF", sedan: "8,000 – 14,000", midSuv: "8,000 – 14,000", largeSuv: "8,000 – 14,000" },
   { service: "Front PPF + Ceramic", sedan: "3,000", midSuv: "3,500", largeSuv: "4,000" },
-  { service: "Colored PPF (5Y W)", sedan: "6,500 – 12,000", midSuv: "7,000 – 12,000", largeSuv: "8,000 – 15,000" },
   { service: "Ceramic Coating", sedan: "800", midSuv: "900", largeSuv: "1,000" },
   { service: "Rear & Side Tints", sedan: "650", midSuv: "700", largeSuv: "750" },
   { service: "Front 0% Tints", sedan: "400", midSuv: "400", largeSuv: "400" },
@@ -106,7 +105,7 @@ function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-4">
               <Shield className="w-7 h-7 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Octane Portal</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Technical Resources Portal</h1>
             <p className="text-muted-foreground text-sm mt-1">B2B Partner Access</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -137,7 +136,7 @@ function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // Main Page
-export default function OctaneB2B() {
+export default function TechnicalResourcesB2B() {
   const [authed, setAuthed] = useState(isAuthenticated);
 
   useEffect(() => { setAuthed(isAuthenticated()); }, []);
@@ -151,9 +150,9 @@ export default function OctaneB2B() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-              Octane – <span className="text-primary">B2B PPF Price List</span>
+              Technical Resources – <span className="text-primary">B2B PPF Price List</span>
             </h1>
-            <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">For Shaq (internal use)</p>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">For Amir Ali (internal use)</p>
           </div>
           <Button
             variant="ghost"
@@ -181,9 +180,9 @@ export default function OctaneB2B() {
               <thead>
                 <tr className="bg-card/60">
                   <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Service</th>
-                  <th className="text-right px-6 py-4 text-sm font-medium text-muted-foreground">Sedan</th>
-                  <th className="text-right px-6 py-4 text-sm font-medium text-muted-foreground">Mid-Size SUV</th>
-                  <th className="text-right px-6 py-4 text-sm font-medium text-muted-foreground">Large SUV / Van</th>
+                  <th className="text-right px-6 py-4 text-sm font-medium text-muted-foreground">Sedan<br/><span className="text-xs font-normal">(Tesla Model 3/Model S)</span></th>
+                  <th className="text-right px-6 py-4 text-sm font-medium text-muted-foreground">Mid-Size SUV<br/><span className="text-xs font-normal">(Tesla Model X/Model Y)</span></th>
+                  <th className="text-right px-6 py-4 text-sm font-medium text-muted-foreground">Large SUV<br/><span className="text-xs font-normal">(Defender, LC 300, etc.)</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -268,7 +267,7 @@ export default function OctaneB2B() {
           <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4 tracking-tight">PPF Film & Wrap Selection & Warranty</h3>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              We reserve the right to select the PPF film or wrap brand used for each installation, provided it meets the warranty specifications agreed upon with Octane's customer. Our standard film selections are as follows:
+              We reserve the right to select the PPF film or wrap brand used for each installation, provided it meets the warranty specifications agreed upon with Technical Resources' customer. Our standard film selections are as follows:
             </p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
               <div>
