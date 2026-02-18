@@ -5,20 +5,29 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import { Card } from "@/components/ui/card";
 import { Camera } from "lucide-react";
 import { updatePageSEO } from "@/lib/seo";
+import gallery1 from "@/assets/octane-gallery-1.jpg";
+import gallery2 from "@/assets/octane-gallery-2.jpg";
+import gallery3 from "@/assets/octane-gallery-3.jpg";
+import gallery4 from "@/assets/octane-gallery-4.jpg";
+import gallery5 from "@/assets/octane-gallery-5.jpg";
+import gallery6 from "@/assets/octane-gallery-6.jpg";
+import gallery7 from "@/assets/octane-gallery-7.jpg";
+import gallery8 from "@/assets/octane-gallery-8.jpg";
 
 const Portfolio = () => {
-  // Update SEO metadata for portfolio page
   useEffect(() => {
     updatePageSEO('portfolio');
   }, []);
-  // Placeholder for portfolio - would be replaced with actual images
+
   const portfolioItems = [
-    { id: 1, title: "Ferrari 488 GTB - Full PPF", category: "PPF" },
-    { id: 2, title: "Lamborghini Urus - Satin Black Wrap", category: "Wrap" },
-    { id: 3, title: "Porsche 911 GT3 - Paint Correction", category: "Correction" },
-    { id: 4, title: "Range Rover Sport - Ceramic Coating", category: "Ceramic" },
-    { id: 5, title: "McLaren 720S - Full PPF + Ceramic", category: "PPF" },
-    { id: 6, title: "Bentley Continental - Chrome Delete", category: "Wrap" },
+    { id: 1, title: "Jetour G700 – Full Matte STEK PPF", category: "PPF", image: gallery1 },
+    { id: 2, title: "Mercedes S-Class – Hyper Pro Champagne Gold PPF", category: "PPF", image: gallery2 },
+    { id: 3, title: "Toyota Prado – Matte STEK PPF", category: "PPF", image: gallery7 },
+    { id: 4, title: "Land Rover Defender – STEK Clear PPF", category: "PPF", image: gallery8 },
+    { id: 5, title: "BMW X5 – Ceramic Coating", category: "Ceramic", image: gallery3 },
+    { id: 6, title: "Toyota Supra – Ceramic Coating", category: "Ceramic", image: gallery4 },
+    { id: 7, title: "Ford Bronco – Ceramic Coating", category: "Ceramic", image: gallery5 },
+    { id: 8, title: "Chevrolet El Camino – Ceramic Coating", category: "Ceramic", image: gallery6 },
   ];
 
   return (
@@ -52,17 +61,21 @@ const Portfolio = () => {
                 className="group relative overflow-hidden bg-card border-border/50 hover:border-primary/50 transition-all duration-500 cursor-pointer aspect-[4/3]"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-card to-muted flex items-center justify-center">
-                  <div className="text-center space-y-4 p-8">
-                    <Camera className="w-16 h-16 text-muted-foreground/30 mx-auto" />
-                    <div>
-                      <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium inline-block mb-3">
-                        {item.category}
-                      </div>
-                      <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
-                        {item.title}
-                      </h3>
+                <div className="absolute inset-0">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <div className="px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium inline-block mb-2 backdrop-blur-sm">
+                      {item.category}
                     </div>
+                    <h3 className="text-lg font-semibold text-white">
+                      {item.title}
+                    </h3>
                   </div>
                 </div>
                 
