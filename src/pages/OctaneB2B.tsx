@@ -56,12 +56,12 @@ const pricingRows = [
 const galleryImages = [
   { src: gallery1, caption: "Full Matte STEK PPF – Jetour G700" },
   { src: gallery2, caption: "Hyper Pro Champagne Gold Colour PPF – Mercedes S-Class" },
+  { src: gallery7, caption: "Matte STEK PPF – Toyota Prado" },
+  { src: gallery8, caption: "STEK Clear PPF – Land Rover Defender" },
   { src: gallery3, caption: "Ceramic Coating – BMW X5" },
   { src: gallery4, caption: "Ceramic Coating – Toyota Supra" },
   { src: gallery5, caption: "Ceramic Coating – Ford Bronco" },
   { src: gallery6, caption: "Ceramic Coating – Chevrolet El Camino" },
-  { src: gallery7, caption: "Matte STEK PPF – Toyota Prado" },
-  { src: gallery8, caption: "STEK Clear PPF – Land Rover Defender" },
 ];
 
 const processSteps = [
