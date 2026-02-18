@@ -220,7 +220,7 @@ export default function OctaneB2B() {
             ))}
           </div>
 
-          <p className="text-muted-foreground text-xs mt-4">All pricing in AED. Subject to vehicle condition and inspection.</p>
+          <p className="text-muted-foreground text-xs mt-4">All pricing in AED excl. 5% VAT. Subject to vehicle condition and inspection.</p>
         </section>
 
         {/* Gallery */}
