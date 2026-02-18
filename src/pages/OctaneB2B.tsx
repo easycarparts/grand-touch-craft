@@ -7,6 +7,10 @@ import gallery1 from "@/assets/octane-gallery-1.jpg";
 import gallery2 from "@/assets/octane-gallery-2.jpg";
 import gallery3 from "@/assets/octane-gallery-3.jpg";
 import gallery4 from "@/assets/octane-gallery-4.jpg";
+import gallery5 from "@/assets/octane-gallery-5.jpg";
+import gallery6 from "@/assets/octane-gallery-6.jpg";
+import gallery7 from "@/assets/octane-gallery-7.jpg";
+import gallery8 from "@/assets/octane-gallery-8.jpg";
 
 // SECURITY NOTE: Password is hardcoded here. For better security,
 // use VITE_OCTANE_B2B_PASSWORD env var in production.
@@ -50,10 +54,14 @@ const pricingRows = [
 ];
 
 const galleryImages = [
-  { src: gallery1, caption: "Full Body PPF – Jetour T2" },
-  { src: gallery2, caption: "Custom Wrap – Mercedes S-Class" },
-  { src: gallery3, caption: "PPF & Ceramic – BMW X5" },
-  { src: gallery4, caption: "Full PPF – Toyota Supra" },
+  { src: gallery1, caption: "Full Matte STEK PPF – Jetour G700" },
+  { src: gallery2, caption: "Hyper Pro Champagne Gold Colour PPF – Mercedes S-Class" },
+  { src: gallery3, caption: "Ceramic Coating – BMW X5" },
+  { src: gallery4, caption: "Ceramic Coating – Toyota Supra" },
+  { src: gallery5, caption: "Ceramic Coating – Ford Bronco" },
+  { src: gallery6, caption: "Ceramic Coating – Chevrolet El Camino" },
+  { src: gallery7, caption: "Matte STEK PPF – Toyota Prado" },
+  { src: gallery8, caption: "STEK Clear PPF – Land Rover Defender" },
 ];
 
 const processSteps = [
