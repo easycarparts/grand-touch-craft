@@ -245,6 +245,12 @@ const TermsAndConditions = () => {
               <p>
                 <strong className="text-foreground">11.3</strong> You are responsible for ensuring you have appropriate insurance for the vehicle. We do not insure your vehicle while it is in our care unless we expressly agree otherwise in writing.
               </p>
+              <p>
+                <strong className="text-foreground">11.4 Customer-specific instructions and manufacturer warranty:</strong> Where you specifically instruct us to perform particular work or processes (for example, removal of trim, interior panels, bumpers, lights, or other components for PPF, wrapping, paintwork, or similar services), you acknowledge and agree that: (a) it is your responsibility, before authorising the work, to check with the vehicle manufacturer or dealer whether such work may affect, limit, or void any manufacturer warranty; (b) we have no duty to obtain that confirmation on your behalf; and (c) we are not liable in any way if the manufacturer or dealer later refuses or limits warranty coverage on the basis that the vehicle has been dismantled, modified, or otherwise worked on in accordance with your instructions and with these Terms.
+              </p>
+              <p>
+                <strong className="text-foreground">11.5 Authority where you are not the registered owner:</strong> Where you request Services in respect of a vehicle that is owned, leased, or otherwise controlled by another person or entity (including, without limitation, a family member, employer, company, or fleet owner), you confirm that you have full authority from that owner or entity to authorise the work. It is your responsibility to obtain any required approvals. We are not responsible for verifying ownership or authority, and we are not liable if any third party (including a registered owner, lessor, or company) later alleges that the work should not have been carried out or that you did not have authority to instruct us.
+              </p>
             </div>
           </section>
 
