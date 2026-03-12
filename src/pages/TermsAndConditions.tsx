@@ -152,6 +152,9 @@ const TermsAndConditions = () => {
               <p>
                 <strong className="text-foreground">6.7 Warranty scope for PPF and wrap:</strong> Our warranty for PPF or wrap includes rectifying any issues with the installation for whatever reason. It strictly does not include refunds if the customer chooses to remove the wrap or PPF. Removal of film or wrap is chargeable and is outside the scope of the warranty.
               </p>
+              <p>
+                <strong className="text-foreground">6.8 Manufacturer warranty claims:</strong> Where a warranty claim relates to the material (manufacturer defect) and not to our installation, we are not liable for the labour to remove and/or reinstall the material. Such labour is chargeable, as the fault lies with the manufacturer and not with our installation. We may charge for labour to rectify issues arising from manufacturer defects.
+              </p>
             </div>
           </section>
 
