@@ -41,10 +41,13 @@ const TermsAndConditions = () => {
                 <strong className="text-foreground">1.1</strong> These Terms and Conditions (&quot;Terms&quot;) apply to all services provided by Grand Touch Auto (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;), including but not limited to: auto repair and diagnostics, paint and bodywork, detailing and ceramic coating, paint protection film (PPF), vinyl wrapping, restoration, customization, and related automotive services (together, &quot;Services&quot;).
               </p>
               <p>
-                <strong className="text-foreground">1.2</strong> By requesting a quote, accepting an estimate, booking an appointment, or leaving your vehicle with us, you (&quot;Customer&quot;, &quot;you&quot;, &quot;your&quot;) agree to these Terms. If you do not agree, you must not use our Services.
+                <strong className="text-foreground">1.2</strong> By requesting a quote, accepting an estimate, booking an appointment, paying a deposit or any amount towards the Services, or leaving your vehicle with us, you (&quot;Customer&quot;, &quot;you&quot;, &quot;your&quot;) agree to these Terms. If you do not agree, you must not use our Services.
               </p>
               <p>
                 <strong className="text-foreground">1.3</strong> These Terms apply in addition to any service-specific terms (e.g. PPF or ceramic coating warranty documents) and any written estimate or invoice you accept. In case of conflict, the signed estimate or invoice prevails for that job, but these Terms otherwise apply in full.
+              </p>
+              <p>
+                <strong className="text-foreground">1.4 Acceptance by conduct:</strong> You may accept these Terms not only by signing or clicking to accept them, but also by proceeding with the booking or job after having been given a reasonable opportunity to review them. This includes (without limitation) where you: (a) pay a deposit or any part of the price for the Services; (b) confirm or proceed with a quotation, estimate, or booking; or (c) leave your vehicle with us for the Services to begin, after we have made these Terms available to you (for example, by sending you a link or referring you to them on our website).
               </p>
             </div>
           </section>
@@ -334,7 +337,7 @@ const TermsAndConditions = () => {
 
           <section className="mt-12 p-6 bg-card border border-border rounded-lg">
             <p className="text-muted-foreground text-sm leading-relaxed">
-              By requesting a quote, accepting an estimate, booking an appointment, or leaving your vehicle with us, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
+              By requesting a quote, accepting an estimate, booking an appointment, paying a deposit or any amount towards the Services, or leaving your vehicle with us, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
             </p>
           </section>
         </div>
