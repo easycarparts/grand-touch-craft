@@ -158,6 +158,9 @@ const TermsAndConditions = () => {
               <p>
                 <strong className="text-foreground">6.8 Manufacturer warranty claims:</strong> Where a warranty claim relates to the material (manufacturer defect) and not to our installation, we are not liable for the labour to remove and/or reinstall the material. Such labour is chargeable, as the fault lies with the manufacturer and not with our installation. We may charge for labour to rectify issues arising from manufacturer defects.
               </p>
+              <p>
+                <strong className="text-foreground">6.9 Road accident PPF replacement (non-fault):</strong> If your installed PPF is damaged due to a road accident or similar incident that is not caused by us or our workmanship, we will work with you to arrange replacement of the PPF at the PPF material cost only. Our PPF is priced per meter; the per-meter material rate applicable to your replacement will depend on the specific PPF material you selected and the cost we paid for the roll (typically ranging from AED 200 to AED 300 per meter). You will not be charged labour for the removal and reinstallation, provided you are a returning customer who has previously worked with us. We will assess the damage and determine the required meterage as part of the replacement process.
+              </p>
             </div>
           </section>
 
