@@ -650,7 +650,7 @@ Can you confirm availability and next steps?
           </h2>
 
           <div className="flex flex-wrap justify-center gap-4">
-            {(["Package Offers", "PPF", "Ceramic", "Tint", "Polishing"] as ServiceCategory[]).map((category) => (
+            {(["PPF", "Ceramic", "Tint", "Polishing"] as ServiceCategory[]).map((category) => (
               <button
                 key={category}
                   onClick={() => setSelectedCategory(category)}
@@ -660,11 +660,6 @@ Can you confirm availability and next steps?
                       : "bg-card border border-white/10 text-white hover:border-primary/50"
                   }`}
                 >
-                  {category === "Package Offers" && (
-                    <span className="absolute -top-2 -right-2 bg-primary text-black text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      LIMITED OFFER
-                    </span>
-                  )}
                   <div className="flex items-center justify-center w-full">{getCategoryIcon(category)}</div>
                   <span className="text-sm font-semibold text-center leading-tight">{category}</span>
                 </button>
