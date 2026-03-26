@@ -60,7 +60,7 @@ interface ServicesData {
 const servicesData: ServicesData = {
   PPF: [
     {
-      name: "12Y PPF",
+      name: "12-Year PPF Warranty",
       description: [
         "Nano-ceramic top coat",
         "Extreme gloss & clarity",
@@ -72,7 +72,7 @@ const servicesData: ServicesData = {
       tag: "Premium"
     },
     {
-      name: "10Y PPF",
+      name: "10-Year PPF Warranty",
       description: [
         "Gloss or matte finish options",
         "Self-healing TPU film",
@@ -84,7 +84,7 @@ const servicesData: ServicesData = {
       tag: "Recommended"
     },
     {
-      name: "5Y PPF",
+      name: "5-Year PPF Warranty",
       description: [
         "Gloss finish for clean, clear shine",
         "Hydrophobic top coat repels water",
@@ -296,9 +296,9 @@ const Booking = () => {
     
     // PPF Services
     if (category === "PPF") {
-      if (serviceName === "5Y PPF") return ppfCClear;
-      if (serviceName === "10Y PPF") return ppfForceShield;
-      if (serviceName === "12Y PPF") return ppfDynoShield;
+      if (serviceName === "5-Year PPF Warranty") return ppfCClear;
+      if (serviceName === "10-Year PPF Warranty") return ppfForceShield;
+      if (serviceName === "12-Year PPF Warranty") return ppfDynoShield;
     }
     
     // Ceramic Services
@@ -795,7 +795,11 @@ Can you confirm availability and next steps?
                 <p className="font-semibold text-white">
                   {selectedService?.serviceName
                     ? selectedCategory === "PPF"
-                      ? `${selectedService.serviceName} (${ppfFinish})`
+                      ? `${selectedService.serviceName.startsWith("12-Year")
+                        ? "12Y PPF"
+                        : selectedService.serviceName.startsWith("10-Year")
+                          ? "10Y PPF"
+                          : "5Y PPF"} (${ppfFinish})`
                       : selectedService.serviceName
                     : "—"}
                 </p>
