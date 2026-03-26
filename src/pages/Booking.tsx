@@ -32,6 +32,7 @@ const EMAILJS_TEMPLATE_ID = "template_bs1inle";
 const EMAILJS_PUBLIC_KEY = "PBrHmtX3m6KZRrwiC";
 
 type VehicleSize = "Small" | "Medium" | "Large";
+type PPFFinish = "Glossy" | "Matte";
 type ServiceCategory = "Package Offers" | "PPF" | "Ceramic" | "Tint" | "Polishing";
 
 interface PPFService {
@@ -59,7 +60,7 @@ interface ServicesData {
 const servicesData: ServicesData = {
   PPF: [
     {
-      name: "Dyno Shield",
+      name: "12-Year PPF Warranty",
       description: [
         "Nano-ceramic top coat",
         "Extreme gloss & clarity",
@@ -67,23 +68,23 @@ const servicesData: ServicesData = {
         "Stain & UV resistant",
         "12-year warranty coverage"
       ],
-      prices: { Small: 10999, Medium: 12000, Large: 14500 },
+      prices: { Small: 12490, Medium: 13990, Large: 14990 },
       tag: "Premium"
     },
     {
-      name: "Force Shield",
+      name: "10-Year PPF Warranty",
       description: [
         "Gloss or matte finish options",
         "Self-healing TPU film",
         "Enhanced hydrophobic coating",
         "Strong rock-chip resistance",
-        "10-year warranty – most popular"
+        "10-year warranty coverage"
       ],
-      prices: { Small: 6999, Medium: 7499, Large: 8999 },
+      prices: { Small: 9990, Medium: 10990, Large: 11500 },
       tag: "Recommended"
     },
     {
-      name: "C-Clear",
+      name: "5-Year PPF Warranty",
       description: [
         "Gloss finish for clean, clear shine",
         "Hydrophobic top coat repels water",
@@ -91,7 +92,7 @@ const servicesData: ServicesData = {
         "UV & stain resistant protection",
         "5-year warranty coverage"
       ],
-      prices: { Small: 5499, Medium: 5999, Large: 6999 },
+      prices: { Small: 6890, Medium: 7480, Large: 7890 },
       tag: "Entry Level"
     }
   ],
@@ -250,6 +251,7 @@ const Booking = () => {
   const [selectedSize, setSelectedSize] = useState<VehicleSize>("Medium");
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory>("PPF");
   const [selectedService, setSelectedService] = useState<SelectedService | null>(null);
+  const [ppfFinish, setPpfFinish] = useState<PPFFinish>("Glossy");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("+971");
   const [vehicleInfo, setVehicleInfo] = useState("");
@@ -297,9 +299,9 @@ const Booking = () => {
     
     // PPF Services
     if (category === "PPF") {
-      if (serviceName === "C-Clear") return ppfCClear;
-      if (serviceName === "Force Shield") return ppfForceShield;
-      if (serviceName === "Dyno Shield") return ppfDynoShield;
+      if (serviceName === "5-Year PPF Warranty") return ppfCClear;
+      if (serviceName === "10-Year PPF Warranty") return ppfForceShield;
+      if (serviceName === "12-Year PPF Warranty") return ppfDynoShield;
     }
     
     // Ceramic Services
@@ -366,6 +368,12 @@ const Booking = () => {
     return 0;
   };
 
+  // PPF finish add-on pricing (only applies to the PPF category selection)
+  const ppfFinishAddOn = selectedCategory === "PPF" && ppfFinish === "Matte" ? 500 : 0;
+  const selectedServicePriceWithFinish = selectedService
+    ? selectedService.price + ppfFinishAddOn
+    : 0;
+
   // Validate phone number - accepts any international format
   const validatePhoneNumber = (phone: string): boolean => {
     // Remove spaces and dashes for validation
@@ -413,7 +421,7 @@ const Booking = () => {
       return;
     }
 
-    const finalPrice = calculateFinalPrice(selectedService.price);
+    const finalPrice = calculateFinalPrice(selectedServicePriceWithFinish);
     
     // Payload for EmailJS
     const emailPayload = {
@@ -423,7 +431,7 @@ const Booking = () => {
       vehicle_size: selectedSize,
       service_name: selectedService.serviceName,
       service_category: selectedService.category,
-      service_price: `AED ${selectedService.price.toLocaleString()}`,
+      service_price: `AED ${selectedServicePriceWithFinish.toLocaleString()}`,
       final_price: discountApplied ? `AED ${finalPrice.toLocaleString()} (15% discount applied)` : `AED ${finalPrice.toLocaleString()}`,
       discount_code: discountApplied ? "GT15" : "None",
       timestamp: new Date().toISOString(),
@@ -448,8 +456,8 @@ Hi Sean, I'd like to book:
 - Category: ${selectedService.category}
 - Vehicle Size: ${selectedSize}
 - Vehicle: ${vehicleInfo}
-- Original Price: AED ${selectedService.price.toLocaleString()}
-${discountApplied ? `- Discount (GT15): -AED ${calculateDiscount(selectedService.price).toLocaleString()}\n- Final Price: AED ${finalPrice.toLocaleString()}` : `- Final Price: AED ${finalPrice.toLocaleString()}`}
+- Original Price: AED ${selectedServicePriceWithFinish.toLocaleString()}
+${discountApplied ? `- Discount (GT15): -AED ${calculateDiscount(selectedServicePriceWithFinish).toLocaleString()}\n- Final Price: AED ${finalPrice.toLocaleString()}` : `- Final Price: AED ${finalPrice.toLocaleString()}`}
 
 My details:
 Name: ${customerName}
@@ -472,8 +480,10 @@ Can you confirm availability and next steps?
           customerName: customerName,
           customerPhone: customerPhone,
           vehicleInfo: vehicleInfo,
-          price: selectedService.price,
+          price: selectedServicePriceWithFinish,
           finalPrice: finalPrice,
+          ppfFinish: selectedCategory === "PPF" ? ppfFinish : undefined,
+          ppfFinishAddOn: selectedCategory === "PPF" ? ppfFinishAddOn : undefined,
           discountApplied: discountApplied
         }
       }
@@ -573,7 +583,9 @@ Can you confirm availability and next steps?
             </div>
           </div>
 
-          <p className="text-white/60 text-sm mb-4">STEK Certified PPF / STEK Tint / Ceramic / Detailing</p>
+          <p className="text-white/60 text-sm mb-4">
+            PPF Warranty Options (5 / 10 / 12 Years) / Tint / Ceramic / Detailing
+          </p>
         </div>
 
         {/* STEP 1: Vehicle Size Selection */}
@@ -821,15 +833,15 @@ Can you confirm availability and next steps?
                 {selectedService?.price && discountApplied ? (
                   <div>
                     <p className="font-semibold text-white/50 line-through text-sm">
-                      AED {selectedService.price.toLocaleString()}
+                      AED {selectedServicePriceWithFinish.toLocaleString()}
                     </p>
                     <p className="font-semibold text-green-400 text-lg">
-                      AED {calculateFinalPrice(selectedService.price).toLocaleString()}
+                      AED {calculateFinalPrice(selectedServicePriceWithFinish).toLocaleString()}
                     </p>
                   </div>
                 ) : (
                   <p className="font-semibold text-white">
-                    {selectedService?.price ? `AED ${selectedService.price.toLocaleString()}` : "—"}
+                    {selectedService?.price ? `AED ${selectedServicePriceWithFinish.toLocaleString()}` : "—"}
                   </p>
                 )}
               </div>
@@ -871,7 +883,7 @@ Can you confirm availability and next steps?
                     <div className="flex-1">
                       <p className="text-green-400 font-semibold text-sm">Discount Applied! 🎉</p>
                       <p className="text-green-400/80 text-xs mt-1">
-                        You saved AED {calculateDiscount(selectedService.price).toLocaleString()} (15% off)
+                        You saved AED {calculateDiscount(selectedServicePriceWithFinish).toLocaleString()} (15% off)
                       </p>
                     </div>
                     <button
@@ -966,6 +978,37 @@ Can you confirm availability and next steps?
                     />
                   </div>
                 </div>
+
+                {/* PPF Finish Selector (adds AED 500 for Matte) */}
+                {selectedCategory === "PPF" && (
+                  <div className="mb-4">
+                    <label className="text-sm text-gray-300 mb-2 block">PPF Finish</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPpfFinish("Glossy")}
+                        className={`w-full rounded-lg border px-4 py-3 text-sm transition-all ${
+                          ppfFinish === "Glossy"
+                            ? "bg-primary text-black border-primary"
+                            : "bg-[#0f0f0f] text-white border-gray-700 hover:border-[#F8B400]/40"
+                        }`}
+                      >
+                        Glossy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPpfFinish("Matte")}
+                        className={`w-full rounded-lg border px-4 py-3 text-sm transition-all ${
+                          ppfFinish === "Matte"
+                            ? "bg-primary text-black border-primary"
+                            : "bg-[#0f0f0f] text-white border-gray-700 hover:border-[#F8B400]/40"
+                        }`}
+                      >
+                        Matte <span className="text-primary font-semibold">(+AED 500)</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Submit Button */}
                 <button
