@@ -60,7 +60,7 @@ interface ServicesData {
 const servicesData: ServicesData = {
   PPF: [
     {
-      name: "12-Year PPF Warranty",
+      name: "12Y PPF",
       description: [
         "Nano-ceramic top coat",
         "Extreme gloss & clarity",
@@ -72,7 +72,7 @@ const servicesData: ServicesData = {
       tag: "Premium"
     },
     {
-      name: "10-Year PPF Warranty",
+      name: "10Y PPF",
       description: [
         "Gloss or matte finish options",
         "Self-healing TPU film",
@@ -84,7 +84,7 @@ const servicesData: ServicesData = {
       tag: "Recommended"
     },
     {
-      name: "5-Year PPF Warranty",
+      name: "5Y PPF",
       description: [
         "Gloss finish for clean, clear shine",
         "Hydrophobic top coat repels water",
@@ -255,9 +255,6 @@ const Booking = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("+971");
   const [vehicleInfo, setVehicleInfo] = useState("");
-  const [discountCode, setDiscountCode] = useState("");
-  const [discountApplied, setDiscountApplied] = useState(false);
-  const [discountError, setDiscountError] = useState("");
   const [phoneError, setPhoneError] = useState("");
 
   // Helper to get PPF price based on vehicle size
@@ -299,9 +296,9 @@ const Booking = () => {
     
     // PPF Services
     if (category === "PPF") {
-      if (serviceName === "5-Year PPF Warranty") return ppfCClear;
-      if (serviceName === "10-Year PPF Warranty") return ppfForceShield;
-      if (serviceName === "12-Year PPF Warranty") return ppfDynoShield;
+      if (serviceName === "5Y PPF") return ppfCClear;
+      if (serviceName === "10Y PPF") return ppfForceShield;
+      if (serviceName === "12Y PPF") return ppfDynoShield;
     }
     
     // Ceramic Services
@@ -339,33 +336,6 @@ const Booking = () => {
   const formatPrice = (price: number): string => {
     if (price === 0) return "Quote on Inspection";
     return `AED ${price.toLocaleString()}`;
-  };
-
-  // Handle discount code application
-  const handleApplyDiscount = () => {
-    if (discountCode.trim().toUpperCase() === "GT15") {
-      setDiscountApplied(true);
-      setDiscountError("");
-    } else {
-      setDiscountApplied(false);
-      setDiscountError("Invalid discount code. Please try again.");
-    }
-  };
-
-  // Calculate final price with discount
-  const calculateFinalPrice = (originalPrice: number): number => {
-    if (discountApplied) {
-      return Math.round(originalPrice * 0.85); // 15% discount
-    }
-    return originalPrice;
-  };
-
-  // Calculate discount amount
-  const calculateDiscount = (originalPrice: number): number => {
-    if (discountApplied) {
-      return Math.round(originalPrice * 0.15);
-    }
-    return 0;
   };
 
   // PPF finish add-on pricing (only applies to the PPF category selection)
@@ -421,7 +391,7 @@ const Booking = () => {
       return;
     }
 
-    const finalPrice = calculateFinalPrice(selectedServicePriceWithFinish);
+    const totalPrice = selectedServicePriceWithFinish;
     
     // Payload for EmailJS
     const emailPayload = {
@@ -432,8 +402,8 @@ const Booking = () => {
       service_name: selectedService.serviceName,
       service_category: selectedService.category,
       service_price: `AED ${selectedServicePriceWithFinish.toLocaleString()}`,
-      final_price: discountApplied ? `AED ${finalPrice.toLocaleString()} (15% discount applied)` : `AED ${finalPrice.toLocaleString()}`,
-      discount_code: discountApplied ? "GT15" : "None",
+      final_price: `AED ${totalPrice.toLocaleString()}`,
+      discount_code: "None",
       timestamp: new Date().toISOString(),
     };
 
@@ -457,7 +427,7 @@ Hi Sean, I'd like to book:
 - Vehicle Size: ${selectedSize}
 - Vehicle: ${vehicleInfo}
 - Original Price: AED ${selectedServicePriceWithFinish.toLocaleString()}
-${discountApplied ? `- Discount (GT15): -AED ${calculateDiscount(selectedServicePriceWithFinish).toLocaleString()}\n- Final Price: AED ${finalPrice.toLocaleString()}` : `- Final Price: AED ${finalPrice.toLocaleString()}`}
+- Final Price: AED ${totalPrice.toLocaleString()}
 
 My details:
 Name: ${customerName}
@@ -481,10 +451,10 @@ Can you confirm availability and next steps?
           customerPhone: customerPhone,
           vehicleInfo: vehicleInfo,
           price: selectedServicePriceWithFinish,
-          finalPrice: finalPrice,
+          finalPrice: totalPrice,
           ppfFinish: selectedCategory === "PPF" ? ppfFinish : undefined,
           ppfFinishAddOn: selectedCategory === "PPF" ? ppfFinishAddOn : undefined,
-          discountApplied: discountApplied
+          discountApplied: false
         }
       }
     });
@@ -822,90 +792,21 @@ Can you confirm availability and next steps?
               </div>
               <div>
                 <p className="text-sm text-gray-400 mb-1">Selected Service:</p>
-                <p className="font-semibold text-white">{selectedService?.serviceName || "—"}</p>
+                <p className="font-semibold text-white">
+                  {selectedService?.serviceName
+                    ? selectedCategory === "PPF"
+                      ? `${selectedService.serviceName} (${ppfFinish})`
+                      : selectedService.serviceName
+                    : "—"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-400 mb-1">Total Price:</p>
-                {selectedService?.price && discountApplied ? (
-                  <div>
-                    <p className="font-semibold text-white/50 line-through text-sm">
-                      AED {selectedServicePriceWithFinish.toLocaleString()}
-                    </p>
-                    <p className="font-semibold text-green-400 text-lg">
-                      AED {calculateFinalPrice(selectedServicePriceWithFinish).toLocaleString()}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="font-semibold text-white">
-                    {selectedService?.price ? `AED ${selectedServicePriceWithFinish.toLocaleString()}` : "—"}
-                  </p>
-                )}
+                <p className="font-semibold text-white">
+                  {selectedService?.price ? `AED ${selectedServicePriceWithFinish.toLocaleString()}` : "—"}
+                </p>
               </div>
             </div>
-
-            {/* Discount Code Section */}
-            {selectedService && (
-              <div className="mb-6 p-4 bg-[#0f0f0f] rounded-lg border border-white/10">
-                <div className="flex items-center gap-2 mb-3">
-                  <Tag className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-white">Have a Discount Code?</h3>
-                </div>
-                
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={discountCode}
-                    onChange={(e) => {
-                      setDiscountCode(e.target.value.toUpperCase());
-                      setDiscountError("");
-                    }}
-                    placeholder="Enter discount code"
-                    className="flex-1 rounded-lg bg-[#1a1a1a] border border-gray-700 text-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F8B400] transition-all uppercase"
-                    disabled={discountApplied}
-                  />
-                  <button
-                    onClick={handleApplyDiscount}
-                    disabled={discountApplied || !discountCode.trim()}
-                    className="px-6 py-3 bg-primary text-black font-semibold rounded-lg hover:brightness-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {discountApplied ? "Applied" : "Apply"}
-                  </button>
-                </div>
-
-                {/* Success Message */}
-                {discountApplied && (
-                  <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-green-400 font-semibold text-sm">Discount Applied! 🎉</p>
-                      <p className="text-green-400/80 text-xs mt-1">
-                        You saved AED {calculateDiscount(selectedServicePriceWithFinish).toLocaleString()} (15% off)
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setDiscountApplied(false);
-                        setDiscountCode("");
-                      }}
-                      className="text-green-400/60 hover:text-green-400 text-xs font-medium"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
-
-                {/* Error Message */}
-                {discountError && !discountApplied && (
-                  <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
-                    <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-red-400 font-semibold text-sm">Invalid Code</p>
-                      <p className="text-red-400/80 text-xs mt-1">{discountError}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Form or Empty State */}
             {!selectedService ? (
