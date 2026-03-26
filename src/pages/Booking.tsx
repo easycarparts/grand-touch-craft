@@ -583,6 +583,7 @@ Can you confirm availability and next steps?
             </div>
           </div>
 
+          <p className="text-white/60 text-sm mb-2">Certified by STEK and GYEON</p>
           <p className="text-white/60 text-sm mb-4">
             PPF Warranty Options (5 / 10 / 12 Years) / Tint / Ceramic / Detailing
           </p>
