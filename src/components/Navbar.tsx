@@ -19,6 +19,7 @@ const Navbar = () => {
 
   const navLinks = [
     { name: "Home", path: "/" },
+    { name: "PPF Dubai", path: "/ppf-dubai" },
     { name: "Services", path: "/services" },
     { name: "Portfolio", path: "/portfolio" },
     { name: "About", path: "/about" },

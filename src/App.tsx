@@ -15,6 +15,7 @@ import ThankYou from "./pages/ThankYou";
 import ThankYouPayment from "./pages/ThankYouPayment";
 import CeramicCoatingGuide from "./pages/articles/CeramicCoatingGuide";
 import PPFvsCeramic from "./pages/articles/PPFvsCeramic";
+import PpfDubai from "./pages/PpfDubai";
 import PaintCorrectionTechniques from "./pages/articles/PaintCorrectionTechniques";
 import CustomVinylWraps from "./pages/articles/CustomVinylWraps";
 import PerformanceTuning from "./pages/articles/PerformanceTuning";
@@ -57,6 +58,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/blog" element={<Blog />} />
+            <Route path="/ppf-dubai" element={<PpfDubai />} />
             <Route path="/bookings" element={<Booking />} />
             <Route path="/thank-you" element={<ThankYou />} />
             <Route path="/thankyou" element={<ThankYouPayment />} />

@@ -69,10 +69,20 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-16">
-            <Link to="/bookings">
+            <Link to="/ppf-dubai">
               <Button
                 size="lg"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold px-8 py-6 shadow-glow animate-glow group"
+              >
+                PPF Dubai
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+            <Link to="/bookings">
+              <Button
+                size="lg"
+                variant="outline"
+                className="text-base font-semibold px-8 py-6 group"
               >
                 Book Your Service
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
