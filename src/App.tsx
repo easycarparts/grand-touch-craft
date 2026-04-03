@@ -20,6 +20,7 @@ import PaintCorrectionTechniques from "./pages/articles/PaintCorrectionTechnique
 import CustomVinylWraps from "./pages/articles/CustomVinylWraps";
 import PerformanceTuning from "./pages/articles/PerformanceTuning";
 import ClassicCarRestoration from "./pages/articles/ClassicCarRestoration";
+import IsPpfWorthItDubai from "./pages/articles/IsPpfWorthItDubai";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -69,6 +70,7 @@ function App() {
             <Route path="/blog/custom-vinyl-wraps" element={<CustomVinylWraps />} />
             <Route path="/blog/performance-tuning" element={<PerformanceTuning />} />
             <Route path="/blog/classic-car-restoration" element={<ClassicCarRestoration />} />
+            <Route path="/blog/is-ppf-worth-it-dubai" element={<IsPpfWorthItDubai />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />

@@ -148,7 +148,8 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       3: 'paint-correction-techniques',
       4: 'custom-vinyl-wraps',
       5: 'performance-tuning',
-      6: 'classic-car-restoration'
+      6: 'classic-car-restoration',
+      7: 'is-ppf-worth-it-dubai',
     };
     return slugMap[id] || `article-${id}`;
   };
