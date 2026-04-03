@@ -27,6 +27,9 @@
       "dest": "/sitemap.xml"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
