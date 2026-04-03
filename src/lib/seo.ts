@@ -1,6 +1,6 @@
 // SEO utility functions for dynamic metadata
 export const generateSEOMetadata = (page: string, customData?: any) => {
-  const baseUrl = "https://grandtouchauto.com";
+  const baseUrl = "https://www.grandtouchauto.ae";
   
   const seoData = {
     home: {
@@ -144,7 +144,7 @@ export const generateBusinessStructuredData = () => {
     "@type": "LocalBusiness",
     "name": "Grand Touch Auto",
     "description": "Dubai's luxury automotive studio for repair, paint, detailing, PPF, and restoration services",
-    "url": "https://grandtouchauto.com",
+    "url": "https://www.grandtouchauto.ae",
     "telephone": "+971567191045",
     "email": "info@grandtouchauto.com",
     "address": {
@@ -172,14 +172,14 @@ export const generateBusinessStructuredData = () => {
     },
     "logo": {
       "@type": "ImageObject",
-      "url": "https://grandtouchauto.com/placeholder.svg",
+      "url": "https://www.grandtouchauto.ae/placeholder.svg",
       "width": 200,
       "height": 60
     },
     "image": [
-      "https://grandtouchauto.com/service-ceramic.jpg",
-      "https://grandtouchauto.com/service-ppf.jpg",
-      "https://grandtouchauto.com/service-correction.jpg"
+      "https://www.grandtouchauto.ae/service-ceramic.jpg",
+      "https://www.grandtouchauto.ae/service-ppf.jpg",
+      "https://www.grandtouchauto.ae/service-correction.jpg"
     ],
     "sameAs": [
       "https://www.instagram.com/grandtouchauto"
@@ -250,14 +250,14 @@ export const generateBlogStructuredData = (posts: any[]) => {
     "@type": "Blog",
     "name": "Grand Touch Auto Blog",
     "description": "Expert automotive insights, tips, and industry news from Dubai's premier luxury car service center.",
-    "url": "https://grandtouchauto.com/blog",
+    "url": "https://www.grandtouchauto.ae/blog",
     "publisher": {
       "@type": "Organization",
       "name": "Grand Touch Auto",
-      "url": "https://grandtouchauto.com",
+      "url": "https://www.grandtouchauto.ae",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://grandtouchauto.com/placeholder.svg"
+        "url": "https://www.grandtouchauto.ae/placeholder.svg"
       }
     },
     "blogPost": posts.map(post => ({
@@ -271,10 +271,10 @@ export const generateBlogStructuredData = (posts: any[]) => {
       "datePublished": post.publishedAt,
       "dateModified": post.publishedAt,
       "image": post.image,
-      "url": `https://grandtouchauto.com/blog/${post.id}`,
+      "url": `https://www.grandtouchauto.ae/blog/${post.id}`,
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": `https://grandtouchauto.com/blog/${post.id}`
+        "@id": `https://www.grandtouchauto.ae/blog/${post.id}`
       }
     }))
   };

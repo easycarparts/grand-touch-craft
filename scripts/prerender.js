@@ -15,7 +15,7 @@ function escapeAttr(text) {
     .replace(/"/g, "&quot;");
 }
 
-const baseUrl = "https://grandtouchauto.com";
+const baseUrl = "https://www.grandtouchauto.ae";
 
 const pages = [
   {

@@ -17,10 +17,9 @@ Allow: /
 Crawl-delay: 1
 
 # Sitemap
-Sitemap: https://grandtouchauto.com/sitemap.xml
+Sitemap: https://www.grandtouchauto.ae/sitemap.xml
 
 # Disallow admin areas (if any)
 Disallow: /admin/
 Disallow: /api/
-Disallow: /_next/
 Disallow: /private/

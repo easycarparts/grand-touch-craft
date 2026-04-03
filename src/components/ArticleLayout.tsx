@@ -191,10 +191,10 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       "publisher": {
         "@type": "Organization",
         "name": "Grand Touch Auto",
-        "url": "https://grandtouchauto.com",
+        "url": "https://www.grandtouchauto.ae",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://grandtouchauto.com/placeholder.svg",
+          "url": "https://www.grandtouchauto.ae/placeholder.svg",
           "width": 200,
           "height": 60
         },
@@ -208,7 +208,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       "dateModified": article.publishedAt,
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": `https://grandtouchauto.com/blog/${getArticleSlug(article.id)}`
+        "@id": `https://www.grandtouchauto.ae/blog/${getArticleSlug(article.id)}`
       },
       "articleSection": article.category,
       "wordCount": article.content.split(' ').length,
@@ -218,7 +218,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       "isPartOf": {
         "@type": "Blog",
         "name": "Grand Touch Auto Blog",
-        "url": "https://grandtouchauto.com/blog"
+        "url": "https://www.grandtouchauto.ae/blog"
       }
     };
     
