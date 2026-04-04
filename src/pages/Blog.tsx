@@ -18,6 +18,7 @@ function getArticleSlug(id: number) {
     5: "performance-tuning",
     6: "classic-car-restoration",
     7: "is-ppf-worth-it-dubai",
+    8: "ppf-vs-ceramic-dubai",
   };
   return slugMap[id] ?? `article-${id}`;
 }
@@ -48,7 +49,7 @@ const blogPosts = [
     publishedAt: "2024-01-10",
     readTime: "6 min read",
     category: "Protection",
-    image: "/service-ppf.jpg",
+    image: "/assets/service-ppf-DIdSoKcx.jpg",
     featured: false,
   },
   {
@@ -121,8 +122,21 @@ const blogPosts = [
     image: "/service-ppf.jpg",
     featured: false,
   },
+  {
+    id: 8,
+    title: "PPF vs Ceramic in Dubai: Which One Do You Really Need (and Why)?",
+    excerpt:
+      "Understand the real difference between PPF and ceramic coating in Dubai so you choose the right protection for your car.",
+    content:
+      "Most Dubai car owners don’t actually need PPF or ceramic. They need the right protection for the problem they’re trying to prevent.",
+    author: "Grand Touch Team",
+    publishedAt: "2026-04-04",
+    readTime: "7 min read",
+    category: "Protection",
+    image: "/ppf-featured-ppf-vs-ceramic-dubai-option-1.png",
+    featured: false,
+  },
 ];
-
 const categories = ["All", "Detailing", "Protection", "Customization", "Performance", "Restoration"];
 
 const Blog = () => {

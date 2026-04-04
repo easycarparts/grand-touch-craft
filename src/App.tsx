@@ -21,6 +21,7 @@ import CustomVinylWraps from "./pages/articles/CustomVinylWraps";
 import PerformanceTuning from "./pages/articles/PerformanceTuning";
 import ClassicCarRestoration from "./pages/articles/ClassicCarRestoration";
 import IsPpfWorthItDubai from "./pages/articles/IsPpfWorthItDubai";
+import PpfVsCeramicDubai from "./pages/articles/PpfVsCeramicDubai";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -71,6 +72,7 @@ function App() {
             <Route path="/blog/performance-tuning" element={<PerformanceTuning />} />
             <Route path="/blog/classic-car-restoration" element={<ClassicCarRestoration />} />
             <Route path="/blog/is-ppf-worth-it-dubai" element={<IsPpfWorthItDubai />} />
+            <Route path="/blog/ppf-vs-ceramic-dubai" element={<PpfVsCeramicDubai />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />

@@ -227,7 +227,7 @@ Remember, the best protection is the one that fits your lifestyle and budget whi
     publishedAt: "2024-01-10",
     readTime: "6 min read",
     category: "Protection",
-    image: "/service-ppf.jpg",
+    image: "/assets/service-ppf-DIdSoKcx.jpg",
     featured: false,
     tags: ["PPF", "paint protection film", "ceramic coating", "automotive protection", "Dubai"],
   };
