@@ -19,6 +19,7 @@ function getArticleSlug(id: number) {
     6: "classic-car-restoration",
     7: "is-ppf-worth-it-dubai",
     8: "ppf-vs-ceramic-dubai",
+    9: "ppf-dubai-full-front-vs-full-body",
   };
   return slugMap[id] ?? `article-${id}`;
 }
@@ -134,6 +135,20 @@ const blogPosts = [
     readTime: "7 min read",
     category: "Protection",
     image: "/blog-hero-ppf-ceramic-dubai-choice.png",
+    featured: false,
+  },
+  {
+    id: 9,
+    title: "Full Front vs Full Body PPF in Dubai: Which Coverage Actually Makes Sense?",
+    excerpt:
+      "Compare full front and full body PPF coverage in Dubai so you choose the right protection for your car, budget, and ownership goals.",
+    content:
+      "Most Dubai owners do not actually need to choose between “all or nothing.” They need to choose the coverage that matches how the car is driven, parked, and kept over time.",
+    author: "Sean, Grand Touch Auto",
+    publishedAt: "2026-04-04",
+    readTime: "8 min read",
+    category: "Protection",
+    image: "/ppf-featured-ppf-dubai-full-front-vs-full-body-option-1.png",
     featured: false,
   },
 ];

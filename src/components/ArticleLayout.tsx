@@ -162,6 +162,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       6: 'classic-car-restoration',
       7: 'is-ppf-worth-it-dubai',
       8: 'ppf-vs-ceramic-dubai',
+      9: 'ppf-dubai-full-front-vs-full-body',
     };
     return slugMap[id] || `article-${id}`;
   };
