@@ -289,7 +289,7 @@ Custom vinyl wrapping offers an excellent way to personalize your vehicle while 
 At Grand Touch Auto, we specialize in custom vinyl wrapping for all types of vehicles. Our experienced installers use only premium materials and professional techniques to ensure your wrap looks great and lasts for years.
 
 The key to a successful vinyl wrap is proper design, quality materials, and professional installation. With the right approach, vinyl wrapping can transform your vehicle's appearance while protecting your investment.`,
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2024-01-01",
     readTime: "7 min read",
     category: "Customization",

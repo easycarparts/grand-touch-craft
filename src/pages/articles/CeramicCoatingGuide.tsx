@@ -138,7 +138,7 @@ Ceramic coating represents the pinnacle of automotive paint protection, offering
 At Grand Touch Auto, we use only the finest ceramic coating products and employ certified techniques to ensure your vehicle receives the best possible protection. Our professional application process, combined with our expertise in paint correction and surface preparation, guarantees results that exceed expectations.
 
 Whether you're protecting a daily driver or a show car, ceramic coating provides the ultimate in paint protection technology, ensuring your vehicle looks its best for years to come.`,
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2024-01-15",
     readTime: "8 min read",
     category: "Detailing",

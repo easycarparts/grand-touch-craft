@@ -325,7 +325,7 @@ Classic car restoration is a rewarding journey that combines technical skill wit
 At Grand Touch Auto, we specialize in classic car restoration, bringing decades of experience and passion to every project. Our team understands the importance of preserving automotive history while ensuring your classic car is safe, reliable, and beautiful.
 
 The key to successful restoration is patience, research, and attention to detail. With the right approach, your classic car restoration can become a source of pride and enjoyment for years to come.`,
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2023-12-25",
     readTime: "12 min read",
     category: "Restoration",

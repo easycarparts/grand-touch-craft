@@ -31,7 +31,7 @@ const blogPosts = [
       "Discover how ceramic coating transforms your vehicle's protection with our comprehensive guide covering application, benefits, and maintenance.",
     content:
       "Ceramic coating has revolutionized automotive protection, offering superior durability compared to traditional waxes and sealants...",
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2024-01-15",
     readTime: "8 min read",
     category: "Detailing",
@@ -45,11 +45,11 @@ const blogPosts = [
       "Compare PPF and ceramic coating to make the best choice for your vehicle's protection needs and budget.",
     content:
       "When it comes to protecting your vehicle's paint, two main options dominate the market: Paint Protection Film (PPF) and ceramic coating...",
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2024-01-10",
     readTime: "6 min read",
     category: "Protection",
-    image: "/assets/service-ppf-DIdSoKcx.jpg",
+    image: "/blog-hero-ppf-vs-ceramic-comparison.png",
     featured: false,
   },
   {
@@ -59,7 +59,7 @@ const blogPosts = [
       "Learn the professional techniques used to restore paint to showroom condition on high-end vehicles.",
     content:
       "Paint correction is an art form that requires precision, patience, and the right tools. For luxury vehicles, the standards are even higher...",
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2024-01-05",
     readTime: "10 min read",
     category: "Detailing",
@@ -73,7 +73,7 @@ const blogPosts = [
       "Explore the world of custom vinyl wrapping and how it can completely transform your vehicle's look.",
     content:
       "Vinyl wrapping offers endless possibilities for personalizing your vehicle. From subtle color changes to bold graphics...",
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2024-01-01",
     readTime: "7 min read",
     category: "Customization",
@@ -87,7 +87,7 @@ const blogPosts = [
       "Discover how professional ECU tuning can safely increase power and improve your vehicle's performance.",
     content:
       "Performance tuning is about more than just adding power. It's about optimizing your engine's efficiency and reliability...",
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2023-12-28",
     readTime: "9 min read",
     category: "Performance",
@@ -101,7 +101,7 @@ const blogPosts = [
       "Follow the journey of restoring a classic vehicle from discovery to showroom condition.",
     content:
       "Classic car restoration is a labor of love that combines mechanical expertise with historical preservation...",
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2023-12-25",
     readTime: "12 min read",
     category: "Restoration",
@@ -115,11 +115,11 @@ const blogPosts = [
       "Explore whether paint protection film is worth the investment for car owners in Dubai, comparing STEK and GYEON.",
     content:
       "Dubai's climate and road conditions make paint protection a serious consideration for owners who care about resale and finish.",
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-03",
     readTime: "8 min read",
     category: "Protection",
-    image: "/service-ppf.jpg",
+    image: "/blog-hero-ppf-worth-dubai.png",
     featured: false,
   },
   {
@@ -129,21 +129,36 @@ const blogPosts = [
       "Understand the real difference between PPF and ceramic coating in Dubai so you choose the right protection for your car.",
     content:
       "Most Dubai car owners don’t actually need PPF or ceramic. They need the right protection for the problem they’re trying to prevent.",
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-04",
     readTime: "7 min read",
     category: "Protection",
-    image: "/ppf-featured-ppf-vs-ceramic-dubai-option-1.png",
+    image: "/blog-hero-ppf-ceramic-dubai-choice.png",
     featured: false,
   },
 ];
+
+function comparePostsByDateNewestFirst(
+  a: (typeof blogPosts)[number],
+  b: (typeof blogPosts)[number]
+) {
+  return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+}
+
 const categories = ["All", "Detailing", "Protection", "Customization", "Performance", "Restoration"];
 
 const Blog = () => {
+  const featuredPosts = [...blogPosts]
+    .filter((post) => post.featured)
+    .sort(comparePostsByDateNewestFirst);
+  const latestPosts = [...blogPosts]
+    .filter((post) => !post.featured)
+    .sort(comparePostsByDateNewestFirst);
+
   useEffect(() => {
     updatePageSEO("blog");
 
-    const structuredData = generateBlogStructuredData(blogPosts);
+    const structuredData = generateBlogStructuredData([...blogPosts].sort(comparePostsByDateNewestFirst));
     const script = document.createElement("script");
     script.type = "application/ld+json";
     script.textContent = JSON.stringify(structuredData);
@@ -184,9 +199,7 @@ const Blog = () => {
             <div className="w-20 h-1 bg-primary rounded-full" />
           </div>
 
-          {blogPosts
-            .filter((post) => post.featured)
-            .map((post) => (
+          {featuredPosts.map((post) => (
               <Card
                 key={post.id}
                 className="overflow-hidden bg-card border-border/50 hover:border-primary/50 transition-all duration-300 group"
@@ -265,9 +278,7 @@ const Blog = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {blogPosts
-              .filter((post) => !post.featured)
-              .map((post, index) => (
+            {latestPosts.map((post, index) => (
                 <Card
                   key={post.id}
                   className="overflow-hidden bg-card border-border/50 hover:border-primary/50 transition-all duration-300 group"

@@ -83,11 +83,11 @@ If you want a natural next step, read the guide content and then ask for a recom
 If you want an expert recommendation for your exact Dubai situation, WhatsApp Grand Touch and book a short assessment.
 
 Tell us what you’re trying to solve—chips/scratches, easier maintenance, or both—and we’ll guide you toward the most sensible plan (not the biggest spend).`,
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-04",
     readTime: "7 min read",
     category: "Protection",
-    image: "/ppf-featured-ppf-vs-ceramic-dubai-option-1.png",
+    image: "/blog-hero-ppf-ceramic-dubai-choice.png",
     featured: false,
     tags: ["PPF Dubai", "ceramic coating Dubai", "paint protection", "Dubai car care"],
   };
@@ -99,7 +99,7 @@ Tell us what you’re trying to solve—chips/scratches, easier maintenance, or 
       excerpt:
         "Explore whether paint protection film is worth the investment for car owners in Dubai.",
       category: "Protection",
-      image: "/service-ppf.jpg",
+      image: "/blog-hero-ppf-worth-dubai.png",
       publishedAt: "2026-04-03",
       readTime: "8 min read",
     },
@@ -119,7 +119,7 @@ Tell us what you’re trying to solve—chips/scratches, easier maintenance, or 
       excerpt:
         "Compare PPF and ceramic coating to make the best choice for your vehicle's protection needs and budget.",
       category: "Protection",
-      image: "/service-ppf.jpg",
+      image: "/blog-hero-ppf-vs-ceramic-comparison.png",
       publishedAt: "2024-01-10",
       readTime: "6 min read",
     },

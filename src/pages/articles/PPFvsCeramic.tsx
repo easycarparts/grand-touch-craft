@@ -223,11 +223,11 @@ For maximum protection, consider a hybrid approach using PPF on high-impact area
 At Grand Touch Auto, we specialize in both PPF installation and ceramic coating application. Our certified technicians can assess your vehicle and recommend the optimal protection strategy based on your individual needs and driving habits.
 
 Remember, the best protection is the one that fits your lifestyle and budget while providing the level of protection your vehicle needs. Whether you choose PPF, ceramic coating, or a combination of both, professional installation and proper maintenance are key to maximizing your investment.`,
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2024-01-10",
     readTime: "6 min read",
     category: "Protection",
-    image: "/assets/service-ppf-DIdSoKcx.jpg",
+    image: "/blog-hero-ppf-vs-ceramic-comparison.png",
     featured: false,
     tags: ["PPF", "paint protection film", "ceramic coating", "automotive protection", "Dubai"],
   };

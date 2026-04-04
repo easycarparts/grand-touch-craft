@@ -34,11 +34,11 @@ Well-maintained paint consistently supports stronger resale. Owners who document
 For Dubai owners who plan to keep a vehicle for several years—or want maximum peace of mind on a new purchase—PPF is often one of the best paint investments you can make. Pair it with a reputable installer, clear warranty terms, and realistic expectations about what film can (and cannot) do.
 
 At **Grand Touch Auto**, we focus on clean edges, controlled environments, and film choices that match how you drive and where you park. **Book a consultation** if you want a coverage plan tailored to your car—not a one-size-fits-all quote.`,
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-03",
     readTime: "8 min read",
     category: "Protection",
-    image: "/service-ppf.jpg",
+    image: "/blog-hero-ppf-worth-dubai.png",
     featured: false,
     tags: ["PPF Dubai", "paint protection film", "STEK", "GYEON", "car resale Dubai"],
   };
@@ -50,7 +50,7 @@ At **Grand Touch Auto**, we focus on clean edges, controlled environments, and f
       excerpt:
         "Compare PPF and ceramic coating to make the best choice for your vehicle's protection needs and budget.",
       category: "Protection",
-      image: "/service-ppf.jpg",
+      image: "/blog-hero-ppf-vs-ceramic-comparison.png",
       publishedAt: "2024-01-10",
       readTime: "6 min read",
     },

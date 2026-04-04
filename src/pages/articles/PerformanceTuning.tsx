@@ -284,7 +284,7 @@ Professional ECU tuning can significantly improve your vehicle's performance whi
 At Grand Touch Auto, we specialize in performance tuning for luxury and high-performance vehicles. Our certified technicians have the experience and equipment to safely unlock your engine's potential while maintaining the reliability and drivability you expect.
 
 Remember, performance tuning is an investment in your vehicle's potential. With the right approach, professional tuning can transform your driving experience while protecting your investment for years to come.`,
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2023-12-28",
     readTime: "9 min read",
     category: "Performance",

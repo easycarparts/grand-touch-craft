@@ -5,10 +5,20 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, ArrowLeft, Share2, BookOpen, User, Tag } from "lucide-react";
+import { Calendar, Clock, ArrowLeft, Share2, BookOpen, User, Tag, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { updatePageSEO } from "@/lib/seo";
 import "./ArticleContent.css";
+
+/** Inline **bold**, *italic*, [text](url) — used in paragraphs and list items. */
+function applyInlineFormatting(trimmed: string): string {
+  const boldText = trimmed.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  const italicText = boldText.replace(/\*(.*?)\*/g, "<em>$1</em>");
+  return italicText.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="$2" class="text-primary hover:text-primary/80 underline" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+}
 
 // ArticleContent component for proper HTML formatting
 const ArticleContent = ({ content }: { content: string }) => {
@@ -67,11 +77,16 @@ const ArticleContent = ({ content }: { content: string }) => {
         const items = trimmed.split('\n').filter(line => line.trim().startsWith('- ') || line.trim().startsWith('* '));
         return (
           <ul key={index} className="list-disc list-inside space-y-2 mb-6 text-foreground">
-            {items.map((item, itemIndex) => (
-              <li key={itemIndex} className="text-lg leading-relaxed">
-                {item.replace(/^[-*] /, '')}
-              </li>
-            ))}
+            {items.map((item, itemIndex) => {
+              const inner = item.replace(/^[-*] /, '').trim();
+              return (
+                <li
+                  key={itemIndex}
+                  className="text-lg leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: applyInlineFormatting(inner) }}
+                />
+              );
+            })}
           </ul>
         );
       }
@@ -81,31 +96,27 @@ const ArticleContent = ({ content }: { content: string }) => {
         const items = trimmed.split('\n').filter(line => /^\d+\. /.test(line.trim()));
         return (
           <ol key={index} className="list-decimal list-inside space-y-2 mb-6 text-foreground">
-            {items.map((item, itemIndex) => (
-              <li key={itemIndex} className="text-lg leading-relaxed">
-                {item.replace(/^\d+\. /, '')}
-              </li>
-            ))}
+            {items.map((item, itemIndex) => {
+              const inner = item.replace(/^\d+\. /, '').trim();
+              return (
+                <li
+                  key={itemIndex}
+                  className="text-lg leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: applyInlineFormatting(inner) }}
+                />
+              );
+            })}
           </ol>
         );
       }
       
-      // Handle bold text
-      const boldText = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      
-      // Handle italic text
-      const italicText = boldText.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      
-      // Handle links
-      const linkText = italicText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:text-primary/80 underline" target="_blank" rel="noopener noreferrer">$1</a>');
-      
-      // Regular paragraphs
+      // Regular paragraphs (bold, italic, links)
       if (trimmed.length > 0) {
         return (
           <p 
             key={index} 
             className="text-lg leading-relaxed text-foreground mb-6"
-            dangerouslySetInnerHTML={{ __html: linkText }}
+            dangerouslySetInnerHTML={{ __html: applyInlineFormatting(trimmed) }}
           />
         );
       }
@@ -396,10 +407,39 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">{article.author}</h3>
                   <p className="text-muted-foreground text-sm">
-                    Expert automotive professionals at Grand Touch Auto, delivering world-class service 
-                    to Dubai's most prestigious vehicles with certified techniques and premium materials.
+                    Sean writes for Grand Touch Auto in Dubai—paint protection, detailing, and honest
+                    guidance for owners who care about their finish. Prefer WhatsApp? Tap below.
                   </p>
                 </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* CTA — message Sean */}
+          <div className="mt-8">
+            <Card className="p-6 md:p-8 bg-primary/5 border border-primary/25 rounded-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-1">Questions after reading?</h3>
+                  <p className="text-sm text-muted-foreground max-w-xl">
+                    Message <span className="text-foreground font-medium">Sean</span> at Grand Touch Auto on WhatsApp for a straight answer—no pressure, Dubai time.
+                  </p>
+                </div>
+                <Button
+                  asChild
+                  className="shrink-0 bg-[#25D366] hover:bg-[#20BD5A] text-white border-0"
+                >
+                  <a
+                    href={`https://wa.me/971567191045?text=${encodeURIComponent(
+                      `Hi Sean, I read "${article.title}" on Grand Touch Auto and wanted to ask: `
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Message Sean
+                  </a>
+                </Button>
               </div>
             </Card>
           </div>

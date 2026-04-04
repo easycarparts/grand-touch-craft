@@ -274,7 +274,7 @@ Paint correction for luxury vehicles requires a combination of skill, patience, 
 At Grand Touch Auto, we specialize in paint correction for luxury vehicles, using only the finest products and techniques. Our certified technicians have the experience and expertise to safely and effectively restore your vehicle's paint to showroom condition.
 
 Remember, paint correction is not just about removing defects—it's about enhancing your vehicle's natural beauty and protecting your investment for years to come. Whether you choose professional service or DIY correction, the key is patience, proper technique, and quality products.`,
-    author: "Grand Touch Team",
+    author: "Sean, Grand Touch Auto",
     publishedAt: "2024-01-05",
     readTime: "10 min read",
     category: "Detailing",

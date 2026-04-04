@@ -65,7 +65,7 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
     <image:image>
-      <image:loc>https://www.grandtouchauto.ae/service-ppf.jpg</image:loc>
+      <image:loc>https://www.grandtouchauto.ae/blog-hero-ppf-vs-ceramic-comparison.png</image:loc>
       <image:title>PPF vs Ceramic Coating Comparison</image:title>
       <image:caption>Paint Protection Film installation and ceramic coating comparison</image:caption>
     </image:image>
@@ -125,9 +125,21 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
     <image:image>
-      <image:loc>https://www.grandtouchauto.ae/service-ppf.jpg</image:loc>
+      <image:loc>https://www.grandtouchauto.ae/blog-hero-ppf-worth-dubai.png</image:loc>
       <image:title>Is PPF Worth It in Dubai</image:title>
       <image:caption>Paint protection film guidance for Dubai car owners</image:caption>
+    </image:image>
+  </url>
+  
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/ppf-vs-ceramic-dubai</loc>
+    <lastmod>2026-04-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://www.grandtouchauto.ae/blog-hero-ppf-ceramic-dubai-choice.png</image:loc>
+      <image:title>PPF vs ceramic coating in Dubai</image:title>
+      <image:caption>Choosing paint protection for Dubai driving conditions</image:caption>
     </image:image>
   </url>
   
