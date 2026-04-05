@@ -112,15 +112,21 @@ Must pass with zero errors before any push.
 
 **In DRAFT MODE you MUST:**
 
-1. Run keyword research (Section 4) and select a low-competition target
-2. Run anti-duplicate check (Section 3)
-3. Create branch: `draft/<slug>` from current `main`
-4. Generate featured image → save to `public/` (Section 8)
-5. Write article `.tsx` at its final path (Section 7)
-6. Update all four supporting files (Section 9)
-7. Run `npm run build` — must pass zero errors (Section 10)
-8. Push `draft/<slug>` to GitHub
-9. Send Telegram notification (Section 11)
+1. Read latest SEO daily summary from:
+   - `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\summary.md` (latest available date)
+2. Use that summary to prioritise topic angle:
+   - striking-distance opportunities
+   - high-impression/low-click themes
+   - internal link gaps
+3. Run keyword research (Section 4) and select a low-competition target
+4. Run anti-duplicate check (Section 3)
+5. Create branch: `draft/<slug>` from current `main`
+6. Generate featured image → save to `public/` (Section 8)
+7. Write article `.tsx` at its final path (Section 7)
+8. Update all four supporting files (Section 9)
+9. Run `npm run build` — must pass zero errors (Section 10)
+10. Push `draft/<slug>` to GitHub
+11. Send Telegram notification (Section 11)
 
 **In DRAFT MODE you MUST NOT:**
 

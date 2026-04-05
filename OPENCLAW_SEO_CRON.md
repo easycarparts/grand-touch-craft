@@ -24,8 +24,9 @@ When this file is loaded as a task trigger:
 1. Execute all three jobs in sequence without asking questions.
 2. The only permitted stop is a genuine hard blocker: GSC token expired and cannot refresh, repo not found, or no internet.
 3. If one job fails, log the failure clearly and continue to the next job.
-4. Send one Telegram report at the end covering all three jobs.
-5. Never send partial reports mid-run. Never ask what to focus on.
+4. Send Telegram output after each job completes, then continue to the next job.
+5. After Job 3, send a short final summary.
+6. Never ask what to focus on.
 
 ---
 
@@ -36,7 +37,40 @@ When this file is loaded as a task trigger:
 | GSC OAuth token | `C:\Users\Marlon\.openclaw\workspace\credentials\gsc_token.json` |
 | GSC client secrets | `C:\Users\Marlon\.openclaw\workspace\credentials\gsc_client_secrets.json` |
 | GitHub token (env var) | `$env:GITHUB_TOKEN` |
-| Log file (append daily) | `C:\Users\Marlon\.openclaw\workspace\logs\seo_cron_log.jsonl` |
+| Rolling log file (append daily) | `C:\Users\Marlon\.openclaw\workspace\logs\seo_cron_log.jsonl` |
+| SEO output root | `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\` |
+| Daily folder | `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\` |
+| Daily summary (markdown) | `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\summary.md` |
+| Daily summary (json) | `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\summary.json` |
+| Job 1 raw json | `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\job1_gsc_metrics.json` |
+| Job 2 raw json | `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\job2_url_health.json` |
+| Job 3 raw json | `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\job3_internal_links.json` |
+
+---
+
+## Output Storage Policy (Mandatory)
+
+All generated files must live under:
+
+`C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\`
+
+Hard rules:
+
+1. Do not create `job1.py`, `job2.py`, `job3.py`, temp scripts, or ad-hoc files in `C:\Users\Marlon\.openclaw\workspace\` root.
+2. Keep one folder per day (`YYYY-MM-DD`).
+3. Write each job's raw output JSON file plus one final `summary.md` and `summary.json`.
+4. Continue appending one-line telemetry to `C:\Users\Marlon\.openclaw\workspace\logs\seo_cron_log.jsonl`.
+5. If folder does not exist, create it before Job 1.
+
+Folder bootstrap:
+
+```python
+import os
+from datetime import datetime
+DAY = str(datetime.utcnow().date())
+DAY_DIR = rf"C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\{DAY}"
+os.makedirs(DAY_DIR, exist_ok=True)
+```
 
 ---
 
@@ -104,11 +138,26 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 TOKEN   = r"C:\Users\Marlon\.openclaw\workspace\credentials\gsc_token.json"
-SITE    = "https://www.grandtouchauto.ae"
 LOG     = r"C:\Users\Marlon\.openclaw\workspace\logs\seo_cron_log.jsonl"
 
 creds   = Credentials.from_authorized_user_file(TOKEN)
 service = build("searchconsole", "v1", credentials=creds)
+
+# Auto-detect accessible GSC property (prevents www/non-www mismatch)
+site_entries = service.sites().list().execute().get("siteEntry", [])
+owner_sites = [s["siteUrl"] for s in site_entries if s.get("permissionLevel") == "siteOwner"]
+all_sites = [s["siteUrl"] for s in site_entries]
+
+# Prefer grandtouchauto property when available
+preferred = [s for s in owner_sites if "grandtouchauto.ae" in s]
+if preferred:
+    SITE = preferred[0]
+elif owner_sites:
+    SITE = owner_sites[0]
+elif all_sites:
+    SITE = all_sites[0]
+else:
+    raise RuntimeError("No Search Console properties accessible with this token")
 
 today      = datetime.utcnow().date()
 end_date   = str(today - timedelta(days=1))
@@ -156,6 +205,8 @@ for row in current:
 entry = {
     "date": str(today),
     "job": "gsc_metrics",
+    "site_used": SITE,
+    "owner_sites_found": owner_sites,
     "striking_distance_count": len(striking),
     "dropped_count": len(dropped),
     "striking": striking[:5],
@@ -164,11 +215,34 @@ entry = {
 with open(LOG, "a") as f:
     f.write(json.dumps(entry) + "\n")
 
+# Save per-job artifact for daily folder
+import os
+DAY_DIR = rf"C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\{today}"
+os.makedirs(DAY_DIR, exist_ok=True)
+with open(os.path.join(DAY_DIR, "job1_gsc_metrics.json"), "w", encoding="utf-8") as f:
+    json.dump(entry, f, ensure_ascii=False, indent=2)
+
 # Store for Telegram report
 gsc_result = entry
 ```
 
 **Output stored in `gsc_result` — used in final Telegram report.**
+
+### Telegram output immediately after Job 1
+
+```
+SEO CRON • Job 1/3 complete (GSC Metrics) ✓
+Date: <date>
+Property used: <gsc_result.site_used>
+
+📈 Striking distance (<pos 4-15, >20 impressions):
+• "<query>" — pos <position> — <impressions> impressions
+
+⚠️ Drops (>30% WoW):
+• "<query>" — was <prev_clicks> → <clicks> (-<drop_pct>%)
+
+Continuing to Job 2...
+```
 
 ---
 
@@ -215,10 +289,30 @@ entry = {
 with open(LOG, "a") as f:
     f.write(json.dumps(entry) + "\n")
 
+import os
+day = str(datetime.utcnow().date())
+DAY_DIR = rf"C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\{day}"
+os.makedirs(DAY_DIR, exist_ok=True)
+with open(os.path.join(DAY_DIR, "job2_url_health.json"), "w", encoding="utf-8") as f:
+    json.dump(entry, f, ensure_ascii=False, indent=2)
+
 health_result = entry
 ```
 
 **Output stored in `health_result` — used in final Telegram report.**
+
+### Telegram output immediately after Job 2
+
+```
+SEO CRON • Job 2/3 complete (URL Health) ✓
+Date: <date>
+
+🔗 URL Health:
+• <ok> URLs OK | <errors> errors
+• <if errors, list top 5 broken URLs>
+
+Continuing to Job 3...
+```
 
 ---
 
@@ -293,6 +387,13 @@ entry = {
 with open(LOG, "a") as f:
     f.write(json.dumps(entry) + "\n")
 
+import os
+day = str(datetime.utcnow().date())
+DAY_DIR = rf"C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\{day}"
+os.makedirs(DAY_DIR, exist_ok=True)
+with open(os.path.join(DAY_DIR, "job3_internal_links.json"), "w", encoding="utf-8") as f:
+    json.dump(entry, f, ensure_ascii=False, indent=2)
+
 links_result = entry
 ```
 
@@ -300,43 +401,89 @@ links_result = entry
 
 Output stored in `links_result` — used in final Telegram report.
 
----
-
-## Final Telegram Report
-
-Send one message after all three jobs complete:
+### Telegram output immediately after Job 3
 
 ```
-SEO CRON ✓  <date>
-━━━━━━━━━━━━━━━━━━━━━━
+SEO CRON • Job 3/3 complete (Internal Links) ✓
+Date: <date>
 
-📈 STRIKING DISTANCE (<pos 4-15, >20 impressions)
-<for each in gsc_result.striking — show query, position, impressions>
-• "<query>" — pos <position> — <impressions> impressions
-(If none: "No new striking distance queries today")
+🔁 Internal link gaps:
+• <file> → missing link to /<slug> (keyword: "<trigger_keyword>")
 
-⚠️ TRAFFIC DROPS (>30% week-over-week)
-<for each in gsc_result.dropped>
-• "<query>" — was <prev_clicks> clicks → now <clicks> clicks (-<drop_pct>%)
-(If none: "No significant drops ✓")
+Preparing final summary...
+```
 
-🔗 URL HEALTH
-• <ok> URLs OK  |  <errors> errors
-<if errors: list each broken URL>
+---
 
-🔁 INTERNAL LINK GAPS
-<for each top opportunity>
-• <file> → missing link to /<missing_link_to> (keyword: "<trigger_keyword>")
-(If none: "All internal links look healthy ✓")
+## Final Telegram Summary
+
+Send one short summary after all three per-job messages:
+
+```
+SEO CRON ✓ COMPLETE  <date>
+Jobs done: 3/3
+
+Job 1 (GSC): <striking_distance_count> striking-distance, <dropped_count> significant drops
+Job 2 (Health): <ok>/<total_urls> URLs OK, <errors> errors
+Job 3 (Links): <opportunities_found> internal link opportunities
+
+Next action:
+• <one-line recommendation>
 ```
 
 If all jobs pass cleanly: no action needed from Sean. If any errors or drops: Sean reviews and decides whether to act.
+
+After sending Telegram final summary, write daily summary files:
+
+1. `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\summary.json`
+2. `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\summary.md`
+
+`summary.json` template:
+
+```json
+{
+  "date": "YYYY-MM-DD",
+  "site_used": "<property>",
+  "job1_gsc": {
+    "striking_distance_count": 0,
+    "dropped_count": 0,
+    "top_striking": []
+  },
+  "job2_health": {
+    "total_urls": 0,
+    "ok": 0,
+    "errors": []
+  },
+  "job3_links": {
+    "opportunities_found": 0,
+    "top_opportunities": []
+  },
+  "next_action": "<one-line recommendation>"
+}
+```
+
+`summary.md` template:
+
+```md
+# SEO Daily Summary — YYYY-MM-DD
+
+- Property used: <site_used>
+- Job 1: <striking_distance_count> striking-distance, <dropped_count> significant drops
+- Job 2: <ok>/<total_urls> URLs OK, <errors_count> errors
+- Job 3: <opportunities_found> internal link opportunities
+- Next action: <one-line recommendation>
+```
 
 ---
 
 ## Log Format Reference
 
-Each job appends one JSON line to `C:\Users\Marlon\.openclaw\workspace\logs\seo_cron_log.jsonl`:
+Each run writes:
+
+1. Rolling line logs in `C:\Users\Marlon\.openclaw\workspace\logs\seo_cron_log.jsonl`
+2. Job artifacts and daily summary in `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\`
+
+Rolling log example:
 
 ```json
 {"date": "2026-04-05", "job": "gsc_metrics", "striking_distance_count": 3, ...}
@@ -344,7 +491,18 @@ Each job appends one JSON line to `C:\Users\Marlon\.openclaw\workspace\logs\seo_
 {"date": "2026-04-05", "job": "internal_links", "opportunities_found": 2, ...}
 ```
 
-This builds a historical record so future runs can compare trends.
+Daily folder example:
+
+```
+seo-daily/2026-04-05/
+  job1_gsc_metrics.json
+  job2_url_health.json
+  job3_internal_links.json
+  summary.json
+  summary.md
+```
+
+This keeps `workspace` root clean and creates a historical record so future runs and content jobs can reference the latest summary directly.
 
 ---
 
