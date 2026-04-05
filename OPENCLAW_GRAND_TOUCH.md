@@ -120,12 +120,19 @@ Must pass with zero errors before any push.
 3. Prioritise topic choice using low-competition keyword + competitor-gap strategy as primary signal (90% weighting)
 4. Run keyword research (Section 4) and select a low-competition target
 5. Run anti-duplicate check (Section 3)
-6. Create branch: `draft/<slug>` from current `main`
+6. Sync and branch from latest remote main (mandatory):
+   - `git fetch origin`
+   - `git checkout main`
+   - `git pull origin main`
+   - `git checkout -B draft/<slug>`
 7. Generate featured image → save to `public/` (Section 8)
 8. Write article `.tsx` at its final path (Section 7)
 9. Update all four supporting files (Section 9)
 10. Run `npm run build` — must pass zero errors (Section 10)
-11. Push `draft/<slug>` to GitHub
+11. Commit and push `draft/<slug>` to GitHub automatically (no prompt to Sean):
+   - `git add .`
+   - `git commit -m "Draft: <article title>"`
+   - `git push -u origin draft/<slug>`
 12. Send Telegram notification (Section 11)
 
 **In DRAFT MODE you MUST NOT:**
@@ -134,6 +141,7 @@ Must pass with zero errors before any push.
 - Merge to `main`
 - Open a PR (that happens on `APPROVE`)
 - Ask questions
+- Ask for push/commit instructions
 
 After notification: stop and wait for `APPROVE` or `MERGE`.
 
@@ -161,6 +169,7 @@ Rules:
   - `Still working… Stage <n>/6`
 - Progress beacons are status-only and concise.
 - Do not ask questions in progress beacons.
+- Stage 6/6 must happen only after successful commit + push to remote.
 
 ---
 
