@@ -20,6 +20,7 @@ function getArticleSlug(id: number) {
     7: "is-ppf-worth-it-dubai",
     8: "ppf-vs-ceramic-dubai",
     9: "ppf-dubai-full-front-vs-full-body",
+    10: "ppf-longevity-dubai-heat",
   };
   return slugMap[id] ?? `article-${id}`;
 }
@@ -149,6 +150,18 @@ const blogPosts = [
     readTime: "8 min read",
     category: "Protection",
     image: "/ppf-featured-ppf-dubai-full-front-vs-full-body-option-1.png",
+    featured: false,
+  },
+  {
+    id: 10,
+    title: "How Long Does PPF Actually Last in Dubai Heat?",
+    excerpt: "Realistic expectations for PPF durability in Dubai's extreme summer heat, UV exposure, and sand—based on STEK and GYEON performance in local conditions.",
+    content: "Dubai's climate tests PPF harder than most places. This guide covers realistic timelines, STEK vs GYEON, and maintenance for maximum longevity.",
+    author: "Sean, Grand Touch Auto",
+    publishedAt: "2026-04-05",
+    readTime: "9 min read",
+    category: "Protection",
+    image: "/ppf-featured-ppf-longevity-dubai-heat-option-1.png",
     featured: false,
   },
 ];

@@ -163,6 +163,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       7: 'is-ppf-worth-it-dubai',
       8: 'ppf-vs-ceramic-dubai',
       9: 'ppf-dubai-full-front-vs-full-body',
+      10: 'ppf-longevity-dubai-heat',
     };
     return slugMap[id] || `article-${id}`;
   };
