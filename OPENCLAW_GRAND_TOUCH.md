@@ -134,6 +134,13 @@ Must pass with zero errors before any push.
    - `git add .`                                            ← stage all other changed files
    - `git commit -m "Draft: <article title>"`
    - `git push -u origin draft/<slug> --force-with-lease`  ← --force-with-lease handles re-runs where branch already exists on remote
+   - **Verify the push actually landed** — run this immediately after push:
+     ```powershell
+     $branches = git branch -r
+     if ($branches -notmatch "draft/<slug>") { throw "PUSH FAILED: draft/<slug> not found on remote — do not send DRAFT READY" }
+     Write-Host "PUSH VERIFIED: branch is on remote"
+     ```
+   - If push verification fails: retry the push, or throw a hard blocker message to Telegram. Never send `DRAFT READY` if the push has not been verified.
 12. Send Telegram notification (Section 11)
 
 **In DRAFT MODE you MUST NOT:**
@@ -171,6 +178,8 @@ Rules:
 - Progress beacons are status-only and concise.
 - Do not ask questions in progress beacons.
 - Stage 6/6 must happen only after successful commit + push to remote.
+- **CRITICAL: Telegram messages must contain ONLY the exact formatted text defined here. Never send internal reasoning, planning notes, chain-of-thought, draft code, or tool output to Telegram. If you are thinking through a problem, that text must never be sent as a Telegram message.**
+- `DRAFT READY ✓` must NEVER be sent unless Stage 6/6 has already been confirmed (push verified).
 
 ---
 
@@ -729,14 +738,35 @@ Add to inner slug map:
 ### 9d) sitemap.xml
 `C:\Users\Marlon\.openclaw\grand-touch-craft\public\sitemap.xml`
 
-```xml
-<url>
-  <loc>https://www.grandtouchauto.ae/blog/<slug></loc>
-  <lastmod>YYYY-MM-DD</lastmod>
-  <image:image>
-    <image:loc>https://www.grandtouchauto.ae/ppf-featured-<slug>-option-1.png</image:loc>
-  </image:image>
-</url>
+**Do NOT use string-replacement edit tools on sitemap.xml — use this PowerShell script instead to avoid encoding/matching failures:**
+
+```powershell
+$sitemap = "C:\Users\Marlon\.openclaw\grand-touch-craft\public\sitemap.xml"
+$slug = "<slug>"
+$date = (Get-Date -Format "yyyy-MM-dd")
+$newEntry = @"
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/$slug</loc>
+    <lastmod>$date</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://www.grandtouchauto.ae/ppf-featured-$slug-option-1.png</image:loc>
+      <image:title>$slug article image</image:title>
+      <image:caption>Grand Touch Auto PPF article Dubai</image:caption>
+    </image:image>
+  </url>
+</urlset>
+"@
+$content = Get-Content $sitemap -Raw
+if ($content -match [regex]::Escape($slug)) {
+  Write-Host "SITEMAP: entry for $slug already exists — skipping"
+} else {
+  $content = $content -replace "</urlset>", $newEntry
+  Set-Content $sitemap $content -NoNewline
+  Write-Host "SITEMAP: entry added for $slug"
+}
 ```
 
 ---
