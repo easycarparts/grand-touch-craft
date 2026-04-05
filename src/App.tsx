@@ -23,6 +23,7 @@ import ClassicCarRestoration from "./pages/articles/ClassicCarRestoration";
 import IsPpfWorthItDubai from "./pages/articles/IsPpfWorthItDubai";
 import PpfVsCeramicDubai from "./pages/articles/PpfVsCeramicDubai";
 import PpfDubaiFullFrontVsFullBody from "./pages/articles/PpfDubaiFullFrontVsFullBody";
+import PpfLongevityDubaiHeat from "./pages/articles/PpfLongevityDubaiHeat";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -75,6 +76,7 @@ function App() {
             <Route path="/blog/is-ppf-worth-it-dubai" element={<IsPpfWorthItDubai />} />
             <Route path="/blog/ppf-vs-ceramic-dubai" element={<PpfVsCeramicDubai />} />
             <Route path="/blog/ppf-dubai-full-front-vs-full-body" element={<PpfDubaiFullFrontVsFullBody />} />
+            <Route path="/blog/ppf-longevity-dubai-heat" element={<PpfLongevityDubaiHeat />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />
