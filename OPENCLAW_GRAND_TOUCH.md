@@ -138,25 +138,29 @@ After notification: stop and wait for `APPROVE` or `MERGE`.
 - If slug given: use that `draft/<slug>` branch
 - If no slug: use the most recently pushed `draft/*` branch — do not ask which one
 
-**You MUST create the PR using the `gh` CLI. Do NOT open a browser URL. Do NOT send Sean a link to fill in manually.**
+**You MUST create the PR using the PowerShell GitHub API method below. Do NOT open a browser URL. Do NOT send Sean a link to fill in manually. Do NOT require gh CLI.**
 
-Run from `C:\Users\Marlon\.openclaw\grand-touch-craft`:
+Run this PowerShell script from `C:\Users\Marlon\.openclaw\grand-touch-craft`:
 
-```bash
-cd C:\Users\Marlon\.openclaw\grand-touch-craft
-gh pr create --base main --head draft/<slug> --title "Article: <article title>" --body "## Summary
+```powershell
+$token = $env:GITHUB_TOKEN  # Must be set in OpenClaw environment
+$repo  = "easycarparts/grand-touch-craft"
+$slug  = "<slug>"
+$title = "Article: <article title>"
+$body  = @"
+## Summary
 - Keyword: <primary keyword>
 - KD: <score>/100 — LOW / MEDIUM / HIGH
 - Intent: <Informational / Commercial / Transactional>
 - Vercel preview: <preview URL>
 
 ## Files changed
-- src/pages/articles/<PascalCase>.tsx — new article
-- public/ppf-featured-<slug>-option-1.png — featured image
-- src/pages/Blog.tsx — slug map + blogPosts entry
-- src/App.tsx — import + route
-- src/components/ArticleLayout.tsx — slug map
-- public/sitemap.xml — URL block
+- src/pages/articles/<PascalCase>.tsx
+- public/ppf-featured-$slug-option-1.png
+- src/pages/Blog.tsx
+- src/App.tsx
+- src/components/ArticleLayout.tsx
+- public/sitemap.xml
 
 ## Checklist
 - [x] Article .tsx at correct path
@@ -165,15 +169,28 @@ gh pr create --base main --head draft/<slug> --title "Article: <article title>" 
 - [x] App.tsx updated
 - [x] ArticleLayout.tsx updated
 - [x] sitemap.xml updated
-- [x] npm run build passes"
+- [x] npm run build passes
+"@
+
+$payload = @{ title=$title; body=$body; head="draft/$slug"; base="main" } | ConvertTo-Json
+$response = Invoke-RestMethod `
+  -Uri "https://api.github.com/repos/$repo/pulls" `
+  -Method POST `
+  -Headers @{ Authorization="Bearer $token"; "Content-Type"="application/json"; "User-Agent"="OpenClaw" } `
+  -Body $payload
+
+Write-Host "PR created: $($response.html_url)"
+Write-Host "PR number: $($response.number)"
 ```
 
-After the `gh pr create` command runs, it will output a PR URL. Send that URL to Sean in Telegram:
+Save the PR number from the output — needed for MERGE.
+
+Send to Telegram:
 
 ```
 PR OPEN ✓
 Article: <article title>
-PR: <GitHub PR URL>
+PR: <response.html_url>
 Preview: <Vercel preview URL>
 
 Reply MERGE when ready to go live.
@@ -181,22 +198,35 @@ Reply MERGE when ready to go live.
 
 Do not merge. Do not ask questions. Wait for `MERGE`.
 
-**If `gh` CLI is not authenticated:** run `gh auth login` first, complete authentication, then retry `gh pr create`.
-
-**If `gh` CLI is not installed:** install it with `winget install --id GitHub.cli` then authenticate and retry.
+**If `$env:GITHUB_TOKEN` is not set:** retrieve the token from OpenClaw credentials/environment config and set it before running. The token needs `repo` scope on the `easycarparts` GitHub account.
 
 ---
 
 ### MERGE — triggered by `MERGE`
 
-- If no slug given: use the most recently opened PR. Do not ask which one.
+- If no slug given: use the most recently created PR. Do not ask which one.
 
-```bash
-cd C:\Users\Marlon\.openclaw\grand-touch-craft
-gh pr merge draft/<slug> --merge --delete-branch
+```powershell
+$token  = $env:GITHUB_TOKEN
+$repo   = "easycarparts/grand-touch-craft"
+$prNum  = <PR number from APPROVE step>
+
+$response = Invoke-RestMethod `
+  -Uri "https://api.github.com/repos/$repo/pulls/$prNum/merge" `
+  -Method PUT `
+  -Headers @{ Authorization="Bearer $token"; "Content-Type"="application/json"; "User-Agent"="OpenClaw" } `
+  -Body (@{ merge_method="merge" } | ConvertTo-Json)
+
+Write-Host "Merged: $($response.merged) — $($response.message)"
+
+# Delete the branch after merge
+Invoke-RestMethod `
+  -Uri "https://api.github.com/repos/$repo/git/refs/heads/draft/$slug" `
+  -Method DELETE `
+  -Headers @{ Authorization="Bearer $token"; "User-Agent"="OpenClaw" }
 ```
 
-Wait for Vercel production deploy to complete (usually 30–60 seconds). Then post to Telegram:
+Wait 30–60 seconds for Vercel production deploy. Then post to Telegram:
 
 ```
 MERGED ✓
