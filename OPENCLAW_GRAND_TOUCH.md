@@ -185,13 +185,38 @@ Write-Host "PR number: $($response.number)"
 
 Save the PR number from the output — needed for MERGE.
 
+After creating the PR, retrieve the confirmed Vercel preview URL:
+
+```powershell
+# Construct deterministic Vercel preview URL from branch name
+$sanitized = ("draft/$slug") -replace "[^a-zA-Z0-9]", "-"
+$vercelUrl = "https://grand-touch-craft-git-$sanitized-easycarparts.vercel.app"
+Write-Host "Constructed preview: $vercelUrl"
+
+# Confirm via GitHub commit status (more reliable — waits for Vercel to deploy)
+$maxAttempts = 12  # poll up to 60 seconds
+$attempt = 0
+do {
+    Start-Sleep -Seconds 5
+    $attempt++
+    $sha     = (git rev-parse "origin/draft/$slug" 2>$null)
+    $checks  = Invoke-RestMethod `
+      -Uri "https://api.github.com/repos/easycarparts/grand-touch-craft/commits/$sha/statuses" `
+      -Headers @{ Authorization="Bearer $token"; "User-Agent"="OpenClaw" }
+    $vercel  = $checks | Where-Object { $_.context -like "*vercel*" -and $_.state -eq "success" } | Select-Object -First 1
+    if ($vercel) { $vercelUrl = $vercel.target_url; break }
+} while ($attempt -lt $maxAttempts)
+
+Write-Host "Final preview URL: $vercelUrl"
+```
+
 Send to Telegram:
 
 ```
 PR OPEN ✓
 Article: <article title>
-PR: <response.html_url>
-Preview: <Vercel preview URL>
+PR: <GitHub PR URL>
+Preview: <Vercel preview URL — confirmed live>
 
 Reply MERGE when ready to go live.
 ```
