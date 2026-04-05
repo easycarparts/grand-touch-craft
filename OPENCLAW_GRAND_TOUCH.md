@@ -61,7 +61,7 @@ When this document is loaded as a task trigger, you MUST begin executing Step 1 
 These rules are absolute and override everything:
 
 1. Do not ask planning questions. Do not ask any questions. Decide and execute.
-2. Do not send any message to Sean until the Telegram notification at the end of the full pipeline.
+2. Do NOT send conversational messages or questions to Sean during the run. DO send Telegram progress beacons at each stage as defined in the Live Progress Beacons section — these are required and must be sent throughout execution.
 3. The only permitted reason to stop and message Sean mid-run is a genuine hard blocker: no internet access, repo directory not found on disk, or every single topic candidate fails the duplicate check with zero viable alternatives.
 4. Complete the entire pipeline in one uninterrupted run: keyword research → anti-duplicate check → branch → article .tsx → image → four file updates → build → push → Telegram notify.
 5. If one approach fails, apply the fallback defined in this document and continue without asking.
@@ -120,19 +120,20 @@ Must pass with zero errors before any push.
 3. Prioritise topic choice using low-competition keyword + competitor-gap strategy as primary signal (90% weighting)
 4. Run keyword research (Section 4) and select a low-competition target
 5. Run anti-duplicate check (Section 3)
-6. Sync and branch from latest remote main (mandatory):
+6. Sync and branch from latest remote main (mandatory — run these exact commands in order):
    - `git fetch origin`
-   - `git checkout main`
-   - `git pull origin main`
-   - `git checkout -B draft/<slug>`
+   - `git checkout -f main`                       ← force-discard any previous run's uncommitted files
+   - `git reset --hard origin/main`               ← force local main to match remote exactly
+   - `git checkout -B draft/<slug>`               ← create or reset the draft branch cleanly
 7. Generate featured image → save to `public/` (Section 8)
 8. Write article `.tsx` at its final path (Section 7)
 9. Update all four supporting files (Section 9)
 10. Run `npm run build` — must pass zero errors (Section 10)
 11. Commit and push `draft/<slug>` to GitHub automatically (no prompt to Sean):
-   - `git add .`
+   - `git add -f public/ppf-featured-<slug>-option-1.png`  ← force-stage image (global gitignore may block it otherwise)
+   - `git add .`                                            ← stage all other changed files
    - `git commit -m "Draft: <article title>"`
-   - `git push -u origin draft/<slug>`
+   - `git push -u origin draft/<slug> --force-with-lease`  ← --force-with-lease handles re-runs where branch already exists on remote
 12. Send Telegram notification (Section 11)
 
 **In DRAFT MODE you MUST NOT:**
@@ -324,6 +325,9 @@ Run before choosing any topic:
 | `is-ppf-worth-it-dubai` | PPF ROI for Dubai owners |
 | `ppf-vs-ceramic-dubai` | PPF vs ceramic Dubai specific |
 | `ppf-dubai-full-front-vs-full-body` | Full front vs full body PPF coverage |
+| `gloss-vs-matte-ppf-dubai` | Gloss vs matte PPF finish in Dubai |
+| `ppf-longevity-dubai-heat` | PPF longevity / lifespan in Dubai heat |
+| `ppf-warranty-claims-dubai` | PPF warranty claims — what is covered |
 
 **Unused angles (good candidates for next articles):**
 
@@ -332,9 +336,11 @@ Run before choosing any topic:
 - When PPF is NOT the right choice (honest money-saving angle)
 - Paint correction before PPF — when is it mandatory?
 - PPF for SUVs vs sedans in Dubai
-- How Dubai summer heat affects PPF longevity
 - STEK vs GYEON for Dubai conditions
-- PPF warranty claims in Dubai — what actually gets covered
+- PPF cost guide Dubai — what to expect at each tier
+- Self-healing PPF vs standard PPF in Dubai climate
+- Ceramic coating maintenance schedule for Dubai owners
+- Vinyl wrap vs PPF for Dubai resale value
 
 ---
 
@@ -785,22 +791,6 @@ Write-Host "Image gate PASSED: $size bytes"
 ```
 
 If this throws: the image was generated but not saved to disk. Save it now, re-run this check, then continue.
-
-### Step 1b — Stage the image with force flag (mandatory)
-
-A global gitignore on this machine may block `git add` for PNG files in `public/`. Always use `-f` when staging images:
-
-```bash
-git add -f public/ppf-featured-<slug>-option-1.png
-```
-
-Then confirm it is staged:
-
-```bash
-git status
-```
-
-Output must show the file under "Changes to be committed" — not under "Untracked files" and not missing. If it still shows as untracked after `-f`: check the file path is exactly correct and re-run.
 
 ### Step 2 — Build
 
