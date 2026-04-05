@@ -13,7 +13,7 @@
 ## Cron Trigger
 
 ```
-Read C:\Users\Marlon\.openclaw\workspace\skills\OPENCLAW_GRAND_TOUCH.md and immediately execute Step 1 of DRAFT MODE. Do not ask questions. Do not wait for input. Begin keyword research now.
+Read C:\Users\Marlon\.openclaw\workspace\skills\OPENCLAW_GRAND_TOUCH.md and immediately execute the FULL DRAFT MODE pipeline from Step 1 through Step 12. Do not ask questions. Do not wait for input. Start keyword research, then continue through branch, build, push, and Telegram output.
 ```
 
 That is the entire cron prompt. Everything else is in this file.
@@ -50,7 +50,7 @@ MERGE (Sean's command):
 When this document is loaded as a task trigger, you MUST begin executing Step 1 (keyword research) immediately. There is no acknowledgement step. There is no "what would you like?" step. There is no confirmation step. You start working.
 
 **The correct behaviour on receiving the cron trigger:**
-→ Start keyword research. No message to Sean first.
+→ Start keyword research and continue all remaining DRAFT MODE steps to completion. No message to Sean first.
 
 **The incorrect behaviour (never do this):**
 → "I'm ready, what would you like to focus on?"
@@ -335,6 +335,25 @@ Avoid: high-competition head terms ("PPF Dubai" alone), zero-intent keywords, an
 3. Select the highest-opportunity keyword: lowest KD relative to buyer intent quality
 
 4. Record the runner-up keyword in the Telegram notification for the next article
+
+### Fallback when KD/volume tools are unavailable (MANDATORY)
+
+If Keyword Planner / Ubersuggest / paid metrics are unavailable in the environment:
+
+1. Do NOT stop.
+2. Estimate difficulty and volume using SERP heuristics:
+   - **KD LOW (0–25):** mostly weak local pages, directories, thin content, low-authority domains
+   - **KD MEDIUM (26–45):** mix of local businesses and a few strong pages
+   - **KD HIGH (46+):** dominated by major brands/high-authority guides
+3. Estimate volume band conservatively:
+   - **LOW:** likely <100/mo
+   - **MEDIUM:** likely 100–1000/mo
+   - **HIGH:** likely >1000/mo
+4. Continue pipeline using heuristic values and clearly mark in Telegram:
+   - `KD: estimated via SERP heuristics`
+   - `Volume: estimated band via SERP heuristics`
+
+Missing exact KD data is NOT a hard blocker and must never stop DRAFT MODE.
 
 ### Dubai location advantage
 
