@@ -735,6 +735,40 @@ Add to inner slug map:
 
 ---
 
+## 9b) Route Integrity Check (Run Before Build — No Exceptions)
+
+Before running `npm run build`, verify all four of these are consistent for the new article slug:
+
+```powershell
+$slug = "<slug>"
+$pascal = "<PascalCase>"
+$repo = "C:\Users\Marlon\.openclaw\grand-touch-craft"
+
+# 1. Import exists in App.tsx
+$appImport = Select-String -Path "$repo\src\App.tsx" -Pattern "import $pascal"
+if (-not $appImport) { throw "BLOCKED: import $pascal missing from App.tsx" }
+
+# 2. Route path exists in App.tsx
+$appRoute = Select-String -Path "$repo\src\App.tsx" -Pattern "/blog/$slug"
+if (-not $appRoute) { throw "BLOCKED: Route path /blog/$slug missing from App.tsx" }
+
+# 3. Slug map entry in Blog.tsx
+$blogSlug = Select-String -Path "$repo\src\pages\Blog.tsx" -Pattern "`"$slug`""
+if (-not $blogSlug) { throw "BLOCKED: slug '$slug' missing from Blog.tsx slugMap" }
+
+# 4. Slug map entry in ArticleLayout.tsx
+$layoutSlug = Select-String -Path "$repo\src\components\ArticleLayout.tsx" -Pattern "`"$slug`""
+if (-not $layoutSlug) { throw "BLOCKED: slug '$slug' missing from ArticleLayout.tsx slugMap" }
+
+Write-Host "Route integrity PASSED: import ✓  route ✓  Blog.tsx ✓  ArticleLayout.tsx ✓"
+```
+
+All four must pass. If any throw: fix the missing item before build.
+
+Most common failure: import added but `<Route path="...">` line forgotten in App.tsx. These are two separate edits required.
+
+---
+
 ## 10) Build Verification
 
 Run these two steps in order. Both must pass before pushing.

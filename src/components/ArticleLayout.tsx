@@ -164,6 +164,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       8: 'ppf-vs-ceramic-dubai',
       9: 'ppf-dubai-full-front-vs-full-body',
       10: 'ppf-longevity-dubai-heat',
+      11: 'ppf-warranty-claims-dubai',
     };
     return slugMap[id] || `article-${id}`;
   };

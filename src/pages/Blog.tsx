@@ -21,6 +21,7 @@ function getArticleSlug(id: number) {
     8: "ppf-vs-ceramic-dubai",
     9: "ppf-dubai-full-front-vs-full-body",
     10: "ppf-longevity-dubai-heat",
+    11: "ppf-warranty-claims-dubai",
   };
   return slugMap[id] ?? `article-${id}`;
 }
@@ -162,6 +163,20 @@ const blogPosts = [
     readTime: "9 min read",
     category: "Protection",
     image: "/ppf-featured-ppf-longevity-dubai-heat-option-1.png",
+    featured: false,
+  },
+  {
+    id: 11,
+    title: "PPF Warranty Claims in Dubai: What Actually Gets Covered?",
+    excerpt:
+      "If your paint protection film fails in Dubai heat, this guide explains what coverage usually covers—and what installers often require for a valid claim.",
+    content:
+      "PPF warranty claims in Dubai depend on cause, evidence, and installation quality—here’s what to document, what’s commonly covered, and how to avoid rejection.",
+    author: "Sean, Grand Touch Auto",
+    publishedAt: "2026-04-05",
+    readTime: "9 min read",
+    category: "Protection",
+    image: "/ppf-featured-ppf-warranty-claims-dubai.png",
     featured: false,
   },
 ];
