@@ -114,19 +114,19 @@ Must pass with zero errors before any push.
 
 1. Read latest SEO daily summary from:
    - `C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\summary.md` (latest available date)
-2. Use that summary to prioritise topic angle:
-   - striking-distance opportunities
-   - high-impression/low-click themes
-   - internal link gaps
-3. Run keyword research (Section 4) and select a low-competition target
-4. Run anti-duplicate check (Section 3)
-5. Create branch: `draft/<slug>` from current `main`
-6. Generate featured image → save to `public/` (Section 8)
-7. Write article `.tsx` at its final path (Section 7)
-8. Update all four supporting files (Section 9)
-9. Run `npm run build` — must pass zero errors (Section 10)
-10. Push `draft/<slug>` to GitHub
-11. Send Telegram notification (Section 11)
+2. Use SEO summary as light context only (do not let it drive topic choice yet):
+   - apply a 10% weighting to summary signals (striking-distance, low-CTR, link gaps)
+   - if summary is missing or weak, continue normally without blocking
+3. Prioritise topic choice using low-competition keyword + competitor-gap strategy as primary signal (90% weighting)
+4. Run keyword research (Section 4) and select a low-competition target
+5. Run anti-duplicate check (Section 3)
+6. Create branch: `draft/<slug>` from current `main`
+7. Generate featured image → save to `public/` (Section 8)
+8. Write article `.tsx` at its final path (Section 7)
+9. Update all four supporting files (Section 9)
+10. Run `npm run build` — must pass zero errors (Section 10)
+11. Push `draft/<slug>` to GitHub
+12. Send Telegram notification (Section 11)
 
 **In DRAFT MODE you MUST NOT:**
 
