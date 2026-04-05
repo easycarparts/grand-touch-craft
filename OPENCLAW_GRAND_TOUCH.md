@@ -137,6 +137,31 @@ Must pass with zero errors before any push.
 
 After notification: stop and wait for `APPROVE` or `MERGE`.
 
+### Live Progress Beacons (Required)
+
+To make execution visible after Sean presses RUN, send short Telegram progress beacons during DRAFT MODE:
+
+1. Immediately at start:
+   - `DRAFT RUN STARTED ✓`
+   - `Stage: 1/6 Keyword research`
+2. After topic selected:
+   - `Stage: 2/6 Topic selected — <slug>`
+3. After image saved and validated:
+   - `Stage: 3/6 Image generated + validated`
+4. After code files updated:
+   - `Stage: 4/6 Article + routing files updated`
+5. After build succeeds:
+   - `Stage: 5/6 Build passed`
+6. After branch push:
+   - `Stage: 6/6 Branch pushed`
+7. Then send full `DRAFT READY ✓` report (Section 11).
+
+Rules:
+- If any stage takes more than 90 seconds, send heartbeat:
+  - `Still working… Stage <n>/6`
+- Progress beacons are status-only and concise.
+- Do not ask questions in progress beacons.
+
 ---
 
 ### PUBLISH MODE — triggered by `APPROVE` or `APPROVED: <slug>`
@@ -757,7 +782,7 @@ Common failure causes:
 
 ## 11) Telegram Notification Format
 
-Send after successful build and push. Use this exact structure:
+Send progress beacons during execution (see Live Progress Beacons above), then after successful build and push send this final structure:
 
 ```
 DRAFT READY ✓
