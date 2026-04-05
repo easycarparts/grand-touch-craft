@@ -30,6 +30,26 @@ When this file is loaded as a task trigger:
 
 ---
 
+## Cron-Safe Execution Mode (Required)
+
+To run reliably in CRON (non-interactive), use these hard rules:
+
+1. **Never run inline Python** (`python -c "..."`) for Jobs 1/2/3.
+2. **Never use base64/encoded script execution**.
+3. Write or use file-based scripts only, then run:
+   - `python C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\scripts\job1_gsc_metrics.py`
+   - `python C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\scripts\job2_url_health.py`
+   - `python C:\Users\Marlon\.openclaw\workspace\logs\seo-daily\YYYY-MM-DD\scripts\job3_internal_links.py`
+4. Keep scripts in the daily folder under `...\seo-daily\YYYY-MM-DD\scripts\` (not in workspace root).
+5. If execution policy blocks script runs, call via explicit `python <file.py>` (do not use PowerShell script wrappers).
+6. If gateway returns `pairing required`, stop and report:
+   - "CRON blocked by gateway pairing policy. Inline/obfuscated exec is disabled by policy."
+   - Do not retry with encoded commands.
+
+Why: CRON cannot approve interactive scope upgrades. File-based plain Python avoids security heuristics that trigger obfuscation/pairing failures.
+
+---
+
 ## Credential Paths
 
 | Credential | Full path |
