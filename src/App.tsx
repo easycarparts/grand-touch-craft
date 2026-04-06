@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
 import Portfolio from "./pages/Portfolio";
@@ -15,7 +15,7 @@ import ThankYou from "./pages/ThankYou";
 import ThankYouPayment from "./pages/ThankYouPayment";
 import CeramicCoatingGuide from "./pages/articles/CeramicCoatingGuide";
 import PPFvsCeramic from "./pages/articles/PPFvsCeramic";
-import PpfDubai from "./pages/PpfDubai";
+import PpfCostCalculator from "./pages/PpfCostCalculator";
 import PaintCorrectionTechniques from "./pages/articles/PaintCorrectionTechniques";
 import CustomVinylWraps from "./pages/articles/CustomVinylWraps";
 import PerformanceTuning from "./pages/articles/PerformanceTuning";
@@ -25,6 +25,9 @@ import PpfVsCeramicDubai from "./pages/articles/PpfVsCeramicDubai";
 import PpfDubaiFullFrontVsFullBody from "./pages/articles/PpfDubaiFullFrontVsFullBody";
 import PpfLongevityDubaiHeat from "./pages/articles/PpfLongevityDubaiHeat";
 import PpfWarrantyClaimsDubai from "./pages/articles/PpfWarrantyClaimsDubai";
+import PpfCostDubaiPricingGuide from "./pages/articles/PpfCostDubaiPricingGuide";
+import MatteVsGlossPpfDubai from "./pages/articles/MatteVsGlossPpfDubai";
+import PpfDubaiQuote from "./pages/PpfDubaiQuote";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -63,7 +66,9 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/blog" element={<Blog />} />
-            <Route path="/ppf-dubai" element={<PpfDubai />} />
+            <Route path="/ppf-dubai" element={<Navigate to="/ppf-cost-calculator" replace />} />
+            <Route path="/ppf-cost-calculator" element={<PpfCostCalculator />} />
+            <Route path="/ppf-dubai-quote" element={<PpfDubaiQuote />} />
             <Route path="/bookings" element={<Booking />} />
             <Route path="/thank-you" element={<ThankYou />} />
             <Route path="/thankyou" element={<ThankYouPayment />} />
@@ -79,6 +84,8 @@ function App() {
             <Route path="/blog/ppf-dubai-full-front-vs-full-body" element={<PpfDubaiFullFrontVsFullBody />} />
             <Route path="/blog/ppf-longevity-dubai-heat" element={<PpfLongevityDubaiHeat />} />
             <Route path="/blog/ppf-warranty-claims-dubai" element={<PpfWarrantyClaimsDubai />} />
+            <Route path="/blog/ppf-cost-dubai-pricing-guide" element={<PpfCostDubaiPricingGuide />} />
+            <Route path="/blog/matte-vs-gloss-ppf-dubai" element={<MatteVsGlossPpfDubai />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />

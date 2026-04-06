@@ -147,6 +147,86 @@ const pages = [
     noscriptExtra:
       "<p><strong>Enable JavaScript</strong> to use the contact form and WhatsApp shortcuts.</p>",
   },
+  {
+    path: "/blog",
+    title: "Automotive Blog & Insights – Grand Touch Auto Dubai",
+    description:
+      "Expert automotive insights from Dubai's premier luxury car studio. Learn about PPF pricing, ceramic coating, coverage decisions, and maintenance.",
+    keywords:
+      "PPF Dubai blog, automotive blog Dubai, paint protection guides, ceramic coating tips, Grand Touch Auto blog",
+    ogTitle: "Automotive Blog & Insights – Grand Touch Auto",
+    ogDescription:
+      "Read practical guides on PPF, ceramic, detailing, and paint protection for Dubai driving conditions.",
+    seoBody: `
+        <h1>Grand Touch Auto blog</h1>
+        <p>Practical Dubai-focused guides on paint protection film, ceramic coating, and luxury car care.</p>
+        <h2>Popular reads</h2>
+        <ul>
+          <li>PPF vs ceramic in Dubai</li>
+          <li>Full front vs full body PPF</li>
+          <li>How long PPF lasts in Dubai heat</li>
+          <li>PPF warranty claims in Dubai</li>
+        </ul>
+        <h2>Need pricing first?</h2>
+        <p>Use our PPF cost calculator to estimate by coverage, finish, and car size before requesting a final quote.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to browse all articles and related recommendations.</p>",
+  },
+  {
+    path: "/ppf-cost-calculator",
+    title: "PPF Cost Calculator Dubai | Full Body & Front PPF Price Estimate",
+    description:
+      "Estimate PPF pricing in Dubai by car size, coverage, finish, and brand. Compare front vs full body options, then confirm your quote on WhatsApp.",
+    keywords:
+      "PPF cost calculator Dubai, front PPF price Dubai, full body PPF cost Dubai, matte PPF Dubai price, STEK PPF Dubai price",
+    ogTitle: "PPF Cost Calculator Dubai | Front & Full Body PPF Pricing",
+    ogDescription:
+      "Get a practical PPF estimate for Dubai in seconds and compare coverage options before booking.",
+    seoBody: `
+        <h1>PPF cost calculator in Dubai</h1>
+        <p>Get an instant estimate for paint protection film based on coverage, finish, warranty, and vehicle size.</p>
+        <h2>What affects PPF pricing</h2>
+        <ul>
+          <li>Front vs full body coverage</li>
+          <li>Gloss vs matte finish</li>
+          <li>Vehicle size and panel complexity</li>
+          <li>Film brand and warranty term</li>
+        </ul>
+        <h2>After your estimate</h2>
+        <p>Compare guides, review portfolio work, and message Sean on WhatsApp for final inspection-based pricing.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the interactive calculator and visual preview.</p>",
+  },
+  {
+    path: "/ppf-dubai-quote",
+    title: "PPF Dubai Quote | Grand Touch",
+    description:
+      "Get a Grand Touch PPF quote in Dubai with a short form, trust-led pricing flow, and direct WhatsApp follow-up from Sean.",
+    keywords:
+      "PPF Dubai quote, Grand Touch PPF Dubai, STEK PPF Dubai, full body PPF Dubai price, front PPF Dubai quote",
+    ogTitle: "PPF Dubai Quote | Grand Touch",
+    ogDescription:
+      "Premium PPF quote funnel for Dubai drivers with STEK 10-year positioning, warranty trust, and fast WhatsApp handoff.",
+    seoBody: `
+        <h1>PPF Dubai quote from Grand Touch</h1>
+        <p>Request a fast paint protection film quote in Dubai with a short form, practical estimate flow, and direct follow-up from Sean.</p>
+        <h2>Why this page exists</h2>
+        <p>Built for premium buyers who want genuine material, clean installation, and verified warranty registration instead of bargain-first sales tactics.</p>
+        <h2>What you can confirm here</h2>
+        <ul>
+          <li>STEK 10-year PPF starting pricing for full body protection</li>
+          <li>Front-end protection as a custom quote path</li>
+          <li>Vehicle size and finish preference</li>
+          <li>Direct WhatsApp handoff with your details already captured</li>
+        </ul>
+        <h2>Trust signals</h2>
+        <p>Grand Touch is positioned here as a certified STEK and GYEON installer in Dubai with warranty-led, authenticity-focused messaging for cautious buyers.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the short quote form, estimate controls, and WhatsApp handoff.</p>",
+  },
 ];
 
 function applyPage(html, page) {
