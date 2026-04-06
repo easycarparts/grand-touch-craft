@@ -1,6 +1,14 @@
+const BASE_URL = "https://www.grandtouchauto.ae";
+
+const toAbsoluteUrl = (value?: string) => {
+  if (!value) return `${BASE_URL}/placeholder.svg`;
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.startsWith("/")) return `${BASE_URL}${value}`;
+  return `${BASE_URL}/${value}`;
+};
+
 // SEO utility functions for dynamic metadata
 export const generateSEOMetadata = (page: string, customData?: any) => {
-  const baseUrl = "https://www.grandtouchauto.ae";
   
   const seoData = {
     home: {
@@ -55,8 +63,8 @@ export const generateSEOMetadata = (page: string, customData?: any) => {
     keywords: customData?.keywords || pageData.keywords,
     ogTitle: customData?.ogTitle || pageData.ogTitle,
     ogDescription: customData?.ogDescription || pageData.ogDescription,
-    url: `${baseUrl}/${page === 'home' ? '' : page}`,
-    image: customData?.image || `${baseUrl}/placeholder.svg`,
+    url: customData?.url || `${BASE_URL}/${page === 'home' ? '' : page}`,
+    image: toAbsoluteUrl(customData?.image),
   };
 };
 
@@ -108,6 +116,16 @@ export const updatePageSEO = (page: string, customData?: any) => {
   const ogImage = document.querySelector('meta[property="og:image"]');
   if (ogImage) {
     ogImage.setAttribute('content', seoData.image);
+  }
+
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) {
+    canonical.setAttribute('href', seoData.url);
+  } else {
+    const canonicalLink = document.createElement('link');
+    canonicalLink.setAttribute('rel', 'canonical');
+    canonicalLink.setAttribute('href', seoData.url);
+    document.head.appendChild(canonicalLink);
   }
   
   // Update Twitter Card tags
@@ -270,11 +288,11 @@ export const generateBlogStructuredData = (posts: any[]) => {
       },
       "datePublished": post.publishedAt,
       "dateModified": post.publishedAt,
-      "image": post.image,
-      "url": `https://www.grandtouchauto.ae/blog/${post.id}`,
+      "image": toAbsoluteUrl(post.image),
+      "url": `https://www.grandtouchauto.ae/blog/${post.slug || post.id}`,
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": `https://www.grandtouchauto.ae/blog/${post.id}`
+        "@id": `https://www.grandtouchauto.ae/blog/${post.slug || post.id}`
       }
     }))
   };

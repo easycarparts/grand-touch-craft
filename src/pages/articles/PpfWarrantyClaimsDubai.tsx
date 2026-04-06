@@ -72,7 +72,7 @@ The best warranty strategy starts at installation.
 - **Use hand washing or touchless methods** at high-quality car wash facilities, not petrol station pressure washes
 - **Avoid aggressive DIY**: heat guns, chemical removers, or scraping can damage film integrity
 
-If you want to understand the bigger picture of film selection and protection planning, start with our guide on **[paint protection film in Dubai](/ppf-dubai)**.
+If you want to understand the bigger picture of film selection and protection planning, start with our **[PPF cost calculator in Dubai](/ppf-cost-calculator)**.
 
 ## How an Installer Should Handle a Warranty Claim
 A high-quality installer doesn't treat warranty as an afterthought. They treat it as part of customer care.

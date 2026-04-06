@@ -2,7 +2,7 @@ import ArticleLayout from "@/components/ArticleLayout";
 
 const MatteVsGlossPpfDubai = () => {
   const article = {
-    id: 10,
+    id: 13,
     title: "Gloss vs Matte PPF in Dubai: Which Finish Should You Choose?",
     excerpt:
       "Compare gloss and matte PPF in Dubai so you can choose the finish that fits your car, your taste, and the way you actually use it.",
@@ -99,7 +99,7 @@ The protection job is similar. The finish job is different.
 
 That is why your decision should be based on the car, the color, and the look you want after the install.
 
-If you want a broader view of coverage and product choices, start with our **[PPF in Dubai](/ppf-dubai)** page.
+If you want a broader view of coverage and product choices, start with our **[PPF cost calculator in Dubai](/ppf-cost-calculator)**.
 
 ## Practical decision checklist
 Use this before you book:
@@ -119,7 +119,7 @@ Gloss and matte PPF both protect paint.
 
 The better choice is the one that matches how you want the car to look every time you see it in daylight, shade, or Dubai traffic.
 
-If you want help deciding between the two finishes for your exact car, start with **[PPF in Dubai](/ppf-dubai)** and ask for a finish recommendation before you book.
+If you want help deciding between the two finishes for your exact car, start with **[PPF cost calculator in Dubai](/ppf-cost-calculator)** and ask for a finish recommendation before you book.
 `,
     author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-05",
