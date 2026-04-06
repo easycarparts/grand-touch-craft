@@ -25,6 +25,7 @@ import PpfVsCeramicDubai from "./pages/articles/PpfVsCeramicDubai";
 import PpfDubaiFullFrontVsFullBody from "./pages/articles/PpfDubaiFullFrontVsFullBody";
 import PpfLongevityDubaiHeat from "./pages/articles/PpfLongevityDubaiHeat";
 import PpfWarrantyClaimsDubai from "./pages/articles/PpfWarrantyClaimsDubai";
+import PpfCostDubaiPricingGuide from "./pages/articles/PpfCostDubaiPricingGuide";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -79,6 +80,7 @@ function App() {
             <Route path="/blog/ppf-dubai-full-front-vs-full-body" element={<PpfDubaiFullFrontVsFullBody />} />
             <Route path="/blog/ppf-longevity-dubai-heat" element={<PpfLongevityDubaiHeat />} />
             <Route path="/blog/ppf-warranty-claims-dubai" element={<PpfWarrantyClaimsDubai />} />
+            <Route path="/blog/ppf-cost-dubai-pricing-guide" element={<PpfCostDubaiPricingGuide />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />

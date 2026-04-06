@@ -22,6 +22,7 @@ function getArticleSlug(id: number) {
     9: "ppf-dubai-full-front-vs-full-body",
     10: "ppf-longevity-dubai-heat",
     11: "ppf-warranty-claims-dubai",
+    12: "ppf-cost-dubai-pricing-guide",
   };
   return slugMap[id] ?? `article-${id}`;
 }
@@ -131,7 +132,7 @@ const blogPosts = [
     excerpt:
       "Understand the real difference between PPF and ceramic coating in Dubai so you choose the right protection for your car.",
     content:
-      "Most Dubai car owners don’t actually need PPF or ceramic. They need the right protection for the problem they’re trying to prevent.",
+      "Most Dubai car owners don't actually need PPF or ceramic. They need the right protection for the problem they're trying to prevent.",
     author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-04",
     readTime: "7 min read",
@@ -145,7 +146,7 @@ const blogPosts = [
     excerpt:
       "Compare full front and full body PPF coverage in Dubai so you choose the right protection for your car, budget, and ownership goals.",
     content:
-      "Most Dubai owners do not actually need to choose between “all or nothing.” They need to choose the coverage that matches how the car is driven, parked, and kept over time.",
+      "Most Dubai owners do not actually need to choose between "all or nothing." They need to choose the coverage that matches how the car is driven, parked, and kept over time.",
     author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-04",
     readTime: "8 min read",
@@ -156,7 +157,7 @@ const blogPosts = [
   {
     id: 10,
     title: "How Long Does PPF Actually Last in Dubai Heat?",
-    excerpt: "Realistic expectations for PPF durability in Dubai's extreme summer heat, UV exposure, and sand—based on STEK and GYEON performance in local conditions.",
+    excerpt: "Realistic expectations for PPF durability in Dubai's extreme summer heat, UV exposure, and sand-based on STEK and GYEON performance in local conditions.",
     content: "Dubai's climate tests PPF harder than most places. This guide covers realistic timelines, STEK vs GYEON, and maintenance for maximum longevity.",
     author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-05",
@@ -171,12 +172,26 @@ const blogPosts = [
     excerpt:
       "If your paint protection film fails in Dubai heat, this guide explains what coverage usually covers—and what installers often require for a valid claim.",
     content:
-      "PPF warranty claims in Dubai depend on cause, evidence, and installation quality—here’s what to document, what’s commonly covered, and how to avoid rejection.",
+      "PPF warranty claims in Dubai depend on cause, evidence, and installation quality—here's what to document, what's commonly covered, and how to avoid rejection.",
     author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-05",
     readTime: "9 min read",
     category: "Protection",
     image: "/ppf-featured-ppf-warranty-claims-dubai.png",
+    featured: false,
+  },
+  {
+    id: 12,
+    title: "PPF Cost in Dubai: Complete Pricing Guide for Luxury Cars 2026",
+    excerpt:
+      "Get real PPF pricing for Dubai—Range Rovers start at 15,000 AED full body, Porsche 911s around 18,000 AED. Factors, coverage options, brands, and how to spot fair quotes vs overpricing.",
+    content:
+      "Dubai car owners often get sticker shock from wildly varying PPF quotes. One shop says 15,000 AED for a Range Rover full body. Another wants 35,000 AED for the same car. What's real?",
+    author: "Sean, Grand Touch Auto",
+    publishedAt: "2026-04-06",
+    readTime: "9 min read",
+    category: "Protection",
+    image: "/ppf-featured-ppf-cost-dubai-pricing-guide-option-1.png",
     featured: false,
   },
 ];

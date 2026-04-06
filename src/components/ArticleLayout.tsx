@@ -165,6 +165,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       9: 'ppf-dubai-full-front-vs-full-body',
       10: 'ppf-longevity-dubai-heat',
       11: 'ppf-warranty-claims-dubai',
+      12: 'ppf-cost-dubai-pricing-guide',
     };
     return slugMap[id] || `article-${id}`;
   };
