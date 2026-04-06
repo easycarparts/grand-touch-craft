@@ -146,7 +146,7 @@ const blogPosts = [
     excerpt:
       "Compare full front and full body PPF coverage in Dubai so you choose the right protection for your car, budget, and ownership goals.",
     content:
-      "Most Dubai owners do not actually need to choose between "all or nothing." They need to choose the coverage that matches how the car is driven, parked, and kept over time.",
+      "Most Dubai owners do not actually need to choose between \"all or nothing.\" They need to choose the coverage that matches how the car is driven, parked, and kept over time.",
     author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-04",
     readTime: "8 min read",
