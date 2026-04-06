@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Wrench, Star } from "lucide-react";
+import { ArrowRight, Wrench, Star, Calculator } from "lucide-react";
 import heroImage from "@/assets/hero-workshop-final.jpg";
 import { Link } from "react-router-dom";
 
@@ -69,22 +69,19 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-16">
-            <Link to="/ppf-dubai">
+            <Link to="/ppf-cost-calculator">
               <Button
                 size="lg"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold px-8 py-6 shadow-glow animate-glow group"
               >
-                PPF Dubai
+                <Calculator className="mr-2 w-5 h-5" />
+                Get a PPF estimate
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Link to="/bookings">
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-base font-semibold px-8 py-6 group"
-              >
-                Book Your Service
+            <Link to="/portfolio">
+              <Button size="lg" variant="outline" className="text-base font-semibold px-8 py-6 group">
+                View Our Portfolio
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

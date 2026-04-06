@@ -101,7 +101,7 @@ Moderate climates get "easy" 10-year claims. Dubai halves that for poor films.
 
 Grand Touch uses STEK/GYEON certified installs in controlled bays—no dust contamination, precise patterning.
 
-[See our full PPF options](/ppf-dubai) or WhatsApp for a no-pressure heat assessment.
+[Run the PPF cost calculator](/ppf-cost-calculator) or WhatsApp for a no-pressure heat assessment.
 
 PPF isn't forever—but in Dubai, the right film buys years of worry-free paint.`,
     author: "Sean, Grand Touch Auto",

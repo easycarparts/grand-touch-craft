@@ -21,6 +21,8 @@ The coating is primarily composed of silicon dioxide (SiO2) or titanium dioxide 
 
 ## Benefits of Ceramic Coating
 
+Ceramic is excellent for gloss, chemical resistance, and easier washing. For **stone chips and impact**, paint protection film is the direct tool—see [PPF vs ceramic coating](/blog/ppf-vs-ceramic-coating), the Dubai-focused [PPF vs ceramic in Dubai](/blog/ppf-vs-ceramic-dubai) guide, and our [PPF cost calculator](/ppf-cost-calculator) when you want numbers before you message us.
+
 ### 1. Long-lasting Protection
 While traditional waxes last 1-3 months, ceramic coatings can last 2-5 years with proper maintenance. This means fewer applications and long-term cost savings.
 

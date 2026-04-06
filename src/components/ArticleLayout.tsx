@@ -14,10 +14,59 @@ import "./ArticleContent.css";
 function applyInlineFormatting(trimmed: string): string {
   const boldText = trimmed.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
   const italicText = boldText.replace(/\*(.*?)\*/g, "<em>$1</em>");
-  return italicText.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" class="text-primary hover:text-primary/80 underline" target="_blank" rel="noopener noreferrer">$1</a>'
-  );
+  return italicText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label: string, rawHref: string) => {
+    const href = String(rawHref).trim();
+    const isInternal = href.startsWith("/") || href.startsWith("#");
+    if (isInternal) {
+      return `<a href="${href}" class="text-primary hover:text-primary/80 underline">${label}</a>`;
+    }
+    return `<a href="${href}" class="text-primary hover:text-primary/80 underline" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  });
+}
+
+type CrossLinkDef = { to: string; label: string; skipIds?: number[] };
+
+/** Internal links for SEO — skips the current article where `skipIds` matches `article.id`. */
+function crossLinksForArticle(articleId: number, category: string): { to: string; label: string }[] {
+  const items: CrossLinkDef[] = [
+    { to: "/ppf-cost-calculator", label: "PPF cost calculator Dubai" },
+    { to: "/blog/ppf-vs-ceramic-dubai", label: "PPF vs ceramic in Dubai" },
+  ];
+  if (category === "Detailing") {
+    items.push(
+      { to: "/blog/ppf-dubai-full-front-vs-full-body", label: "Front vs full body PPF in Dubai" },
+      { to: "/blog/ppf-cost-dubai-pricing-guide", label: "PPF cost pricing guide (Dubai)" },
+      { to: "/blog/ceramic-coating-guide", label: "Ceramic coating guide", skipIds: [1] },
+      { to: "/blog/paint-correction-techniques", label: "Paint correction guide", skipIds: [3] },
+    );
+  } else if (category === "Customization") {
+    items.push(
+      { to: "/blog/custom-vinyl-wraps", label: "Custom vinyl wraps guide", skipIds: [4] },
+      { to: "/blog/ppf-vs-ceramic-coating", label: "PPF vs ceramic coating (comparison)" },
+      { to: "/blog/matte-vs-gloss-ppf-dubai", label: "Gloss vs matte PPF in Dubai" },
+    );
+  } else if (category === "Performance") {
+    items.push(
+      { to: "/services", label: "Grand Touch services in Dubai" },
+      { to: "/blog/performance-tuning", label: "Performance tuning guide", skipIds: [5] },
+      { to: "/blog/ppf-cost-dubai-pricing-guide", label: "PPF pricing guide (Dubai)" },
+    );
+  } else if (category === "Restoration") {
+    items.push(
+      { to: "/blog/classic-car-restoration", label: "Classic restoration guide", skipIds: [6] },
+      { to: "/blog/paint-correction-techniques", label: "Paint correction guide" },
+      { to: "/blog/ceramic-coating-guide", label: "Ceramic coating guide" },
+    );
+  }
+  const seen = new Set<string>();
+  const out: { to: string; label: string }[] = [];
+  for (const x of items) {
+    if (x.skipIds?.includes(articleId)) continue;
+    if (seen.has(x.to)) continue;
+    seen.add(x.to);
+    out.push({ to: x.to, label: x.label });
+  }
+  return out;
 }
 
 // ArticleContent component for proper HTML formatting
@@ -166,19 +215,27 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       10: 'ppf-longevity-dubai-heat',
       11: 'ppf-warranty-claims-dubai',
       12: 'ppf-cost-dubai-pricing-guide',
+      13: 'matte-vs-gloss-ppf-dubai',
     };
     return slugMap[id] || `article-${id}`;
   };
 
   // Update SEO metadata for individual article
   useEffect(() => {
+    const articleSlug = getArticleSlug(article.id);
+    const articleUrl = `https://www.grandtouchauto.ae/blog/${articleSlug}`;
+    const imageUrl = article.image.startsWith("http")
+      ? article.image
+      : `https://www.grandtouchauto.ae${article.image}`;
+
     const customSEOData = {
       title: `${article.title} – Grand Touch Auto Blog`,
       description: article.excerpt,
       keywords: `${article.category.toLowerCase()}, automotive, Dubai, ${article.tags?.join(', ') || ''}, car care, luxury vehicles`,
       ogTitle: article.title,
       ogDescription: article.excerpt,
-      image: article.image,
+      image: imageUrl,
+      url: articleUrl,
     };
     
     updatePageSEO('blog', customSEOData);
@@ -191,7 +248,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       "description": article.excerpt,
       "image": {
         "@type": "ImageObject",
-        "url": article.image,
+        "url": imageUrl,
         "width": 800,
         "height": 400,
         "caption": `${article.title} - Professional automotive service in Dubai`
@@ -225,7 +282,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       "dateModified": article.publishedAt,
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": `https://www.grandtouchauto.ae/blog/${getArticleSlug(article.id)}`
+        "@id": articleUrl
       },
       "articleSection": article.category,
       "wordCount": article.content.split(' ').length,
@@ -241,11 +298,12 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
     
     const script = document.createElement('script');
     script.type = 'application/ld+json';
+    script.setAttribute('data-page-schema', 'blog-post');
     script.textContent = JSON.stringify(structuredData);
     document.head.appendChild(script);
     
     return () => {
-      const existingScript = document.querySelector('script[type="application/ld+json"]');
+      const existingScript = document.querySelector('script[data-page-schema="blog-post"]');
       if (existingScript) {
         document.head.removeChild(existingScript);
       }
@@ -384,6 +442,58 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
             <ArticleContent content={article.content} />
           </div>
 
+          {article.category === "Protection" ? (
+            <div className="mt-10">
+              <Card className="p-6 md:p-7 bg-card/50 border-border/60">
+                <h3 className="text-lg font-semibold mb-2">Next step for PPF planning</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Use the calculator to estimate your range, then compare key guides before confirming.
+                </p>
+                <div className="space-y-2 text-sm mb-5">
+                  <Link to="/ppf-cost-calculator" className="text-primary hover:underline block">
+                    PPF cost calculator Dubai
+                  </Link>
+                  <Link to="/blog/ppf-dubai-full-front-vs-full-body" className="text-primary hover:underline block">
+                    Front vs full body coverage guide
+                  </Link>
+                  <Link to="/blog/ppf-vs-ceramic-dubai" className="text-primary hover:underline block">
+                    PPF vs ceramic in Dubai
+                  </Link>
+                  <Link to="/blog/ppf-cost-dubai-pricing-guide" className="text-primary hover:underline block">
+                    PPF cost pricing guide (Dubai)
+                  </Link>
+                  <Link to="/blog/matte-vs-gloss-ppf-dubai" className="text-primary hover:underline block">
+                    Gloss vs matte PPF in Dubai
+                  </Link>
+                  <Link to="/blog/ppf-longevity-dubai-heat" className="text-primary hover:underline block">
+                    How long PPF lasts in Dubai heat
+                  </Link>
+                </div>
+                <Button asChild>
+                  <Link to="/ppf-cost-calculator">Get your PPF estimate</Link>
+                </Button>
+              </Card>
+            </div>
+          ) : null}
+
+          {article.category !== "Protection" ? (
+            <div className="mt-10">
+              <Card className="p-6 md:p-7 bg-card/40 border-border/60">
+                <h3 className="text-lg font-semibold mb-2">Related guides & tools</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  More from Grand Touch Auto — cross-links for paint, film, and workshop context in Dubai.
+                </p>
+                <div className="flex flex-col gap-2 text-sm">
+                  {crossLinksForArticle(article.id, article.category).map((item) => (
+                    <Link key={item.to} to={item.to} className="text-primary hover:underline">
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          ) : null}
+
           {/* Tags */}
           {article.tags && article.tags.length > 0 && (
             <div className="mt-12 pt-8 border-t border-border">
@@ -429,21 +539,26 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
                     Message <span className="text-foreground font-medium">Sean</span> at Grand Touch Auto on WhatsApp for a straight answer—no pressure, Dubai time.
                   </p>
                 </div>
-                <Button
-                  asChild
-                  className="shrink-0 bg-[#25D366] hover:bg-[#20BD5A] text-white border-0"
-                >
-                  <a
-                    href={`https://wa.me/971567191045?text=${encodeURIComponent(
-                      `Hi Sean, I read "${article.title}" on Grand Touch Auto and wanted to ask: `
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button asChild variant="outline" className="shrink-0">
+                    <Link to="/ppf-cost-calculator">Get PPF estimate</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    className="shrink-0 bg-[#25D366] hover:bg-[#20BD5A] text-white border-0"
                   >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Message Sean
-                  </a>
-                </Button>
+                    <a
+                      href={`https://wa.me/971567191045?text=${encodeURIComponent(
+                        `Hi Sean, I read "${article.title}" on Grand Touch Auto and wanted to ask: `
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Message Sean
+                    </a>
+                  </Button>
+                </div>
               </div>
             </Card>
           </div>

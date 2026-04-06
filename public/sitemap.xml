@@ -37,6 +37,13 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/ppf-cost-calculator</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
   
   <!-- Blog Section -->
   <url>
@@ -188,6 +195,18 @@
       <image:loc>https://www.grandtouchauto.ae/ppf-featured-ppf-cost-dubai-pricing-guide-option-1.png</image:loc>
       <image:title>PPF Cost in Dubai: Complete Pricing Guide</image:title>
       <image:caption>Real PPF pricing for luxury cars in Dubai 2026</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/matte-vs-gloss-ppf-dubai</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://www.grandtouchauto.ae/ppf-featured-ppf-dubai-full-front-vs-full-body-option-1.png</image:loc>
+      <image:title>Gloss vs Matte PPF in Dubai</image:title>
+      <image:caption>Choosing gloss or matte paint protection film for Dubai vehicles</image:caption>
     </image:image>
   </url>
 </urlset>

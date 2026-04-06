@@ -23,6 +23,7 @@ function getArticleSlug(id: number) {
     10: "ppf-longevity-dubai-heat",
     11: "ppf-warranty-claims-dubai",
     12: "ppf-cost-dubai-pricing-guide",
+    13: "matte-vs-gloss-ppf-dubai",
   };
   return slugMap[id] ?? `article-${id}`;
 }
@@ -194,6 +195,20 @@ const blogPosts = [
     image: "/ppf-featured-ppf-cost-dubai-pricing-guide-option-1.png",
     featured: false,
   },
+  {
+    id: 13,
+    title: "Gloss vs Matte PPF in Dubai: Which Finish Should You Choose?",
+    excerpt:
+      "Compare gloss and matte PPF in Dubai so you can choose the finish that fits your car, your style, and your real-world use.",
+    content:
+      "Gloss and matte PPF both protect paint, but they create very different visual outcomes. This guide helps you decide based on appearance, maintenance, and ownership goals.",
+    author: "Sean, Grand Touch Auto",
+    publishedAt: "2026-04-05",
+    readTime: "8 min read",
+    category: "Protection",
+    image: "/ppf-featured-ppf-dubai-full-front-vs-full-body-option-1.png",
+    featured: false,
+  },
 ];
 
 function comparePostsByDateNewestFirst(
@@ -216,14 +231,18 @@ const Blog = () => {
   useEffect(() => {
     updatePageSEO("blog");
 
-    const structuredData = generateBlogStructuredData([...blogPosts].sort(comparePostsByDateNewestFirst));
+    const postsWithSlugs = [...blogPosts]
+      .map((post) => ({ ...post, slug: getArticleSlug(post.id) }))
+      .sort(comparePostsByDateNewestFirst);
+    const structuredData = generateBlogStructuredData(postsWithSlugs);
     const script = document.createElement("script");
     script.type = "application/ld+json";
+    script.setAttribute("data-page-schema", "blog-list");
     script.textContent = JSON.stringify(structuredData);
     document.head.appendChild(script);
 
     return () => {
-      const existingScript = document.querySelector('script[type="application/ld+json"]');
+      const existingScript = document.querySelector('script[data-page-schema="blog-list"]');
       if (existingScript) {
         document.head.removeChild(existingScript);
       }

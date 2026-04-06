@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Phone } from "lucide-react";
+import { Menu, X, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.svg";
 
@@ -19,10 +19,8 @@ const Navbar = () => {
 
   const navLinks = [
     { name: "Home", path: "/" },
-    { name: "PPF Dubai", path: "/ppf-dubai" },
     { name: "Services", path: "/services" },
     { name: "Portfolio", path: "/portfolio" },
-    { name: "About", path: "/about" },
     { name: "Contact", path: "/contact" },
   ];
 
@@ -61,13 +59,13 @@ const Navbar = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
               </Link>
             ))}
-            <Link to="/bookings">
+            <Link to="/ppf-cost-calculator">
               <Button
                 size="sm"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow"
               >
-                <Phone className="w-4 h-4 mr-2" />
-                Book Now
+                <Calculator className="w-4 h-4 mr-2" />
+                Get PPF estimate
               </Button>
             </Link>
           </div>
@@ -98,13 +96,13 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
-            <Link to="/bookings" onClick={() => setIsMobileMenuOpen(false)}>
+            <Link to="/ppf-cost-calculator" onClick={() => setIsMobileMenuOpen(false)}>
               <Button
                 size="sm"
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               >
-                <Phone className="w-4 h-4 mr-2" />
-                Book Now
+                <Calculator className="w-4 h-4 mr-2" />
+                Get PPF estimate
               </Button>
             </Link>
           </div>

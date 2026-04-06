@@ -16,12 +16,13 @@ const Index = () => {
     const structuredData = generateBusinessStructuredData();
     const script = document.createElement('script');
     script.type = 'application/ld+json';
+    script.setAttribute('data-page-schema', 'home-business');
     script.textContent = JSON.stringify(structuredData);
     document.head.appendChild(script);
     
     return () => {
       // Clean up structured data script on unmount
-      const existingScript = document.querySelector('script[type="application/ld+json"]');
+      const existingScript = document.querySelector('script[data-page-schema="home-business"]');
       if (existingScript) {
         document.head.removeChild(existingScript);
       }

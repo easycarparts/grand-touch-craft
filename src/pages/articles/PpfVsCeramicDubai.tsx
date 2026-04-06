@@ -70,8 +70,8 @@ PPF is only worth it if it is installed properly: surface prep, careful fitting,
 ### Mistake 3: Choosing based on price alone
 A cheaper approach can still be wrong if it solves the wrong problem for your driving and ownership style.
 
-## Where /ppf-dubai fits into your decision
-If you’re still unsure, start by making PPF the foundation of the conversation. Grand Touch’s /ppf-dubai page exists for exactly that reason: it helps Dubai owners compare coverage paths and choose what makes sense for their car.
+## Where the PPF calculator fits into your decision
+If you’re still unsure, start by making PPF the foundation of the conversation. Grand Touch’s [PPF cost calculator](/ppf-cost-calculator) exists for exactly that reason: it helps Dubai owners compare coverage paths and choose what makes sense for their car.
 
 If you want a natural next step, read the guide content and then ask for a recommendation based on your real usage:
 - where you drive

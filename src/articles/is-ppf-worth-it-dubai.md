@@ -21,4 +21,4 @@ Investing in PPF not only protects your car but also boosts its resale value. A 
 ## Conclusion: Is PPF Worth It?
 For car owners in Dubai, the benefits of applying paint protection film are compelling. While the initial cost may deter some, the long-term advantages—such as reduced maintenance costs, enhanced resale value, and protection against harsh environmental conditions—make PPF a worthwhile investment.  
 
-For more information, visit [PPF Dubai](https://grandtouchauto.ae/ppf-dubai).
+For more information, visit the [PPF Cost Calculator](https://grandtouchauto.ae/ppf-cost-calculator).

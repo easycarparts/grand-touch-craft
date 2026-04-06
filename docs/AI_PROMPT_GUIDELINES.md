@@ -1,6 +1,6 @@
 # AI prompt guidelines — Grand Touch Auto (Vite + React blog)
 
-**Single step-by-step guide (paths, steps, content, SEO, images — no AI image generation):** [`OPENCLAW_PUBLISHING_PLAYBOOK.md`](./OPENCLAW_PUBLISHING_PLAYBOOK.md).
+**Single step-by-step guide (WRITE vs BUILD, images in `public/`, SEO):** [`OPENCLAW_PUBLISHING_PLAYBOOK.md`](./OPENCLAW_PUBLISHING_PLAYBOOK.md) — includes **site repo root** for OpenClaw: `C:\Users\Marlon\.openclaw\grand-touch-craft`. **Paste into `blog-guidelines.md`:** [`PASTE_INTO_BLOG_GUIDELINES.md`](./PASTE_INTO_BLOG_GUIDELINES.md).
 
 This file keeps shorter copy-paste blocks only.
 

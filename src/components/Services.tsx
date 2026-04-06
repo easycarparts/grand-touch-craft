@@ -68,8 +68,8 @@ const Services = () => {
             From diagnostics to detailing — precision engineering meets artisan craftsmanship.
           </p>
           <div className="pt-2">
-            <a href="/ppf-dubai" className="text-primary font-semibold hover:underline">
-              Explore PPF Dubai
+            <a href="/ppf-cost-calculator" className="text-primary font-semibold hover:underline">
+              Explore PPF Cost Calculator
             </a>
           </div>
         </div>

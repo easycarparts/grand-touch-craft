@@ -320,6 +320,8 @@ Classic car restoration involves returning a vehicle to its original condition, 
 
 ## Conclusion
 
+After paint and body work, plan protection carefully: [paint correction](/blog/paint-correction-techniques), [ceramic coating](/blog/ceramic-coating-guide), and for chip defense [PPF cost calculator](/ppf-cost-calculator) plus [PPF vs ceramic in Dubai](/blog/ppf-vs-ceramic-dubai).
+
 Classic car restoration is a rewarding journey that combines technical skill with historical appreciation. Whether you're restoring a family heirloom or a dream car, the process teaches patience, craftsmanship, and respect for automotive history.
 
 At Grand Touch Auto, we specialize in classic car restoration, bringing decades of experience and passion to every project. Our team understands the importance of preserving automotive history while ensuring your classic car is safe, reliable, and beautiful.

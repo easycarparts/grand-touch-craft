@@ -19,4 +19,4 @@ For car owners in **Dubai**, applying PPF can offer numerous benefits:
 - **Customization**: With various finishes available, car enthusiasts can choose options that best fit their style while ensuring maximum protection.
 
 ## Concluding Thoughts
-As the automotive landscape evolves in Dubai, staying ahead with advanced protection solutions like the **Vunyx® Smart Shield PPF** is essential. Car owners are encouraged to consider these new offerings and participate in upcoming events to elevate their vehicle care strategies further. For more information, visit [PPF Dubai](https://grandtouchauto.ae/ppf-dubai). **Contact Sean at Grand Touch Auto for WhatsApp inquiries and bookings.**
+As the automotive landscape evolves in Dubai, staying ahead with advanced protection solutions like the **Vunyx® Smart Shield PPF** is essential. Car owners are encouraged to consider these new offerings and participate in upcoming events to elevate their vehicle care strategies further. For more information, visit the [PPF Cost Calculator](https://grandtouchauto.ae/ppf-cost-calculator). **Contact Sean at Grand Touch Auto for WhatsApp inquiries and bookings.**

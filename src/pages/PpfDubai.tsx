@@ -41,8 +41,14 @@ const PpfDubai = () => {
               Built for Dubai roads, heat, and real-world driving.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
-              <a href={waLink} target="_blank" rel="noreferrer">
+              <Link to="/ppf-cost-calculator">
                 <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                  Check PPF Cost in 30 Seconds
+                </Button>
+              </Link>
+              <a href={waLink} target="_blank" rel="noreferrer">
+                <Button variant="outline" className="font-semibold">
                   <MessageCircle className="w-5 h-5 mr-2" />
                   WhatsApp for PPF
                 </Button>

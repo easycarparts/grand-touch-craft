@@ -1,6 +1,6 @@
 # OpenClaw / agent rules: blog posts and images
 
-**Step-by-step publishing + paths:** [`OPENCLAW_PUBLISHING_PLAYBOOK.md`](./OPENCLAW_PUBLISHING_PLAYBOOK.md). Optional short prompts: [`AI_PROMPT_GUIDELINES.md`](./AI_PROMPT_GUIDELINES.md).
+**Step-by-step publishing + paths:** [`OPENCLAW_PUBLISHING_PLAYBOOK.md`](./OPENCLAW_PUBLISHING_PLAYBOOK.md) (includes OpenClaw repo root `C:\Users\Marlon\.openclaw\grand-touch-craft`). **Block to paste into `blog-guidelines.md`:** [`PASTE_INTO_BLOG_GUIDELINES.md`](./PASTE_INTO_BLOG_GUIDELINES.md). Optional short prompts: [`AI_PROMPT_GUIDELINES.md`](./AI_PROMPT_GUIDELINES.md).
 
 ---
 
