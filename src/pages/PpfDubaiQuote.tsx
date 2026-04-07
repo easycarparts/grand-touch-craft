@@ -14,6 +14,11 @@ import {
 import { Input } from "@/components/ui/input";
 import PpfCostCalculatorWidget from "@/components/PpfCostCalculatorWidget";
 import { updatePageSEO } from "@/lib/seo";
+import { cn } from "@/lib/utils";
+import ppfCclearEntry from "@/assets/ppf-cclear-entry.jpg";
+import ppfDynoshieldPremium from "@/assets/ppf-dynoshield-premium.jpg";
+import ppfForceshieldRecommended from "@/assets/ppf-forceshield-recommended.jpg";
+import servicePpf from "@/assets/service-ppf.jpg";
 import logo from "@/assets/logo.svg";
 import {
   ArrowRight,
@@ -38,6 +43,8 @@ type CalculatorSelection = {
 const EMAILJS_SERVICE_ID = "service_f2na96a";
 const EMAILJS_TEMPLATE_ID = "template_bs1inle";
 const EMAILJS_PUBLIC_KEY = "PBrHmtX3m6KZRrwiC";
+const TRUST_SECTION_VIDEO =
+  "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/f_auto/v1775586709/0407_2_qvuqmp.mp4";
 
 const OWNERSHIP_STAGES: OwnershipStage[] = [
   "I have the car now",
@@ -62,8 +69,8 @@ declare global {
   }
 }
 
-const GoogleWordmark = () => (
-  <span aria-label="Google" className="font-semibold tracking-tight">
+const GoogleWordmark = ({ className }: { className?: string }) => (
+  <span aria-label="Google" className={cn("font-semibold tracking-tight", className)}>
     <span className="text-[#4285F4]">G</span>
     <span className="text-[#EA4335]">o</span>
     <span className="text-[#FBBC05]">o</span>
@@ -73,24 +80,10 @@ const GoogleWordmark = () => (
   </span>
 );
 
-const BrandTrustBadge = ({
-  src,
-  alt,
-  imgClassName,
-}: {
-  src: string;
-  alt: string;
-  imgClassName: string;
-}) => (
-  <div className="inline-flex items-center rounded-full border border-white/12 bg-white/6 px-3 py-2 shadow-sm backdrop-blur-sm">
-    <img src={src} alt={alt} className={imgClassName} loading="lazy" />
-  </div>
-);
-
-const TrustStars = () => (
-  <div className="flex items-center gap-1 text-[#fbbc05]">
+const TrustStars = ({ starClassName }: { starClassName?: string }) => (
+  <div className="flex shrink-0 items-center gap-0.5 text-[#fbbc05] sm:gap-1">
     {[1, 2, 3, 4, 5].map((star) => (
-      <Star key={star} className="h-4 w-4 fill-current" />
+      <Star key={star} className={cn("h-4 w-4 fill-current", starClassName)} />
     ))}
   </div>
 );
@@ -175,6 +168,8 @@ const PpfDubaiQuote = () => {
   const hasTrackedFormStart = useRef(false);
   const hasTrackedEstimate = useRef(false);
   const calculatorRef = useRef<HTMLElement | null>(null);
+  const trustSectionRef = useRef<HTMLElement | null>(null);
+  const trustVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const utmParams = useMemo(() => {
     if (typeof window === "undefined") return {};
@@ -280,6 +275,37 @@ const PpfDubaiQuote = () => {
     });
   }, [formSubmitted, packageLabel, selection, utmParams]);
 
+  useEffect(() => {
+    const section = trustSectionRef.current;
+    const video = trustVideoRef.current;
+
+    if (!section || !video || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!video) return;
+
+        if (entry.isIntersecting) {
+          video.currentTime = 0;
+          video.play().catch(() => {
+            // Ignore autoplay rejections if the browser is being strict.
+          });
+        } else {
+          video.pause();
+          video.currentTime = 0;
+        }
+      },
+      { threshold: 0.45 }
+    );
+
+    observer.observe(section);
+
+    return () => {
+      observer.disconnect();
+      video.pause();
+    };
+  }, []);
+
   const validatePhoneNumber = (value: string) => {
     const cleaned = value.replace(/[\s-]/g, "");
     return /^\+[0-9]{9,}$/.test(cleaned) && cleaned.length >= 10;
@@ -363,15 +389,15 @@ const PpfDubaiQuote = () => {
   return (
     <div className="min-h-screen bg-background pb-24 text-foreground md:pb-0">
       <main>
-        <section className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-4 pb-12 pt-10 sm:px-6 lg:px-8">
+        <section className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.09),_transparent_42%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.04),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.05),transparent_22%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-5 pb-8 pt-10 sm:bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] sm:px-6 lg:px-8">
           <div className="pointer-events-none absolute inset-0">
-            <div className="absolute -left-24 top-16 h-56 w-56 rounded-full bg-primary/12 blur-3xl" />
-            <div className="absolute right-[-4rem] top-10 h-64 w-64 rounded-full bg-amber-200/10 blur-3xl" />
+            <div className="absolute -left-24 top-16 h-56 w-56 rounded-full bg-primary/8 blur-3xl sm:bg-primary/12" />
+            <div className="absolute right-[-4rem] top-10 h-64 w-64 rounded-full bg-amber-200/[0.04] blur-3xl sm:bg-amber-200/10" />
             <div className="absolute bottom-[-4rem] left-1/3 h-40 w-40 rounded-full bg-white/5 blur-3xl" />
           </div>
           <div className="container mx-auto max-w-6xl">
-            <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
-              <div className="order-1 max-w-3xl lg:col-start-1 lg:row-start-1">
+            <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start lg:gap-x-8 lg:gap-y-0">
+              <div className="order-1 max-w-3xl lg:col-start-1 lg:row-start-1 lg:self-start">
                 <img src={logo} alt="Grand Touch" className="h-10 w-auto" />
                 <div className="mt-6 flex flex-wrap gap-2">
                   <Badge variant="secondary" className="gap-2 border border-white/10 bg-white/8 px-3 py-1.5 shadow-sm backdrop-blur-sm">
@@ -383,36 +409,21 @@ const PpfDubaiQuote = () => {
                   </Badge>
                 </div>
 
-                <h1 className="mt-6 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl md:text-6xl">
-                  PPF in Dubai
-                  <span className="block text-white">you can trust.</span>
-                  <span className="block bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent drop-shadow-[0_8px_30px_rgba(247,181,43,0.15)]">
+                <h1 className="mt-6 flex max-w-3xl flex-col gap-1.5 text-4xl font-bold leading-snug tracking-tight sm:gap-1.5 sm:text-5xl sm:leading-tight md:gap-2 md:text-6xl">
+                  <span className="text-white">PPF in Dubai</span>
+                  <span className="text-white">you can trust.</span>
+                  <span className="bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent drop-shadow-[0_8px_30px_rgba(247,181,43,0.15)]">
                     Direct with Sean. Installed properly.
                   </span>
                 </h1>
                 <p className="mt-4 max-w-2xl text-lg text-slate-300">
-                  British-owned, trust-led, and built for buyers who care who handles the car, what film is being fitted, and whether the warranty process is real.
+                  British-owned, trust-led PPF for buyers who care about genuine film, clean installs, and a warranty process that is actually real.
                 </p>
 
-                <div className="mt-6 grid gap-3 text-sm text-slate-300 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 backdrop-blur-sm">
-                    <p className="font-semibold text-white">Direct with Sean</p>
-                    <p className="mt-1 text-white/70">No generic sales handoff.</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 backdrop-blur-sm">
-                    <p className="font-semibold text-white">British-owned</p>
-                    <p className="mt-1 text-white/70">Premium service, cleaner communication.</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 backdrop-blur-sm">
-                    <p className="font-semibold text-white">Warranty-verified</p>
-                    <p className="mt-1 text-white/70">Authentic film and traceable registration.</p>
-                  </div>
-                </div>
-
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <div className="mt-6 flex flex-col gap-3">
                   <Dialog open={heroFormOpen} onOpenChange={setHeroFormOpen}>
                     <DialogTrigger asChild>
-                      <Button size="lg" className="w-full sm:w-auto">
+                      <Button size="lg" className="w-full">
                         Get My PPF Estimate
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -495,7 +506,7 @@ const PpfDubaiQuote = () => {
                     </DialogContent>
                   </Dialog>
 
-                  <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
+                  <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full">
                     <Button
                       type="button"
                       variant="outline"
@@ -512,7 +523,7 @@ const PpfDubaiQuote = () => {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="w-full text-white/75 hover:bg-white/5 hover:text-white sm:w-auto"
+                      className="w-full text-white/75 hover:bg-white/5 hover:text-white"
                       onClick={() =>
                         calculatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
                       }
@@ -524,8 +535,8 @@ const PpfDubaiQuote = () => {
 
               </div>
 
-              <div className="relative order-2 flex h-full min-h-0 flex-col justify-end overflow-visible lg:col-start-2 lg:row-span-2 lg:row-start-1">
-                <div className="relative mx-auto flex h-full w-full max-w-[480px] min-h-0 max-h-full flex-col justify-end pb-0 pt-2">
+              <div className="relative order-2 flex min-h-0 flex-col justify-end overflow-visible lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
+                <div className="relative mx-auto flex w-full max-w-[480px] min-h-0 flex-col justify-end pb-0 pt-2">
                     <div className="relative mx-auto aspect-[9/19.5] w-full min-h-0 min-w-0 max-h-full max-w-[420px] shrink-0">
                       <div className="pointer-events-none absolute -left-[5px] top-[157px] z-20 h-[4.5rem] w-[4px] rounded-full bg-gradient-to-b from-white/55 via-white/15 to-white/35 shadow-[0_0_12px_rgba(255,255,255,0.16)]" />
                       <div className="pointer-events-none absolute -left-[5px] top-[250px] z-20 h-28 w-[4px] rounded-full bg-gradient-to-b from-white/45 via-white/12 to-white/30 shadow-[0_0_12px_rgba(255,255,255,0.14)]" />
@@ -550,9 +561,17 @@ const PpfDubaiQuote = () => {
                             preload="auto"
                           />
 
-                          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/32 to-transparent px-5 pb-6 pt-14">
-                            <p className="text-[11px] uppercase tracking-[0.24em] text-white/60">Grand Touch transformations</p>
-                            <p className="mt-2 text-lg font-semibold leading-tight text-white">Premium finish. Trusted handover.</p>
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 bg-gradient-to-t from-black/90 via-black/32 to-transparent px-5 pb-6 pt-16">
+                            <img
+                              src="/stek-white-full.png"
+                              alt="STEK"
+                              className="h-16 w-auto max-w-[min(72%,13rem)] shrink-0 translate-y-5 self-start object-contain object-left opacity-95 drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] sm:h-20 sm:translate-y-6 md:h-[5.25rem]"
+                              loading="lazy"
+                            />
+                            <div className="w-full">
+                              <p className="text-[11px] uppercase tracking-[0.24em] text-white/60">Grand Touch transformations</p>
+                              <p className="mt-2 text-lg font-semibold leading-tight text-white">Premium finish. Trusted handover.</p>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -560,74 +579,388 @@ const PpfDubaiQuote = () => {
                 </div>
               </div>
 
-              <div className="order-3 max-w-3xl lg:col-start-1 lg:row-start-2 lg:mt-2">
-                <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(66,133,244,0.07),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-sm">
-                    <div className="flex items-center gap-2">
-                      <GoogleWordmark />
-                      <TrustStars />
+              <div className="order-3 w-full lg:col-start-1 lg:row-start-2 lg:mt-5 lg:self-start">
+                <div className="grid gap-2 sm:grid-cols-3 sm:gap-2.5 sm:items-stretch">
+                  <div className="flex flex-row items-center gap-3 rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(66,133,244,0.08),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] px-3 py-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-sm sm:flex-col sm:items-stretch sm:rounded-2xl sm:p-3 sm:py-3">
+                    <div className="flex shrink-0 flex-col gap-1 sm:w-full sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+                      <GoogleWordmark className="text-[1.125rem] leading-none sm:text-[1.4rem]" />
+                      <TrustStars starClassName="h-4 w-4 sm:h-[1.25rem] sm:w-[1.25rem]" />
                     </div>
-                    <p className="mt-4 text-sm font-semibold">4.9-star trust</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Google-backed social proof for high-intent buyers.
-                    </p>
+                    <div className="min-w-0 flex-1 sm:mt-2 sm:flex-none">
+                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">4.9-star trust</p>
+                      <p className="mt-0.5 text-sm leading-snug text-slate-300 sm:mt-1 sm:max-w-[19ch] sm:text-[0.8125rem]">
+                        Proof from real Grand Touch buyers.
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(245,158,11,0.07),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-sm">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <BrandTrustBadge
-                        src="/stek-logo.webp"
-                        alt="STEK official brand logo"
-                        imgClassName="h-6 w-auto object-contain"
-                      />
-                      <BrandTrustBadge
-                        src="/gyeon-logo-purple.png"
-                        alt="GYEON official brand logo"
-                        imgClassName="h-6 w-auto object-contain brightness-150 saturate-125"
+                  <div className="flex flex-row items-center gap-3 rounded-xl border border-primary/20 bg-[linear-gradient(180deg,rgba(245,158,11,0.11),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] px-3 py-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.28)] ring-1 ring-primary/10 backdrop-blur-sm sm:flex-col sm:items-stretch sm:rounded-2xl sm:p-3 sm:py-3">
+                    <div className="flex shrink-0 items-center justify-start sm:w-full sm:justify-center sm:py-0.5">
+                      <img
+                        src="/stek-white-small.png"
+                        alt="STEK"
+                        className="h-7 w-auto max-w-[120px] object-contain object-left sm:h-9 sm:max-w-[140px]"
+                        loading="lazy"
                       />
                     </div>
-                    <p className="mt-4 text-sm font-semibold">Certified install</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      STEK and GYEON supplied, installed, and registered properly.
-                    </p>
+                    <div className="min-w-0 flex-1 sm:mt-2 sm:flex-none">
+                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Certified installer</p>
+                      <p className="mt-0.5 text-sm leading-snug text-slate-300 sm:mt-1 sm:max-w-[17ch] sm:text-[0.8125rem]">
+                        STEK fitted properly.
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(95,143,121,0.08),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-sm">
-                    <div className="inline-flex rounded-xl border border-primary/25 bg-black/40 p-1.5">
-                      <div className="w-[88px] rotate-[-10deg] rounded-lg border border-white/15 bg-white px-2 py-1.5 text-black shadow-2xl">
-                        <div className="flex items-center justify-between">
-                          <span className="rounded bg-[#b73a2f] px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-white">
-                            Seal
-                          </span>
-                          <img
-                            src="/stek-logo.webp"
-                            alt="STEK warranty label"
-                            className="h-2.5 w-auto object-contain invert"
-                            loading="lazy"
-                          />
+                  <div className="flex flex-row items-center gap-3 rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(95,143,121,0.09),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] px-3 py-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-sm sm:flex-col sm:items-stretch sm:rounded-2xl sm:p-3 sm:py-3">
+                    <div className="flex shrink-0 items-center justify-start sm:w-full sm:justify-center sm:py-0.5">
+                      <div
+                        className="inline-flex max-w-[9.25rem] -rotate-[2deg] items-center gap-1.5 rounded-md border-2 border-white/30 bg-white px-1.5 py-1 text-black shadow-[0_6px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-black/15 sm:max-w-[11.5rem] sm:-rotate-[3deg] sm:gap-2 sm:rounded-lg sm:px-2 sm:py-1.5"
+                        role="img"
+                        aria-label="Serial verification seal"
+                      >
+                        <span
+                          aria-hidden
+                          className="shrink-0 rounded bg-[#b73a2f] px-0.5 py-0.5 text-[5px] font-bold uppercase tracking-[0.1em] text-white sm:px-1 sm:text-[6px] sm:tracking-[0.12em]"
+                        >
+                          Seal
+                        </span>
+                        <div
+                          aria-hidden
+                          className="grid h-6 w-6 shrink-0 grid-cols-4 gap-px rounded-sm bg-black p-0.5 shadow-inner sm:h-7 sm:w-7"
+                        >
+                          {Array.from({ length: 16 }).map((_, index) => (
+                            <span
+                              key={index}
+                              className={index % 3 === 0 ? "bg-white" : "bg-black"}
+                            />
+                          ))}
                         </div>
-                        <div className="mt-1 flex items-start gap-1.5">
-                          <div className="grid h-8 w-8 shrink-0 grid-cols-4 gap-[1px] rounded-sm bg-black p-[2px]">
-                            {Array.from({ length: 16 }).map((_, index) => (
-                              <span
-                                key={index}
-                                className={index % 3 === 0 ? "bg-white" : "bg-black"}
-                              />
-                            ))}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[7px] font-semibold uppercase tracking-[0.14em] text-[#b73a2f]">
-                              Serial verified
-                            </p>
-                            <div className="mt-1 h-3 rounded-sm bg-[repeating-linear-gradient(90deg,#111_0_2px,transparent_2px_3px)]" />
-                          </div>
+                        <div aria-hidden className="min-w-0 flex-1">
+                          <p className="text-[6px] font-semibold uppercase leading-tight tracking-[0.08em] text-[#b73a2f] sm:text-[7px] sm:tracking-[0.1em]">
+                            Serial verified
+                          </p>
+                          <div className="mt-0.5 h-0.5 rounded-sm bg-[repeating-linear-gradient(90deg,#111_0_1px,transparent_1px_2px)] sm:h-1" />
                         </div>
+                        <img
+                          src="/stek-logo.webp"
+                          alt=""
+                          className="h-2.5 w-auto shrink-0 object-contain opacity-80 invert sm:h-3"
+                          loading="lazy"
+                          aria-hidden
+                        />
                       </div>
                     </div>
-                    <p className="mt-4 text-sm font-semibold">Verified warranty</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Tamper proof-label, serial, and online warranty.
+                    <div className="min-w-0 flex-1 sm:mt-2 sm:flex-none">
+                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Verified warranty</p>
+                      <p className="mt-0.5 text-sm leading-snug text-slate-300 sm:mt-1 sm:max-w-[18ch] sm:text-[0.8125rem]">
+                        Serial-tracked and registered online.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          ref={trustSectionRef}
+          className="border-y border-border/50 bg-[radial-gradient(circle_at_18%_20%,rgba(245,181,43,0.07),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-4 py-14 sm:px-6 lg:px-8"
+        >
+          <div className="container mx-auto max-w-6xl">
+            <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center lg:gap-10">
+              <div className="order-2 relative overflow-hidden rounded-[32px] border border-primary/15 bg-[radial-gradient(circle_at_50%_18%,rgba(245,181,43,0.16),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(10,10,10,0.92))] px-6 pt-8 shadow-[0_28px_90px_rgba(0,0,0,0.38)] sm:px-8 sm:pt-10 lg:order-none">
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="absolute left-1/2 top-16 h-56 w-56 -translate-x-1/2 rounded-full bg-primary/12 blur-3xl" />
+                  <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/45 to-transparent" />
+                </div>
+                <div className="relative mb-8 overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:mb-10">
+                  <video
+                    ref={trustVideoRef}
+                    className="aspect-[4/5] h-auto w-full object-cover"
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    onEnded={(event) => {
+                      event.currentTarget.currentTime = 0;
+                      event.currentTarget.play().catch(() => {
+                        // Ignore replay failures if the browser is being strict.
+                      });
+                    }}
+                  >
+                    <source src={TRUST_SECTION_VIDEO} type="video/mp4" />
+                  </video>
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-5 bottom-5">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-white/65">
+                    </p>
+                    <p className="mt-2 max-w-[22ch] text-xl font-semibold leading-tight text-white sm:text-2xl">
+                    See how Sean works
                     </p>
                   </div>
                 </div>
+                <div className="relative -mx-6 border-t border-white/10 bg-black/18 px-6 py-5 backdrop-blur-sm sm:-mx-8 sm:px-8">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-primary/80">
+                    Deal Directly with Sean
+                  </p>
+                  <p className="mt-2 max-w-[28ch] text-sm leading-6 text-slate-300">
+                  Sean stays involved from first conversation to final result..
+                  </p>
+                </div>
+              </div>
+
+              <div className="order-1 relative overflow-hidden rounded-[32px] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-7 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8 lg:order-none">
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="absolute -right-12 top-0 h-44 w-44 rounded-full bg-primary/8 blur-3xl" />
+                  <div className="absolute -left-10 top-28 h-32 w-32 rounded-full bg-primary/6 blur-3xl" />
+                </div>
+                <div className="relative">
+                  <p className="text-sm uppercase tracking-[0.26em] text-muted-foreground">
+                    Why buyers trust Grand Touch
+                  </p>
+                  <h2 className="mt-3 flex max-w-xl flex-col gap-1 text-3xl font-bold leading-[0.98] text-white sm:gap-1.5 sm:text-4xl">
+                    <span className="block">The film matters.</span>
+                    <span className="block">Who you trust to fit it</span>
+                    <span className="block bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent drop-shadow-[0_10px_30px_rgba(247,181,43,0.16)]">
+                      matters more.
+                    </span>
+                  </h2>
+                  <div className="mt-5 max-w-[58ch] space-y-3 text-base leading-7 text-slate-300">
+                    <p>At Grand Touch, buyers trust Sean for the parts that matter most:</p>
+                    <p className="text-[1.02rem] leading-8 text-white/92">
+                      <span className="font-semibold text-[#f6c76d]">proper prep</span>,{" "}
+                      <span className="font-semibold text-white">genuine STEK film</span>, and{" "}
+                      <span className="font-semibold text-[#f6c76d]">
+                        warranty registration done the right way
+                      </span>
+                      .
+                    </p>
+                  </div>
+
+                  <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/6 px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-[#f6c76d] shadow-[0_12px_35px_rgba(245,181,43,0.08)]">
+                    <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_14px_rgba(245,181,43,0.7)]" />
+                    Trust is built before the film goes on
+                  </div>
+
+                  <div className="mt-8 rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] p-[1px] shadow-[0_22px_60px_rgba(0,0,0,0.28)]">
+                    <div className="rounded-[27px] bg-[linear-gradient(180deg,rgba(20,20,20,0.96),rgba(14,14,14,0.98))] px-5 sm:px-6">
+                    <div className="py-5 sm:py-6">
+                      <div className="flex items-start gap-4">
+                        <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary shadow-[0_0_16px_rgba(245,181,43,0.6)]" />
+                        <div className="min-w-0">
+                          <p className="text-lg font-semibold text-white">
+                            <span className="text-[#f6c76d]">British-owned.</span> Sean-led.
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-slate-300">
+                          Clear communication, honest advice, and a process Sean stands behind himself.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+                    <div className="py-5 sm:py-6">
+                      <div className="flex items-start gap-4">
+                        <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary shadow-[0_0_16px_rgba(245,181,43,0.6)]" />
+                        <div className="min-w-0">
+                          <p className="text-lg font-semibold text-white">
+                            No shortcuts in <span className="text-[#f6c76d]">prep.</span>
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-slate-300">
+                          The finish depends on what happens before installation, so we take that seriously.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+                    <div className="py-5 sm:py-6">
+                      <div className="flex items-start gap-4">
+                        <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary shadow-[0_0_16px_rgba(245,181,43,0.6)]" />
+                        <div className="min-w-0">
+                          <p className="text-lg font-semibold text-white">
+                            Genuine film. <span className="text-[#f6c76d]">Verified warranty.</span>
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-slate-300">
+                          Your STEK film is scanned, registered, and backed online through the proper portal.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-7 rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.12),rgba(245,181,43,0.04))] px-5 py-4 shadow-[0_14px_40px_rgba(245,181,43,0.08)]">
+                    <p className="text-center text-sm font-semibold tracking-[0.08em] text-[#f6c76d] sm:text-[0.95rem]">
+                    Proper prep <span className="mx-2 text-primary/70">•</span> Genuine film <span className="mx-2 text-primary/70">•</span> Verified warranty
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-border/50 bg-[radial-gradient(circle_at_75%_20%,rgba(245,181,43,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-4 py-14 sm:px-6 lg:px-8">
+          <div className="container mx-auto max-w-6xl">
+            <div className="grid gap-7 lg:grid-cols-[1fr_1.02fr] lg:items-start">
+              <div className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-7 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="absolute -left-12 top-6 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+                  <div className="absolute right-0 top-16 h-32 w-32 rounded-full bg-white/5 blur-3xl" />
+                </div>
+                <div className="relative">
+                  <p className="text-sm uppercase tracking-[0.26em] text-muted-foreground">
+                    Why Grand Touch installs STEK
+                  </p>
+                  <h2 className="mt-3 max-w-[12ch] text-3xl font-bold leading-[0.98] text-white sm:text-4xl">
+                    Trusted film.
+                    <span className="mt-1.5 block bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent drop-shadow-[0_10px_30px_rgba(247,181,43,0.16)]">
+                      Clear options.
+                    </span>
+                    Real warranty.
+                  </h2>
+                  <p className="mt-5 max-w-[54ch] text-base leading-7 text-slate-300">
+                    STEK is the film we trust on customer cars because it gives buyers strong
+                    protection, clean finish options, and warranty-backed packages without making
+                    the choice feel complicated.
+                  </p>
+
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/6 px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-[#f6c76d]">
+                      <img
+                        src="/stek-white-small.png"
+                        alt=""
+                        className="h-3 w-auto object-contain opacity-90"
+                        loading="lazy"
+                        aria-hidden
+                      />
+                      Certified installer
+                    </div>
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-white/80">
+                      5, 10 & 12-year coverage
+                    </div>
+                  </div>
+
+                  <div className="mt-7 overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_22px_60px_rgba(0,0,0,0.28)]">
+                    <div className="relative aspect-[16/10]">
+                      <img
+                        src={servicePpf}
+                        alt="Grand Touch workshop PPF installation visual"
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                      <div className="absolute inset-x-5 top-5">
+                        <img
+                          src="/stek-white-full.png"
+                          alt="STEK"
+                          className="h-7 w-auto object-contain sm:h-8"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="absolute inset-x-5 bottom-5">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-white/60">
+                          Grand Touch film choice
+                        </p>
+                        <p className="mt-2 max-w-[24ch] text-xl font-semibold leading-tight text-white sm:text-2xl">
+                          Chosen because it supports the standard buyers are trusting us to deliver.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.12),rgba(245,181,43,0.04))] px-5 py-4 shadow-[0_14px_40px_rgba(245,181,43,0.08)]">
+                    <p className="text-center text-sm font-semibold tracking-[0.08em] text-[#f6c76d] sm:text-[0.95rem]">
+                      Genuine STEK <span className="mx-2 text-primary/70">•</span> Installed properly{" "}
+                      <span className="mx-2 text-primary/70">•</span> Registered the right way
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+                <Card className="group overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(16,16,16,0.98))] p-0 shadow-[0_22px_60px_rgba(0,0,0,0.28)]">
+                  <div className="relative aspect-[16/11] overflow-hidden">
+                    <img
+                      src={ppfCclearEntry}
+                      alt="STEK C-Clear and F3 film placeholder visual"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/18 to-transparent" />
+                    <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.24em] text-white/80 backdrop-blur-sm">
+                      Entry choice
+                    </div>
+                    <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-sm uppercase tracking-[0.16em] text-[#f6c76d]">5 years</p>
+                        <h3 className="mt-1 text-xl font-semibold text-white">C-Clear / F3</h3>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-5 py-5">
+                    <p className="text-sm leading-6 text-slate-300">
+                      A lighter starting point for buyers who want trusted STEK protection without
+                      jumping straight into the top-tier package.
+                    </p>
+                  </div>
+                </Card>
+
+                <Card className="group overflow-hidden border-primary/20 bg-[linear-gradient(180deg,rgba(245,181,43,0.08),rgba(18,18,18,0.98))] p-0 shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
+                  <div className="relative aspect-[16/11] overflow-hidden">
+                    <img
+                      src={ppfForceshieldRecommended}
+                      alt="STEK ForceShield film placeholder visual"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/18 to-transparent" />
+                    <div className="absolute left-4 top-4 rounded-full border border-primary/20 bg-primary/12 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.24em] text-[#f6c76d] backdrop-blur-sm">
+                      Grand Touch pick
+                    </div>
+                    <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-sm uppercase tracking-[0.16em] text-[#f6c76d]">10 years</p>
+                        <h3 className="mt-1 text-xl font-semibold text-white">FORCESHIELD</h3>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-5 py-5">
+                    <p className="text-sm leading-6 text-slate-300">
+                      The most balanced option for buyers who want strong long-term protection,
+                      clean finish quality, and confident everyday use.
+                    </p>
+                  </div>
+                </Card>
+
+                <Card className="group overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(16,16,16,0.98))] p-0 shadow-[0_22px_60px_rgba(0,0,0,0.28)]">
+                  <div className="relative aspect-[16/11] overflow-hidden">
+                    <img
+                      src={ppfDynoshieldPremium}
+                      alt="STEK DynoShield film placeholder visual"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/18 to-transparent" />
+                    <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.24em] text-white/80 backdrop-blur-sm">
+                      Premium tier
+                    </div>
+                    <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-sm uppercase tracking-[0.16em] text-[#f6c76d]">12 years</p>
+                        <h3 className="mt-1 text-xl font-semibold text-white">DYNOSHIELD</h3>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-5 py-5">
+                    <p className="text-sm leading-6 text-slate-300">
+                      The highest-tier STEK package for buyers who want maximum long-term coverage
+                      and the most premium route available.
+                    </p>
+                  </div>
+                </Card>
               </div>
             </div>
           </div>
