@@ -199,6 +199,34 @@ const pages = [
     noscriptExtra:
       "<p><strong>Enable JavaScript</strong> to use the interactive calculator and visual preview.</p>",
   },
+  {
+    path: "/ppf-dubai-quote",
+    title: "PPF Dubai Quote | Grand Touch",
+    description:
+      "Get a Grand Touch PPF quote in Dubai with a short form, trust-led pricing flow, and direct WhatsApp follow-up from Sean.",
+    keywords:
+      "PPF Dubai quote, Grand Touch PPF Dubai, STEK PPF Dubai, full body PPF Dubai price, front PPF Dubai quote",
+    ogTitle: "PPF Dubai Quote | Grand Touch",
+    ogDescription:
+      "Premium PPF quote funnel for Dubai drivers with STEK 10-year positioning, warranty trust, and fast WhatsApp handoff.",
+    seoBody: `
+        <h1>PPF Dubai quote from Grand Touch</h1>
+        <p>Request a fast paint protection film quote in Dubai with a short form, practical estimate flow, and direct follow-up from Sean.</p>
+        <h2>Why this page exists</h2>
+        <p>Built for premium buyers who want genuine material, clean installation, and verified warranty registration instead of bargain-first sales tactics.</p>
+        <h2>What you can confirm here</h2>
+        <ul>
+          <li>STEK 10-year PPF starting pricing for full body protection</li>
+          <li>Front-end protection as a custom quote path</li>
+          <li>Vehicle size and finish preference</li>
+          <li>Direct WhatsApp handoff with your details already captured</li>
+        </ul>
+        <h2>Trust signals</h2>
+        <p>Grand Touch is positioned here as a certified STEK and GYEON installer in Dubai with warranty-led, authenticity-focused messaging for cautious buyers.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the short quote form, estimate controls, and WhatsApp handoff.</p>",
+  },
 ];
 
 function applyPage(html, page) {

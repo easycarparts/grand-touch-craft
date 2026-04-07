@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, MessageCircle, Sparkles, ArrowRight, Lock } from "lucide-react";
+import { ArrowRight, Lock, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -52,13 +52,36 @@ const sizeLabels: Record<CarSize, { title: string; subtitle: string }> = {
 const formatAED = (value: number) => `AED ${value.toLocaleString("en-AE")}`;
 
 export type PpfCostCalculatorWidgetProps = {
-  /** `standalone`: page layout with top padding and h1. `embedded`: home section with h2 and tighter spacing. */
   variant?: "standalone" | "embedded";
+  showIntro?: boolean;
+  showBrandSelector?: boolean;
+  showActionButtons?: boolean;
+  brandOptions?: Brand[];
+  defaultBrand?: Brand;
+  defaultWarrantyYears?: number;
+  onSelectionChange?: (selection: {
+    brand: Brand;
+    warrantyYears: number;
+    finish: Finish;
+    size: CarSize;
+    coverage: Coverage;
+    estimateMin: number;
+    stekLine: string | null;
+  }) => void;
 };
 
-const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWidgetProps) => {
-  const [brand, setBrand] = useState<Brand>("STEK");
-  const [warrantyYears, setWarrantyYears] = useState<number>(10);
+const PpfCostCalculatorWidget = ({
+  variant = "standalone",
+  showIntro = true,
+  showBrandSelector = true,
+  showActionButtons = true,
+  brandOptions = ["STEK", "GYEON"],
+  defaultBrand = "STEK",
+  defaultWarrantyYears = 10,
+  onSelectionChange,
+}: PpfCostCalculatorWidgetProps) => {
+  const [brand, setBrand] = useState<Brand>(defaultBrand);
+  const [warrantyYears, setWarrantyYears] = useState<number>(defaultWarrantyYears);
   const [finish, setFinish] = useState<Finish>("Gloss");
   const [size, setSize] = useState<CarSize>("Medium");
   const [coverage, setCoverage] = useState<Coverage>("Full Body");
@@ -83,6 +106,27 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
 
   const stekLine = brand === "STEK" ? stekSeriesName(effectiveWarrantyYears) : null;
 
+  useEffect(() => {
+    onSelectionChange?.({
+      brand,
+      warrantyYears: effectiveWarrantyYears,
+      finish,
+      size,
+      coverage,
+      estimateMin: estimate.min,
+      stekLine,
+    });
+  }, [
+    brand,
+    coverage,
+    effectiveWarrantyYears,
+    estimate.min,
+    finish,
+    onSelectionChange,
+    size,
+    stekLine,
+  ]);
+
   const whatsAppUrl = useMemo(() => {
     const message = [
       "Hi Sean, I used the PPF Cost Calculator.",
@@ -101,71 +145,91 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
 
   const intro = (
     <>
-      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
-        <Sparkles className="w-4 h-4 text-primary" />
+      <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
+        <Sparkles className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium text-primary">PPF Cost Calculator Dubai</span>
       </div>
       {variant === "standalone" ? (
-        <h1 className="mb-4">Get your PPF estimate in under 30 seconds</h1>
+        <h1 className="mb-4 mt-6">Get your PPF estimate in under 30 seconds</h1>
       ) : (
-        <h2 className="mb-4 text-3xl md:text-4xl font-bold tracking-tight">
+        <h2 className="mb-4 mt-6 text-3xl font-bold tracking-tight md:text-4xl">
           Get your PPF estimate in under 30 seconds
         </h2>
       )}
-      <p className="text-lg text-muted-foreground max-w-3xl">
-        Choose brand, warranty term, car size, and coverage. Use the preview panel for gloss or matte
-        finish. Get an instant estimated range, then message Sean on WhatsApp to confirm final pricing.
+      <p className="max-w-3xl text-lg text-muted-foreground">
+        Choose warranty, car size, finish, and coverage. See the visual preview, then confirm the
+        right setup with Sean.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <Badge variant="secondary">STEK Certified</Badge>
         <Badge variant="secondary">GYEON Certified</Badge>
-        <Badge variant="outline">No make/model needed</Badge>
+        <Badge variant="outline">Image-led quote flow</Badge>
       </div>
     </>
   );
 
   return (
     <>
-      {variant === "standalone" ? (
-        <section className="pt-32 pb-10 px-4 sm:px-6 lg:px-8">
-          <div className="container mx-auto max-w-6xl">{intro}</div>
-        </section>
-      ) : (
-        <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-12 pb-6">{intro}</div>
-      )}
+      {showIntro ? (
+        variant === "standalone" ? (
+          <section className="px-4 pb-10 pt-32 sm:px-6 lg:px-8">
+            <div className="container mx-auto max-w-6xl">{intro}</div>
+          </section>
+        ) : (
+          <div className="container mx-auto max-w-6xl px-4 pb-6 pt-12 sm:px-6 lg:px-8">{intro}</div>
+        )
+      ) : null}
 
       <section
-        className={`px-4 sm:px-6 lg:px-8 ${variant === "standalone" ? "pb-16" : "pb-16 md:pb-20"}`}
+        className={`px-4 sm:px-6 lg:px-8 ${
+          variant === "standalone"
+            ? showIntro
+              ? "pb-16"
+              : "pt-0 pb-16"
+            : "pb-16 md:pb-20"
+        }`}
       >
         <div className="container mx-auto max-w-6xl grid gap-6 lg:grid-cols-2">
-          <Card className="p-6 sm:p-8 space-y-8">
-            <div>
-              <p className="text-sm text-muted-foreground mb-3">1) Choose film brand</p>
-              <div className="grid grid-cols-2 gap-3">
-                {(["STEK", "GYEON"] as Brand[]).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => {
-                      setBrand(option);
-                      setWarrantyYears((y) => normalizeWarrantyYearsForBrand(option, y));
-                    }}
-                    className={`rounded-lg border px-4 py-3 text-left transition ${
-                      brand === option
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <p className="font-semibold">{option}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Premium film option</p>
-                  </button>
-                ))}
+          <Card className="space-y-8 p-6 sm:p-8">
+            {showBrandSelector ? (
+              <div>
+                <p className="mb-3 text-sm text-muted-foreground">1) Choose film brand</p>
+                <div className={`grid gap-3 ${brandOptions.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                  {brandOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        setBrand(option);
+                        setWarrantyYears((y) => normalizeWarrantyYearsForBrand(option, y));
+                      }}
+                      className={`rounded-lg border px-4 py-3 text-left transition ${
+                        brand === option
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <p className="font-semibold">{option}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Premium film option</p>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+                <p className="text-sm text-muted-foreground">Film line</p>
+                <p className="mt-1 font-semibold">{brand}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Certified installation with verified warranty registration.
+                </p>
+              </div>
+            )}
 
             <div>
-              <p className="text-sm text-muted-foreground mb-3">2) Choose warranty term</p>
-              <p className="text-xs text-muted-foreground mb-3">
+              <p className="mb-3 text-sm text-muted-foreground">
+                {showBrandSelector ? "2) Choose warranty term" : "1) Choose warranty term"}
+              </p>
+              <p className="mb-3 text-xs text-muted-foreground">
                 {brand === "STEK"
                   ? "STEK: 5 yr F3, 10 yr ForceShield, 12 yr DynoShield."
                   : "GYEON: 10 year warranty (Q² PPF)."}
@@ -193,9 +257,9 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
                       }`}
                     >
                       <p className="text-lg font-bold leading-none">{years}</p>
-                      <p className="text-xs text-muted-foreground mt-1">years</p>
+                      <p className="mt-1 text-xs text-muted-foreground">years</p>
                       {series ? (
-                        <p className="text-[11px] font-medium text-primary mt-1 leading-tight">
+                        <p className="mt-1 text-[11px] font-medium leading-tight text-primary">
                           {series}
                         </p>
                       ) : null}
@@ -206,7 +270,9 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground mb-3">3) Choose car size</p>
+              <p className="mb-3 text-sm text-muted-foreground">
+                {showBrandSelector ? "3) Choose car size" : "2) Choose car size"}
+              </p>
               <div className="grid grid-cols-2 gap-3">
                 {sizes.map((option) => {
                   const { title, subtitle } = sizeLabels[option];
@@ -224,18 +290,14 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
                       <div className="aspect-video w-full bg-muted">
                         <img
                           src={sizeImageGlossByCategory[option]}
-                          alt={`${title} — ${subtitle}`}
+                          alt={`${title} - ${subtitle}`}
                           className="h-full w-full object-cover"
                           loading="lazy"
                         />
                       </div>
-                      <div
-                        className={`px-3 py-2.5 ${
-                          size === option ? "bg-primary/10" : "bg-card/95"
-                        }`}
-                      >
+                      <div className={`px-3 py-2.5 ${size === option ? "bg-primary/10" : "bg-card/95"}`}>
                         <p className="text-sm font-semibold leading-tight">{title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
+                        <p className="mt-0.5 text-xs leading-tight text-muted-foreground">
                           {subtitle}
                         </p>
                       </div>
@@ -246,7 +308,9 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground mb-3">4) Choose coverage</p>
+              <p className="mb-3 text-sm text-muted-foreground">
+                {showBrandSelector ? "4) Choose coverage" : "3) Choose coverage"}
+              </p>
               <div className="grid grid-cols-2 gap-3">
                 {coverageOptions.map((option) => {
                   const isFront = option === "Front";
@@ -261,7 +325,7 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
                       }}
                       className={`rounded-lg border px-4 py-3 text-left transition ${
                         disabled
-                          ? "border-border/60 bg-muted/40 text-muted-foreground cursor-not-allowed opacity-70"
+                          ? "cursor-not-allowed border-border/60 bg-muted/40 text-muted-foreground opacity-70"
                           : coverage === option
                             ? "border-primary bg-primary/10"
                             : "border-border hover:border-primary/50"
@@ -269,14 +333,11 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
                     >
                       <div className="flex items-start gap-2">
                         {disabled ? (
-                          <Lock
-                            className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground"
-                            aria-hidden
-                          />
+                          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                         ) : null}
                         <div className="min-w-0">
                           <p className="font-semibold">{option}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="mt-1 text-xs text-muted-foreground">
                             {disabled
                               ? "Only available with STEK 5-year (F3)."
                               : isFront
@@ -293,13 +354,13 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
           </Card>
 
           <Card className="p-6 sm:p-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground">Visual preview</p>
-              <Badge variant="outline">UI preview only</Badge>
+              <Badge variant="outline">Live size preview</Badge>
             </div>
 
             <div className="mb-5">
-              <p className="text-sm text-muted-foreground mb-3">Finish</p>
+              <p className="mb-3 text-sm text-muted-foreground">Finish</p>
               <div className="grid grid-cols-2 gap-3">
                 {(["Gloss", "Matte"] as Finish[]).map((option) => (
                   <button
@@ -313,7 +374,7 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
                     }`}
                   >
                     <p className="font-semibold">{option}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {option === "Gloss" ? "Deep glossy look" : "Satin matte look"}
                     </p>
                   </button>
@@ -325,63 +386,67 @@ const PpfCostCalculatorWidget = ({ variant = "standalone" }: PpfCostCalculatorWi
               <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-muted">
                 <img
                   src={previewImageFor(size, finish)}
-                  alt={`Preview — ${sizeLabels[size].subtitle} (${finish})`}
+                  alt={`Preview - ${sizeLabels[size].subtitle} (${finish})`}
                   className="h-full w-full object-cover"
                 />
               </div>
             </div>
 
             <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-5">
-              <p className="text-sm text-muted-foreground mb-2">Starting from</p>
-              <p className="text-3xl font-bold mb-2">{formatAED(estimate.min)}</p>
+              <p className="mb-2 text-sm text-muted-foreground">Starting from</p>
+              <p className="mb-2 text-3xl font-bold">{formatAED(estimate.min)}</p>
               <p className="text-sm text-muted-foreground">
                 {brand}
                 {stekLine ? ` (${stekLine})` : ""} • {effectiveWarrantyYears} yr • {finish} • {size} •{" "}
                 {coverage}
               </p>
-              <p className="text-xs text-muted-foreground mt-3">
+              <p className="mt-3 text-xs text-muted-foreground">
                 Final quote depends on condition, panel complexity, and inspection.
               </p>
             </div>
 
-            <div className="mt-5 flex flex-col sm:flex-row gap-3">
-              <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full">
-                <Button className="w-full">
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Talk to Sean on WhatsApp
-                </Button>
-              </a>
-              <Link to="/portfolio" className="w-full">
-                <Button variant="outline" className="w-full">
-                  View Our PPF Portfolio
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
-            </div>
+            {showActionButtons ? (
+              <>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full">
+                    <Button className="w-full">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Talk to Sean on WhatsApp
+                    </Button>
+                  </a>
+                  <Link to="/portfolio" className="w-full">
+                    <Button variant="outline" className="w-full">
+                      View Our PPF Portfolio
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
 
-            <div className="mt-8 pt-6 border-t border-border">
-              <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-primary" />
-                Learn before you decide
-              </p>
-              <div className="space-y-2 text-sm">
-                <Link to="/blog/ppf-vs-ceramic-dubai" className="text-primary hover:underline block">
-                  PPF vs Ceramic in Dubai
-                </Link>
-                <Link
-                  to="/blog/ppf-dubai-full-front-vs-full-body"
-                  className="text-primary hover:underline block"
-                >
-                  Front vs Full Body PPF Guide
-                </Link>
-                <Link
-                  to="/blog/ppf-longevity-dubai-heat"
-                  className="text-primary hover:underline block"
-                >
-                  How long does PPF last in Dubai heat?
-                </Link>
-              </div>
-            </div>
+                <div className="mt-8 border-t border-border pt-6">
+                  <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    Learn before you decide
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    <Link to="/blog/ppf-vs-ceramic-dubai" className="block text-primary hover:underline">
+                      PPF vs Ceramic in Dubai
+                    </Link>
+                    <Link
+                      to="/blog/ppf-dubai-full-front-vs-full-body"
+                      className="block text-primary hover:underline"
+                    >
+                      Front vs Full Body PPF Guide
+                    </Link>
+                    <Link
+                      to="/blog/ppf-longevity-dubai-heat"
+                      className="block text-primary hover:underline"
+                    >
+                      How long does PPF last in Dubai heat?
+                    </Link>
+                  </div>
+                </div>
+              </>
+            ) : null}
           </Card>
         </div>
       </section>

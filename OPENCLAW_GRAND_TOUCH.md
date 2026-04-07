@@ -843,6 +843,74 @@ Common failure causes:
 
 ---
 
+## 10b) Final Gate — Run Before Sending DRAFT READY (No Exceptions)
+
+This script MUST pass before you are permitted to send the `DRAFT READY ✓` message.
+If any check fails: fix the issue, re-run the script, then send DRAFT READY only after it prints ALL PASS.
+
+```powershell
+$slug   = "<slug>"
+$pascal = "<PascalCase>"
+$repo   = "C:\Users\Marlon\.openclaw\grand-touch-craft"
+
+$fail = $false
+
+# 1. Article file exists
+if (-not (Test-Path "$repo\src\pages\articles\$pascal.tsx")) {
+  Write-Host "FAIL: article file $pascal.tsx missing"; $fail = $true
+}
+
+# 2. Image exists and is real binary
+$img = "$repo\public\ppf-featured-$slug-option-1.png"
+if (-not (Test-Path $img)) {
+  Write-Host "FAIL: image missing from public/"; $fail = $true
+} elseif ((Get-Item $img).Length -lt 204800) {
+  Write-Host "FAIL: image is stub ($($(Get-Item $img).Length) bytes)"; $fail = $true
+}
+
+# 3. App.tsx has import
+if (-not (Select-String -Path "$repo\src\App.tsx" -Pattern "import $pascal" -Quiet)) {
+  Write-Host "FAIL: import $pascal missing from App.tsx"; $fail = $true
+}
+
+# 4. App.tsx has route
+if (-not (Select-String -Path "$repo\src\App.tsx" -Pattern "/blog/$slug" -Quiet)) {
+  Write-Host "FAIL: route /blog/$slug missing from App.tsx"; $fail = $true
+}
+
+# 5. Blog.tsx has slug
+if (-not (Select-String -Path "$repo\src\pages\Blog.tsx" -Pattern "`"$slug`"" -Quiet)) {
+  Write-Host "FAIL: slug $slug missing from Blog.tsx"; $fail = $true
+}
+
+# 6. ArticleLayout.tsx has slug
+if (-not (Select-String -Path "$repo\src\components\ArticleLayout.tsx" -Pattern "`"$slug`"" -Quiet)) {
+  Write-Host "FAIL: slug $slug missing from ArticleLayout.tsx"; $fail = $true
+}
+
+# 7. sitemap.xml has slug
+if (-not (Select-String -Path "$repo\public\sitemap.xml" -Pattern $slug -Quiet)) {
+  Write-Host "FAIL: $slug missing from sitemap.xml"; $fail = $true
+}
+
+# 8. Branch exists on remote
+git fetch origin | Out-Null
+$branches = git branch -r
+if ($branches -notmatch "draft/$slug") {
+  Write-Host "FAIL: branch draft/$slug not found on remote — push has not completed"; $fail = $true
+}
+
+if ($fail) {
+  throw "FINAL GATE FAILED — fix all FAIL items above before sending DRAFT READY"
+}
+
+Write-Host "ALL PASS — safe to send DRAFT READY"
+```
+
+Do not send `DRAFT READY ✓` until this script outputs `ALL PASS`.
+
+---
+
 ## 11) Telegram Notification Format
 
 Send progress beacons during execution (see Live Progress Beacons above), then after successful build and push send this final structure:

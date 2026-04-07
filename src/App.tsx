@@ -27,6 +27,7 @@ import PpfLongevityDubaiHeat from "./pages/articles/PpfLongevityDubaiHeat";
 import PpfWarrantyClaimsDubai from "./pages/articles/PpfWarrantyClaimsDubai";
 import PpfCostDubaiPricingGuide from "./pages/articles/PpfCostDubaiPricingGuide";
 import MatteVsGlossPpfDubai from "./pages/articles/MatteVsGlossPpfDubai";
+import PpfDubaiQuote from "./pages/PpfDubaiQuote";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -67,6 +68,7 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/ppf-dubai" element={<Navigate to="/ppf-cost-calculator" replace />} />
             <Route path="/ppf-cost-calculator" element={<PpfCostCalculator />} />
+            <Route path="/ppf-dubai-quote" element={<PpfDubaiQuote />} />
             <Route path="/bookings" element={<Booking />} />
             <Route path="/thank-you" element={<ThankYou />} />
             <Route path="/thankyou" element={<ThankYouPayment />} />
