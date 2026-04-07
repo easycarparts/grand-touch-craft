@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import PpfCostCalculatorWidget from "@/components/PpfCostCalculatorWidget";
 import { updatePageSEO } from "@/lib/seo";
 import logo from "@/assets/logo.svg";
-import seanIllustration from "../../SEAN.png";
 import {
   ArrowRight,
   MessageCircle,
@@ -525,44 +524,24 @@ const PpfDubaiQuote = () => {
 
               </div>
 
-              <Card className="relative order-2 flex h-full min-h-0 flex-col overflow-hidden border-primary/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.025))] p-4 shadow-[0_30px_120px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-                <div className="pointer-events-none absolute inset-0">
-                  <div className="absolute -top-12 left-10 h-32 w-32 rounded-full bg-primary/12 blur-3xl" />
-                  <div className="absolute right-[-2rem] top-12 h-28 w-28 rounded-full bg-white/6 blur-3xl" />
-                </div>
-                <div className="relative flex min-h-0 flex-1 flex-col">
-                  <div className="flex items-center justify-between gap-3 px-1 pb-5">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/80">Trusted recent work</p>
-                      <p className="mt-2 text-sm text-slate-300">Real jobs, real finishes, and the kind of detail buyers usually ask Sean about before booking.</p>
-                    </div>
-                    <div className="hidden rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/70 sm:block">
-                      9:16 showcase
-                    </div>
-                  </div>
+              <div className="relative order-2 flex h-full min-h-0 flex-col justify-end overflow-visible lg:col-start-2 lg:row-span-2 lg:row-start-1">
+                <div className="relative mx-auto flex h-full w-full max-w-[480px] min-h-0 max-h-full flex-col justify-end pb-0 pt-2">
+                    <div className="relative mx-auto aspect-[9/19.5] w-full min-h-0 min-w-0 max-h-full max-w-[420px] shrink-0">
+                      <div className="pointer-events-none absolute -left-[5px] top-[157px] z-20 h-[4.5rem] w-[4px] rounded-full bg-gradient-to-b from-white/55 via-white/15 to-white/35 shadow-[0_0_12px_rgba(255,255,255,0.16)]" />
+                      <div className="pointer-events-none absolute -left-[5px] top-[250px] z-20 h-28 w-[4px] rounded-full bg-gradient-to-b from-white/45 via-white/12 to-white/30 shadow-[0_0_12px_rgba(255,255,255,0.14)]" />
+                      <div className="pointer-events-none absolute -right-[5px] top-[219px] z-20 h-32 w-[4px] rounded-full bg-gradient-to-b from-white/45 via-white/12 to-white/30 shadow-[0_0_12px_rgba(255,255,255,0.14)]" />
 
-                  <div className="relative mx-auto mt-auto flex min-h-[640px] w-full max-w-[380px] items-center justify-center overflow-visible py-4">
-                    <div className="pointer-events-none absolute inset-0">
-                      <div className="absolute left-1/2 top-1/2 h-[520px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/12 blur-3xl" />
-                      <div className="absolute left-1/2 top-1/2 h-[420px] w-[220px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/6 blur-[90px]" />
-                    </div>
+                      <div className="relative flex h-full w-full flex-col rounded-[3.5rem] bg-[linear-gradient(150deg,#53565d_0%,#212328_12%,#070708_48%,#1f2126_78%,#6a7078_100%)] p-[11px] shadow-[0_45px_120px_rgba(0,0,0,0.62),0_10px_30px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.24),inset_0_-1px_0_rgba(255,255,255,0.10)]">
+                        <div className="pointer-events-none absolute inset-[1px] rounded-[3.35rem] border border-white/12" />
+                        <div className="pointer-events-none absolute inset-[8px] rounded-[3rem] border border-white/[0.07]" />
 
-                    <div className="relative rotate-[5deg]">
-                      <div className="pointer-events-none absolute -left-[5px] top-[110px] z-20 h-14 w-[4px] rounded-full bg-gradient-to-b from-white/55 via-white/15 to-white/35 shadow-[0_0_12px_rgba(255,255,255,0.16)]" />
-                      <div className="pointer-events-none absolute -left-[5px] top-[176px] z-20 h-24 w-[4px] rounded-full bg-gradient-to-b from-white/45 via-white/12 to-white/30 shadow-[0_0_12px_rgba(255,255,255,0.14)]" />
-                      <div className="pointer-events-none absolute -right-[5px] top-[154px] z-20 h-28 w-[4px] rounded-full bg-gradient-to-b from-white/45 via-white/12 to-white/30 shadow-[0_0_12px_rgba(255,255,255,0.14)]" />
-
-                      <div className="relative w-[280px] rounded-[3.5rem] bg-[linear-gradient(150deg,#53565d_0%,#212328_12%,#070708_48%,#1f2126_78%,#6a7078_100%)] p-[10px] shadow-[0_45px_120px_rgba(0,0,0,0.62),0_10px_30px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.24),inset_0_-1px_0_rgba(255,255,255,0.10)]">
-                        <div className="absolute inset-[1px] rounded-[3.35rem] border border-white/12" />
-                        <div className="absolute inset-[8px] rounded-[3rem] border border-white/[0.07]" />
-
-                        <div className="relative overflow-hidden rounded-[2.95rem] bg-black shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
-                          <div className="pointer-events-none absolute left-1/2 top-3 z-20 flex h-8 w-[118px] -translate-x-1/2 items-center justify-center rounded-full bg-[#050505] shadow-[0_2px_8px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.04)]">
+                        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[2.95rem] bg-black shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
+                          <div className="pointer-events-none absolute left-1/2 top-3 z-20 flex h-8 w-[168px] -translate-x-1/2 items-center justify-center rounded-full bg-[#050505] shadow-[0_2px_8px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.04)]">
                             <div className="h-1.5 w-12 rounded-full bg-[#141414]" />
                           </div>
 
                           <video
-                            className="aspect-[9/19.5] h-auto w-full object-cover"
+                            className="h-full w-full object-cover"
                             src="https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/f_auto/v1775556526/Jetour_EDIT_yi001t.mp4"
                             autoPlay
                             muted
@@ -578,9 +557,8 @@ const PpfDubaiQuote = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
                 </div>
-              </Card>
+              </div>
 
               <div className="order-3 max-w-3xl lg:col-start-1 lg:row-start-2 lg:mt-2">
                 <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -891,28 +869,21 @@ const PpfDubaiQuote = () => {
         </a>
       </div>
 
-      <div className="pointer-events-none fixed bottom-0 right-0 z-40 hidden h-[150px] w-[220px] overflow-visible md:block">
-        <img
-          src={seanIllustration}
-          alt="Sean"
-          className="pointer-events-auto absolute bottom-0 right-6 z-0 h-auto w-40 max-w-none origin-bottom-right object-contain object-bottom-right transition-transform duration-300 ease-out hover:scale-110"
-          loading="lazy"
-        />
+      <div className="pointer-events-none fixed bottom-0 right-0 z-40 hidden overflow-visible md:block">
         <a
           href={whatsAppUrl}
           target="_blank"
           rel="noreferrer"
-          className="pointer-events-auto absolute bottom-4 right-4 z-10 block"
+          onClick={handleWhatsAppClick}
+          aria-label="Speak to Sean on WhatsApp"
+          className="group pointer-events-auto absolute bottom-0 right-6 z-0 block cursor-pointer"
         >
-          <Button
-            type="button"
-            className="rounded-full bg-[#25D366] px-5 text-white shadow-[0_20px_60px_rgba(37,211,102,0.28)] hover:bg-[#20BD5A]"
-            size="lg"
-            onClick={handleWhatsAppClick}
-          >
-            <MessageCircle className="mr-2 h-4 w-4" />
-            Speak to Sean
-          </Button>
+          <img
+            src="/chat-to-sean.png"
+            alt=""
+            className="h-auto w-44 max-w-[min(260px,46vw)] origin-bottom-right object-contain object-bottom-right transition-transform duration-300 ease-out group-hover:scale-[1.18]"
+            loading="lazy"
+          />
         </a>
       </div>
     </div>
