@@ -174,6 +174,8 @@ const PpfDubaiQuote = () => {
   const trustVideoRef = useRef<HTMLVideoElement | null>(null);
   const whyStekSectionRef = useRef<HTMLElement | null>(null);
   const whyStekVideoRef = useRef<HTMLVideoElement | null>(null);
+  /** Dedupes pointerup + click (common on Chrome Android) so play() runs once. */
+  const whyStekPlayGateRef = useRef(0);
 
   const utmParams = useMemo(() => {
     if (typeof window === "undefined") return {};
@@ -433,9 +435,17 @@ const PpfDubaiQuote = () => {
     if (isAtEnd) {
       video.currentTime = 0;
     }
-    video.play().catch(() => {
+    video.muted = false;
+    void video.play().catch(() => {
       setIsWhyStekPlaying(false);
     });
+  };
+
+  const activateWhyStekPlay = () => {
+    const t = Date.now();
+    if (t - whyStekPlayGateRef.current < 400) return;
+    whyStekPlayGateRef.current = t;
+    handleWhyStekPlay();
   };
 
   const handleWhyStekToggle = () => {
@@ -449,7 +459,8 @@ const PpfDubaiQuote = () => {
       if (isAtEnd) {
         video.currentTime = 0;
       }
-      video.play().catch(() => {
+      video.muted = false;
+      void video.play().catch(() => {
         setIsWhyStekPlaying(false);
       });
       return;
@@ -948,7 +959,10 @@ const PpfDubaiQuote = () => {
 
                       <video
                         ref={whyStekVideoRef}
-                        className="h-full w-full cursor-pointer object-cover"
+                        className={cn(
+                          "h-full w-full object-cover",
+                          isWhyStekPlaying ? "cursor-pointer" : "pointer-events-none"
+                        )}
                         src={WHY_STEK_VIDEO}
                         playsInline
                         preload="auto"
@@ -959,8 +973,13 @@ const PpfDubaiQuote = () => {
                       {!isWhyStekPlaying ? (
                         <button
                           type="button"
-                          onClick={handleWhyStekPlay}
-                          className="absolute inset-0 z-10 flex items-center justify-center bg-black/18 transition hover:bg-black/10"
+                          onPointerUp={(e) => {
+                            if (e.pointerType === "mouse" && e.button !== 0) return;
+                            e.preventDefault();
+                            activateWhyStekPlay();
+                          }}
+                          onClick={activateWhyStekPlay}
+                          className="absolute inset-0 z-10 flex touch-manipulation items-center justify-center bg-black/18 transition hover:bg-black/10"
                           aria-label="Play Sean's video about why he chose STEK"
                         >
                           <span className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-black/60 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-md">
@@ -1139,8 +1158,8 @@ const PpfDubaiQuote = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-4 lg:grid-cols-[0.96fr_1.04fr]">
-                  <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-1">
+                  <div className="mt-6 grid gap-4 lg:grid-cols-[0.96fr_1.04fr]">
+                  <div className="grid grid-cols-1 gap-4">
                     <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.24)]">
                       <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(245,181,43,0.8),rgba(245,181,43,0))]" />
                       <div className="flex items-start justify-between gap-4">
