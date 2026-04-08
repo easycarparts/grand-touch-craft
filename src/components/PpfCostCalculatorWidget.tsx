@@ -53,6 +53,31 @@ const sizeLabels: Record<CarSize, { title: string; subtitle: string }> = {
 
 const formatAED = (value: number) => `AED ${value.toLocaleString("en-AE")}`;
 
+/** Long STEK names need to stack on narrow 3-column grids so they stay inside the tile. */
+function StekSeriesBlock({ series }: { series: string }) {
+  if (series === "ForceShield") {
+    return (
+      <div className="mt-2 space-y-0 text-[9px] font-medium uppercase leading-[1.15] tracking-[0.06em] text-primary sm:text-[11px] sm:tracking-[0.12em]">
+        <div>Force</div>
+        <div>Shield</div>
+      </div>
+    );
+  }
+  if (series === "DynoShield") {
+    return (
+      <div className="mt-2 space-y-0 text-[9px] font-medium uppercase leading-[1.15] tracking-[0.06em] text-primary sm:text-[11px] sm:tracking-[0.12em]">
+        <div>Dyno</div>
+        <div>Shield</div>
+      </div>
+    );
+  }
+  return (
+    <p className="mt-2 text-[10px] font-medium uppercase leading-tight tracking-[0.1em] text-primary sm:text-[11px] sm:tracking-[0.14em]">
+      {series}
+    </p>
+  );
+}
+
 type CalculatorSelection = {
   brand: Brand;
   warrantyYears: number;
@@ -309,16 +334,16 @@ const PpfCostCalculatorWidget = ({
                   )}
 
                   <div>
-                    <div className="mb-3 flex items-end justify-between gap-3">
+                    <div className="mb-3 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
                       <p className="text-sm text-muted-foreground">Warranty term</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-[11px] leading-snug text-slate-400 sm:max-w-[58%] sm:text-right sm:text-xs">
                         {brand === "STEK"
                           ? "5 yr F3, 10 yr ForceShield, 12 yr DynoShield"
                           : "10 year warranty"}
                       </p>
                     </div>
                     <div
-                      className={`grid gap-3 ${
+                      className={`grid gap-2 sm:gap-3 ${
                         warrantyYearsForBrand(brand).length === 3
                           ? "grid-cols-3"
                           : warrantyYearsForBrand(brand).length === 2
@@ -338,17 +363,13 @@ const PpfCostCalculatorWidget = ({
                             }}
                             className={cn(
                               cardBaseClass,
-                              "px-3 py-4 text-center",
+                              "min-w-0 px-2 py-3.5 text-center sm:px-3 sm:py-4",
                               effectiveWarrantyYears === years ? selectedCardClass : "hover:border-primary/40"
                             )}
                           >
                             <p className="text-2xl font-bold leading-none text-white">{years}</p>
                             <p className="mt-1 text-xs text-slate-400">years</p>
-                            {series ? (
-                              <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
-                                {series}
-                              </p>
-                            ) : null}
+                            {series ? <StekSeriesBlock series={series} /> : null}
                           </button>
                         );
                       })}
@@ -375,7 +396,12 @@ const PpfCostCalculatorWidget = ({
                                 : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] hover:border-primary/40"
                             )}
                           >
-                            <div className="relative aspect-video w-full overflow-hidden bg-black">
+                            <div
+                              className={cn(
+                                "relative w-full overflow-hidden bg-black",
+                                isEmbeddedInPage ? "aspect-[3/2] sm:aspect-video" : "aspect-video"
+                              )}
+                            >
                               <img
                                 src={sizeImageGlossByCategory[option]}
                                 alt={`${title} - ${subtitle}`}
@@ -448,25 +474,39 @@ const PpfCostCalculatorWidget = ({
                       </div>
 
                       {size ? (
-                        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.14))] p-4">
-                          <div className="relative aspect-video overflow-hidden rounded-[22px] border border-white/10 bg-black">
+                        <div
+                          className={cn(
+                            "rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.14))]",
+                            isEmbeddedInPage ? "p-2 sm:p-4" : "p-4"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "relative overflow-hidden rounded-[22px] border border-white/10 bg-black",
+                              isEmbeddedInPage ? "aspect-[3/2] sm:aspect-video" : "aspect-video"
+                            )}
+                          >
                             <img
                               src={previewImageFor(size, finish)}
                               alt={`Preview - ${sizeLabels[size].subtitle}${finish ? ` (${finish})` : ""}`}
                               className="absolute inset-0 h-full w-full object-cover object-center"
                             />
-                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent px-4 pb-4 pt-10">
-                              <div className="flex items-end justify-between gap-3">
-                                <div>
-                                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/60">
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent px-3 pb-3 pt-8 sm:px-4 sm:pb-4 sm:pt-10">
+                              <div className="flex items-end justify-between gap-2 sm:gap-3">
+                                <div className="min-w-0 flex-1 pr-1">
+                                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/60 sm:text-[11px] sm:tracking-[0.22em]">
                                     {sizeLabels[size].title}
                                   </p>
-                                  <p className="mt-1 text-base font-semibold text-white">
-                                    {sizeLabels[size].subtitle}
+                                  <p className="mt-1 flex flex-wrap gap-x-1.5 gap-y-0.5 text-[15px] font-semibold leading-snug text-white sm:text-lg">
+                                    {sizeLabels[size].subtitle.split(/\s+/).map((word, i) => (
+                                      <span key={`${word}-${i}`} className="whitespace-nowrap">
+                                        {word}
+                                      </span>
+                                    ))}
                                   </p>
                                 </div>
                                 {finish ? (
-                                  <div className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-xs font-medium text-white/85 backdrop-blur-sm">
+                                  <div className="shrink-0 rounded-full border border-white/12 bg-black/30 px-2.5 py-1 text-[11px] font-medium text-white/85 backdrop-blur-sm sm:px-3 sm:text-xs">
                                     {finish}
                                   </div>
                                 ) : null}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 import { Badge } from "@/components/ui/badge";
@@ -296,6 +296,58 @@ const QuoteUnlockForm = ({
   onWhatsAppClick: () => void;
 }) => {
   const isModal = variant === "modal";
+  const step1CtaRef = useRef<HTMLDivElement>(null);
+  const step2CtaRef = useRef<HTMLDivElement>(null);
+
+  /** Keep primary actions visible above the mobile keyboard (embedded = window scroll; modal = dialog scroll). */
+  const scrollPrimaryCtaAboveKeyboard = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia?.("(pointer: coarse)").matches !== true) return;
+
+    const el =
+      formStep === 1 ? step1CtaRef.current : formStep === 2 ? step2CtaRef.current : null;
+    if (!el) return;
+
+    const nudge = () => {
+      if (isModal) {
+        el.scrollIntoView({ block: "end", behavior: "auto", inline: "nearest" });
+        return;
+      }
+      const vv = window.visualViewport;
+      if (vv) {
+        const rect = el.getBoundingClientRect();
+        const margin = 20;
+        const visibleBottom = vv.offsetTop + vv.height;
+        const delta = rect.bottom - visibleBottom + margin;
+        if (delta > 0) {
+          window.scrollBy({ top: delta, left: 0, behavior: "auto" });
+        }
+      }
+      el.scrollIntoView({ block: "nearest", behavior: "auto", inline: "nearest" });
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(nudge);
+    });
+    window.setTimeout(nudge, 100);
+    window.setTimeout(nudge, 320);
+    window.setTimeout(nudge, 520);
+  }, [formStep, isModal]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    if (window.matchMedia?.("(pointer: coarse)").matches !== true) return;
+    if (formStep !== 1 && formStep !== 2) return;
+
+    const vv = window.visualViewport;
+    const onChange = () => scrollPrimaryCtaAboveKeyboard();
+    vv.addEventListener("resize", onChange);
+    vv.addEventListener("scroll", onChange);
+    return () => {
+      vv.removeEventListener("resize", onChange);
+      vv.removeEventListener("scroll", onChange);
+    };
+  }, [formStep, scrollPrimaryCtaAboveKeyboard]);
 
   return (
     <div className={cn(smokeGlassPanelClass, isModal ? "w-full" : "w-full max-w-2xl")}>
@@ -354,7 +406,7 @@ const QuoteUnlockForm = ({
 
       <div className="relative px-5 pb-5 pt-5 sm:px-7 sm:pb-7">
         {formStep === 1 ? (
-          <div className="space-y-5">
+          <div className="space-y-5 max-sm:pb-[min(42vh,260px)]">
             <div>
               <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                 Get My PPF Estimate
@@ -370,7 +422,9 @@ const QuoteUnlockForm = ({
                 <Input
                   value={name}
                   onChange={(event) => onNameChange(event.target.value)}
+                  onFocus={scrollPrimaryCtaAboveKeyboard}
                   placeholder="Your name"
+                  autoComplete="name"
                   className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
                 />
               </div>
@@ -380,22 +434,27 @@ const QuoteUnlockForm = ({
                 <Input
                   value={mobile}
                   onChange={(event) => onMobileChange(event.target.value)}
+                  onFocus={scrollPrimaryCtaAboveKeyboard}
                   placeholder="+971 50 123 4567"
+                  inputMode="tel"
+                  autoComplete="tel"
                   className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
                 />
                 {phoneError ? <p className="mt-2 text-sm text-red-400">{phoneError}</p> : null}
               </div>
             </div>
 
-            <Button className={cn(primaryPpfCtaButtonClass, "w-full")} size="lg" variant="default" onClick={onContinue}>
-              Continue
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            <div ref={step1CtaRef} className="scroll-mt-3">
+              <Button className={cn(primaryPpfCtaButtonClass, "w-full")} size="lg" variant="default" onClick={onContinue}>
+                Continue
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
         ) : null}
 
         {formStep === 2 ? (
-          <div className="space-y-5">
+          <div className="space-y-5 max-sm:pb-[min(42vh,260px)]">
             <div>
               <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                 Tell us about your car
@@ -411,7 +470,9 @@ const QuoteUnlockForm = ({
                 <Input
                   value={vehicleMake}
                   onChange={(event) => onVehicleMakeChange(event.target.value)}
+                  onFocus={scrollPrimaryCtaAboveKeyboard}
                   placeholder="Porsche"
+                  autoComplete="off"
                   className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
                 />
               </div>
@@ -421,7 +482,9 @@ const QuoteUnlockForm = ({
                 <Input
                   value={vehicleModel}
                   onChange={(event) => onVehicleModelChange(event.target.value)}
+                  onFocus={scrollPrimaryCtaAboveKeyboard}
                   placeholder="911 Turbo S"
+                  autoComplete="off"
                   className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
                 />
               </div>
@@ -431,8 +494,10 @@ const QuoteUnlockForm = ({
                 <Input
                   value={vehicleYear}
                   onChange={(event) => onVehicleYearChange(event.target.value)}
+                  onFocus={scrollPrimaryCtaAboveKeyboard}
                   placeholder="2024"
                   inputMode="numeric"
+                  autoComplete="off"
                   className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
                 />
               </div>
@@ -440,7 +505,7 @@ const QuoteUnlockForm = ({
 
             {vehicleError ? <p className="text-sm text-red-400">{vehicleError}</p> : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div ref={step2CtaRef} className="flex scroll-mt-3 flex-col gap-3 sm:flex-row">
               <Button
                 type="button"
                 variant="outline"
@@ -532,6 +597,29 @@ const PpfDubaiQuote = () => {
   const hasTrackedFormStart = useRef(false);
   const hasTrackedEstimate = useRef(false);
   const calculatorRef = useRef<HTMLElement | null>(null);
+
+  /** Mobile Safari often ignores smooth scroll or runs before overlay unmount; use measured top + delayed retries. */
+  const scrollToCalculatorSection = useCallback(() => {
+    const el = calculatorRef.current;
+    if (!el || typeof window === "undefined") return;
+    const coarsePointer = window.matchMedia?.("(pointer: coarse)").matches === true;
+    const offset = 12;
+    const targetY = () => Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset);
+
+    const run = (behavior: ScrollBehavior) => {
+      window.scrollTo({ top: targetY(), left: 0, behavior });
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        run(coarsePointer ? "auto" : "smooth");
+        if (coarsePointer) {
+          window.setTimeout(() => run("auto"), 120);
+          window.setTimeout(() => run("auto"), 380);
+        }
+      });
+    });
+  }, []);
   const trustSectionRef = useRef<HTMLElement | null>(null);
   const trustVideoRef = useRef<HTMLVideoElement | null>(null);
   const whyStekSectionRef = useRef<HTMLElement | null>(null);
@@ -819,6 +907,7 @@ const PpfDubaiQuote = () => {
 
   const handleUnlockCalculator = () => {
     setFormStep(1);
+    scrollToCalculatorSection();
   };
 
   const handleModalOpenChange = (open: boolean) => {
@@ -828,7 +917,7 @@ const PpfDubaiQuote = () => {
   const handleOpenCalculatorFromModal = () => {
     setHeroFormOpen(false);
     setFormStep(1);
-    calculatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToCalculatorSection();
   };
 
   const faqItems = [
@@ -1052,7 +1141,7 @@ const PpfDubaiQuote = () => {
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl border-white/10 bg-transparent p-0 shadow-none [&>button]:hidden">
+                    <DialogContent className="max-h-[min(90dvh,920px)] w-[calc(100vw-1.25rem)] max-w-2xl overflow-y-auto overflow-x-hidden overscroll-contain border-white/10 bg-transparent p-0 shadow-none sm:w-full [&>button]:hidden">
                       <QuoteUnlockForm
                         variant="modal"
                         formStep={formStep}
@@ -1118,9 +1207,7 @@ const PpfDubaiQuote = () => {
                       type="button"
                       variant="ghost"
                       className="w-full text-white/75 hover:bg-white/5 hover:text-white"
-                      onClick={() =>
-                        calculatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-                      }
+                      onClick={scrollToCalculatorSection}
                     >
                       Open calculator
                     </Button>
@@ -1823,7 +1910,7 @@ const PpfDubaiQuote = () => {
 
         <section
           ref={calculatorRef}
-          className="border-t border-border/50 bg-[radial-gradient(circle_at_50%_0%,rgba(245,181,43,0.04),transparent_42%)] px-0 pb-16 pt-16 [overflow-anchor:none] sm:pb-20 sm:pt-20"
+          className="scroll-mt-6 border-t border-border/50 bg-[radial-gradient(circle_at_50%_0%,rgba(245,181,43,0.04),transparent_42%)] px-0 pb-16 pt-16 [overflow-anchor:none] sm:scroll-mt-8 sm:pb-20 sm:pt-20"
         >
           <div className="container mx-auto max-w-6xl">
             <div className="mb-8 overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-8">
@@ -1839,7 +1926,7 @@ const PpfDubaiQuote = () => {
 
             <div className="relative [overflow-anchor:none]">
               {(!formSubmitted || formStep === 3) && !devCalculatorPeek ? (
-                <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl border border-border/60 bg-[rgba(8,8,8,0.56)] px-4 py-6 backdrop-blur-md sm:px-6">
+                <div className="absolute inset-0 z-20 flex max-h-full min-h-0 items-start justify-center overflow-y-auto overscroll-y-contain rounded-3xl border border-border/60 bg-[rgba(8,8,8,0.56)] px-4 py-6 backdrop-blur-md sm:items-center sm:px-6">
                   {import.meta.env.DEV ? (
                     <button
                       type="button"
