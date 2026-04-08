@@ -282,29 +282,39 @@ const PpfDubaiQuote = () => {
   }, [formSubmitted, packageLabel, selection, utmParams]);
 
   useEffect(() => {
-    const section = trustSectionRef.current;
     const video = trustVideoRef.current;
 
-    if (!section || !video || typeof IntersectionObserver === "undefined") return;
+    if (!video || typeof IntersectionObserver === "undefined") return;
+
+    // Observe the video node (not the whole section). A tall section's intersection ratio
+    // stays low on mobile while the clip is clearly visible, which falsely triggered pause.
+    const playWhenRatio = 0.18;
+    const pauseWhenRatio = 0.06;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!video) return;
+        const ratio = entry.intersectionRatio;
+        const mostlyVisible = entry.isIntersecting && ratio >= playWhenRatio;
+        const mostlyHidden = !entry.isIntersecting || ratio < pauseWhenRatio;
 
-        if (entry.isIntersecting) {
-          video.currentTime = 0;
-          video.play().catch(() => {
-            // Ignore autoplay rejections if the browser is being strict.
-          });
-        } else {
+        if (mostlyVisible) {
+          if (video.paused) {
+            video.play().catch(() => {
+              // Ignore autoplay rejections if the browser is being strict.
+            });
+          }
+        } else if (mostlyHidden) {
           video.pause();
           video.currentTime = 0;
         }
       },
-      { threshold: 0.45 }
+      {
+        threshold: [0, 0.05, 0.1, 0.15, 0.18, 0.25, 0.33, 0.5, 0.75, 1],
+      }
     );
 
-    observer.observe(section);
+    observer.observe(video);
 
     return () => {
       observer.disconnect();
@@ -779,7 +789,7 @@ const PpfDubaiQuote = () => {
                     muted
                     loop
                     playsInline
-                    preload="metadata"
+                    preload="auto"
                     onEnded={(event) => {
                       event.currentTarget.currentTime = 0;
                       event.currentTarget.play().catch(() => {
