@@ -47,6 +47,9 @@ const TRUST_SECTION_VIDEO =
 const WHY_STEK_VIDEO =
   "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/f_auto/v1775639271/0408_3_gjnsep.mp4";
 
+/** Max movement (px) between down/up to count as a tap, not a scroll/drag. */
+const WHY_STEK_TAP_SLOP_PX = 14;
+
 const OWNERSHIP_STAGES: OwnershipStage[] = [
   "I have the car now",
   "Delivery soon",
@@ -459,20 +462,71 @@ const PpfDubaiQuote = () => {
   };
 
   const whyStekPlayOverlayRef = useRef<HTMLButtonElement | null>(null);
+  const whyStekOverlayTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const activateWhyStekPlayRef = useRef(activateWhyStekPlay);
   activateWhyStekPlayRef.current = activateWhyStekPlay;
+
+  const whyStekTogglePointerRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
 
   useEffect(() => {
     if (isWhyStekPlaying) return;
     const btn = whyStekPlayOverlayRef.current;
     if (!btn) return;
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      whyStekOverlayTouchStartRef.current = { x: t.clientX, y: t.clientY };
+    };
     const onTouchEnd = (e: TouchEvent) => {
+      const start = whyStekOverlayTouchStartRef.current;
+      whyStekOverlayTouchStartRef.current = null;
+      if (!start || e.changedTouches.length !== 1) return;
+      const t = e.changedTouches[0];
+      if (
+        Math.abs(t.clientX - start.x) > WHY_STEK_TAP_SLOP_PX ||
+        Math.abs(t.clientY - start.y) > WHY_STEK_TAP_SLOP_PX
+      ) {
+        return;
+      }
       e.preventDefault();
       activateWhyStekPlayRef.current();
     };
+    const onTouchCancel = () => {
+      whyStekOverlayTouchStartRef.current = null;
+    };
+    btn.addEventListener("touchstart", onTouchStart, { passive: true });
     btn.addEventListener("touchend", onTouchEnd, { passive: false });
-    return () => btn.removeEventListener("touchend", onTouchEnd);
+    btn.addEventListener("touchcancel", onTouchCancel);
+    return () => {
+      btn.removeEventListener("touchstart", onTouchStart);
+      btn.removeEventListener("touchend", onTouchEnd);
+      btn.removeEventListener("touchcancel", onTouchCancel);
+    };
   }, [isWhyStekPlaying]);
+
+  const handleWhyStekVideoPointerDown = (e: React.PointerEvent<HTMLVideoElement>) => {
+    if (!isWhyStekPlaying) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    whyStekTogglePointerRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+  };
+
+  const handleWhyStekVideoPointerUp = (e: React.PointerEvent<HTMLVideoElement>) => {
+    if (!isWhyStekPlaying) return;
+    const start = whyStekTogglePointerRef.current;
+    whyStekTogglePointerRef.current = null;
+    if (!start || start.pointerId !== e.pointerId) return;
+    if (
+      Math.abs(e.clientX - start.x) > WHY_STEK_TAP_SLOP_PX ||
+      Math.abs(e.clientY - start.y) > WHY_STEK_TAP_SLOP_PX
+    ) {
+      return;
+    }
+    handleWhyStekToggle();
+  };
+
+  const handleWhyStekVideoPointerCancel = () => {
+    whyStekTogglePointerRef.current = null;
+  };
 
   const handleWhyStekToggle = () => {
     const video = whyStekVideoRef.current;
@@ -987,21 +1041,23 @@ const PpfDubaiQuote = () => {
                         ref={whyStekVideoRef}
                         className={cn(
                           "h-full w-full object-cover",
-                          isWhyStekPlaying ? "cursor-pointer" : "pointer-events-none"
+                          isWhyStekPlaying ? "cursor-pointer touch-pan-y" : "pointer-events-none"
                         )}
                         src={WHY_STEK_VIDEO}
                         playsInline
                         preload="auto"
                         loop={false}
                         controls={false}
-                        onClick={handleWhyStekToggle}
+                        onPointerDown={handleWhyStekVideoPointerDown}
+                        onPointerUp={handleWhyStekVideoPointerUp}
+                        onPointerCancel={handleWhyStekVideoPointerCancel}
                       />
                       {!isWhyStekPlaying ? (
                         <button
                           ref={whyStekPlayOverlayRef}
                           type="button"
                           onClick={activateWhyStekPlay}
-                          className="absolute inset-0 z-[100] flex touch-manipulation items-center justify-center bg-black/18 transition hover:bg-black/10"
+                          className="absolute inset-0 z-[100] flex touch-manipulation touch-pan-y items-center justify-center bg-black/18 transition hover:bg-black/10"
                           aria-label="Play Sean's video about why he chose STEK"
                         >
                           <span className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-black/60 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-md">
