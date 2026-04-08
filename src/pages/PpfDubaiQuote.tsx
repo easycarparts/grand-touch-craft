@@ -443,10 +443,27 @@ const PpfDubaiQuote = () => {
 
   const activateWhyStekPlay = () => {
     const t = Date.now();
-    if (t - whyStekPlayGateRef.current < 400) return;
+    // Short window: touchend + synthetic click can fire ~50–300ms apart on Android Chrome.
+    if (t - whyStekPlayGateRef.current < 120) return;
     whyStekPlayGateRef.current = t;
     handleWhyStekPlay();
   };
+
+  const whyStekPlayOverlayRef = useRef<HTMLButtonElement | null>(null);
+  const activateWhyStekPlayRef = useRef(activateWhyStekPlay);
+  activateWhyStekPlayRef.current = activateWhyStekPlay;
+
+  useEffect(() => {
+    if (isWhyStekPlaying) return;
+    const btn = whyStekPlayOverlayRef.current;
+    if (!btn) return;
+    const onTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      activateWhyStekPlayRef.current();
+    };
+    btn.addEventListener("touchend", onTouchEnd, { passive: false });
+    return () => btn.removeEventListener("touchend", onTouchEnd);
+  }, [isWhyStekPlaying]);
 
   const handleWhyStekToggle = () => {
     const video = whyStekVideoRef.current;
@@ -470,9 +487,9 @@ const PpfDubaiQuote = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24 text-foreground md:pb-0">
+    <div className="min-h-screen bg-background pb-32 text-foreground md:pb-0">
       <main>
-        <section className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.09),_transparent_42%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.04),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.05),transparent_22%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-5 pb-8 pt-10 sm:bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] sm:px-6 lg:px-8">
+        <section className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.09),_transparent_42%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.04),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.05),transparent_22%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-3 pb-8 pt-10 sm:bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] sm:px-6 lg:px-8">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-24 top-16 h-56 w-56 rounded-full bg-primary/8 blur-3xl sm:bg-primary/12" />
             <div className="absolute right-[-4rem] top-10 h-64 w-64 rounded-full bg-amber-200/[0.04] blur-3xl sm:bg-amber-200/10" />
@@ -746,11 +763,11 @@ const PpfDubaiQuote = () => {
 
         <section
           ref={trustSectionRef}
-          className="border-y border-border/50 bg-[radial-gradient(circle_at_18%_20%,rgba(245,181,43,0.07),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-4 py-14 sm:px-6 lg:px-8"
+          className="border-y border-border/50 bg-[radial-gradient(circle_at_18%_20%,rgba(245,181,43,0.07),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-3 py-14 sm:px-6 lg:px-8"
         >
           <div className="container mx-auto max-w-6xl">
             <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center lg:gap-10">
-              <div className="order-2 relative overflow-hidden rounded-[32px] border border-primary/15 bg-[radial-gradient(circle_at_50%_18%,rgba(245,181,43,0.16),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(10,10,10,0.92))] px-6 pt-8 shadow-[0_28px_90px_rgba(0,0,0,0.38)] sm:px-8 sm:pt-10 lg:order-none">
+              <div className="order-2 relative overflow-hidden rounded-[32px] border border-primary/15 bg-[radial-gradient(circle_at_50%_18%,rgba(245,181,43,0.16),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(10,10,10,0.92))] px-4 pt-7 shadow-[0_28px_90px_rgba(0,0,0,0.38)] sm:px-8 sm:pt-10 lg:order-none">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute left-1/2 top-16 h-56 w-56 -translate-x-1/2 rounded-full bg-primary/12 blur-3xl" />
                   <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/45 to-transparent" />
@@ -781,7 +798,7 @@ const PpfDubaiQuote = () => {
                     </p>
                   </div>
                 </div>
-                <div className="relative -mx-6 border-t border-white/10 bg-black/18 px-6 py-5 backdrop-blur-sm sm:-mx-8 sm:px-8">
+                <div className="relative -mx-4 border-t border-white/10 bg-black/18 px-4 py-5 backdrop-blur-sm sm:-mx-8 sm:px-8">
                   <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-primary/80">
                     Deal Directly with Sean
                   </p>
@@ -791,7 +808,7 @@ const PpfDubaiQuote = () => {
                 </div>
               </div>
 
-              <div className="order-1 relative overflow-hidden rounded-[32px] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-7 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8 lg:order-none">
+              <div className="order-1 relative overflow-hidden rounded-[32px] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8 lg:order-none">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute -right-12 top-0 h-44 w-44 rounded-full bg-primary/8 blur-3xl" />
                   <div className="absolute -left-10 top-28 h-32 w-32 rounded-full bg-primary/6 blur-3xl" />
@@ -887,11 +904,11 @@ const PpfDubaiQuote = () => {
 
         <section
           ref={whyStekSectionRef}
-          className="border-b border-border/50 bg-[radial-gradient(circle_at_75%_20%,rgba(245,181,43,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-4 py-14 sm:px-6 lg:px-8"
+          className="border-b border-border/50 bg-[radial-gradient(circle_at_75%_20%,rgba(245,181,43,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-3 py-14 sm:px-6 lg:px-8"
         >
           <div className="container mx-auto max-w-6xl">
             <div className="grid gap-7 lg:grid-cols-[1fr_0.92fr] lg:items-center">
-              <div className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-7 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
+              <div className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute -left-12 top-6 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
                   <div className="absolute right-0 top-16 h-32 w-32 rounded-full bg-white/5 blur-3xl" />
@@ -972,14 +989,10 @@ const PpfDubaiQuote = () => {
                       />
                       {!isWhyStekPlaying ? (
                         <button
+                          ref={whyStekPlayOverlayRef}
                           type="button"
-                          onPointerUp={(e) => {
-                            if (e.pointerType === "mouse" && e.button !== 0) return;
-                            e.preventDefault();
-                            activateWhyStekPlay();
-                          }}
                           onClick={activateWhyStekPlay}
-                          className="absolute inset-0 z-10 flex touch-manipulation items-center justify-center bg-black/18 transition hover:bg-black/10"
+                          className="absolute inset-0 z-[100] flex touch-manipulation items-center justify-center bg-black/18 transition hover:bg-black/10"
                           aria-label="Play Sean's video about why he chose STEK"
                         >
                           <span className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-black/60 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-md">
@@ -1015,7 +1028,7 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
-        <section className="border-y border-border/50 bg-card/30 px-4 py-12 sm:px-6 lg:px-8">
+        <section className="border-y border-border/50 bg-card/30 px-3 py-12 sm:px-6 lg:px-8">
           <div className="container mx-auto max-w-6xl">
             <div className="mb-6">
               <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
@@ -1116,9 +1129,9 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
-        <section className="px-4 py-14 sm:px-6 lg:px-8">
+        <section className="px-3 py-14 sm:px-6 lg:px-8">
           <div className="container mx-auto max-w-6xl">
-            <div className="relative overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.1),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-5 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-7">
+            <div className="relative overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.1),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-7">
               <div className="pointer-events-none absolute inset-0">
                 <div className="absolute -left-16 top-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
                 <div className="absolute right-0 top-8 h-32 w-32 rounded-full bg-white/5 blur-3xl" />
@@ -1160,7 +1173,7 @@ const PpfDubaiQuote = () => {
 
                   <div className="mt-6 grid gap-4 lg:grid-cols-[0.96fr_1.04fr]">
                   <div className="grid grid-cols-1 gap-4">
-                    <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.24)]">
+                    <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.24)] sm:p-5">
                       <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(245,181,43,0.8),rgba(245,181,43,0))]" />
                       <div className="flex items-start justify-between gap-4">
                         <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
@@ -1177,7 +1190,7 @@ const PpfDubaiQuote = () => {
                       </p>
                     </Card>
 
-                    <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.24)]">
+                    <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.24)] sm:p-5">
                       <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(245,181,43,0.8),rgba(245,181,43,0))]" />
                       <div className="flex items-start justify-between gap-4">
                         <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
@@ -1194,7 +1207,7 @@ const PpfDubaiQuote = () => {
                       </p>
                     </Card>
 
-                    <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.24)]">
+                    <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.24)] sm:p-5">
                       <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(245,181,43,0.8),rgba(245,181,43,0))]" />
                       <div className="flex items-start justify-between gap-4">
                         <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
@@ -1295,7 +1308,7 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
-        <section ref={calculatorRef} className="px-4 py-12 sm:px-6 lg:px-8">
+        <section ref={calculatorRef} className="px-3 py-12 sm:px-6 lg:px-8">
           <div className="container mx-auto max-w-6xl">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Lock, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 
@@ -106,8 +106,11 @@ const PpfCostCalculatorWidget = ({
 
   const stekLine = brand === "STEK" ? stekSeriesName(effectiveWarrantyYears) : null;
 
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
+
   useEffect(() => {
-    onSelectionChange?.({
+    onSelectionChangeRef.current?.({
       brand,
       warrantyYears: effectiveWarrantyYears,
       finish,
@@ -116,16 +119,7 @@ const PpfCostCalculatorWidget = ({
       estimateMin: estimate.min,
       stekLine,
     });
-  }, [
-    brand,
-    coverage,
-    effectiveWarrantyYears,
-    estimate.min,
-    finish,
-    onSelectionChange,
-    size,
-    stekLine,
-  ]);
+  }, [brand, coverage, effectiveWarrantyYears, estimate.min, finish, size, stekLine]);
 
   const whatsAppUrl = useMemo(() => {
     const message = [
