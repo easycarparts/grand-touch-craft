@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -19,6 +21,8 @@ import logo from "@/assets/logo.svg";
 import stekWarrantySticker from "../../Landscape STEK Sticker.png";
 import {
   ArrowRight,
+  Check,
+  ChevronDown,
   MessageCircle,
   Maximize2,
   Play,
@@ -26,9 +30,9 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  X,
 } from "lucide-react";
 
-type OwnershipStage = "I have the car now" | "Delivery soon" | "Just researching";
 type CalculatorSelection = {
   brand: "STEK" | "GYEON";
   warrantyYears: number;
@@ -49,22 +53,6 @@ const WHY_STEK_VIDEO =
 
 /** Max movement (px) between down/up to count as a tap, not a scroll/drag. */
 const WHY_STEK_TAP_SLOP_PX = 14;
-
-const OWNERSHIP_STAGES: OwnershipStage[] = [
-  "I have the car now",
-  "Delivery soon",
-  "Just researching",
-];
-
-const defaultSelection: CalculatorSelection = {
-  brand: "STEK",
-  warrantyYears: 10,
-  finish: "Gloss",
-  size: "Medium",
-  coverage: "Full Body",
-  estimateMin: 11500,
-  stekLine: "ForceShield",
-};
 
 declare global {
   interface Window {
@@ -158,17 +146,388 @@ const VideoModalCard = ({
 
 const formatAED = (value: number) => `AED ${value.toLocaleString("en-AE")}`;
 
+/**
+ * Primary gold CTA — same gradient family as the hero headline, with explicit hover so
+ * `Button`’s default `hover:bg-primary/90` does not flatten it to a duller solid.
+ */
+const primaryPpfCtaButtonClass =
+  "border-0 !bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_52%,#e79a13_100%)] !text-neutral-950 shadow-[0_12px_40px_rgba(247,181,43,0.28)] transition-all duration-200 ease-out hover:!bg-[linear-gradient(180deg,#ffd47a_0%,#f8bd3d_52%,#f2a318_100%)] hover:!text-neutral-950 hover:shadow-[0_18px_52px_rgba(247,181,43,0.36)] focus-visible:ring-2 focus-visible:ring-[#f7b52b]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.99] disabled:!opacity-60 disabled:active:scale-100";
+
+/** Muted WhatsApp-adjacent green (less neon than official #25D366). */
+const whatsappCtaButtonClass =
+  "w-full border-0 bg-[#1f8350] text-white shadow-[0_12px_36px_rgba(31,131,80,0.22)] transition-all duration-200 ease-out hover:bg-[#278f5a] hover:text-white hover:shadow-[0_14px_44px_rgba(31,131,80,0.32)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#1f8350]/50 active:scale-[0.99] active:text-white";
+
+/** Stronger hover so the hero WhatsApp CTA is obvious on rollover (still softer base green). */
+const heroWhatsAppButtonClass =
+  "w-full border-0 bg-[#1f8350] text-white shadow-[0_14px_40px_rgba(31,131,80,0.26)] transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-[#2d9a63] hover:text-white hover:shadow-[0_22px_56px_rgba(31,131,80,0.4)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#1f8350]/55 active:scale-[0.99] active:text-white";
+
+const smokeGlassPanelClass =
+  "relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045)_18%,rgba(18,18,18,0.62)_42%,rgba(8,8,8,0.84)_100%)] shadow-[0_36px_120px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[22px]";
+
+const SectionCta = ({
+  primaryLabel = "Get My PPF Quote",
+  secondaryLabel = "Speak to Sean on WhatsApp",
+  onPrimaryClick,
+  secondaryHref,
+  onSecondaryClick,
+  disabled = false,
+  align = "left",
+  note,
+  className,
+  /** Full-width stacked column (narrow cards). */
+  stacked = false,
+}: {
+  primaryLabel?: string;
+  secondaryLabel?: string;
+  onPrimaryClick: () => void;
+  /** Omit secondary to show only the primary CTA. */
+  secondaryHref?: string;
+  onSecondaryClick?: () => void;
+  disabled?: boolean;
+  align?: "left" | "center";
+  note?: string;
+  className?: string;
+  stacked?: boolean;
+}) => {
+  const showSecondary = Boolean(secondaryHref && onSecondaryClick);
+
+  return (
+    <div className={cn("mt-7", align === "center" ? "text-center" : "", className)}>
+      <div
+        className={cn(
+          "flex flex-col gap-3",
+          showSecondary && !stacked ? "sm:flex-row" : "",
+          showSecondary && !stacked && (align === "center" ? "sm:justify-center" : "sm:justify-start")
+        )}
+      >
+        <Button
+          size="lg"
+          variant="default"
+          className={cn(
+            primaryPpfCtaButtonClass,
+            "w-full",
+            stacked ? "h-auto min-h-11 whitespace-normal py-3 sm:py-3" : showSecondary ? "sm:w-auto" : "sm:max-w-md"
+          )}
+          onClick={onPrimaryClick}
+        >
+          {primaryLabel}
+          <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+        </Button>
+        {showSecondary ? (
+          <a
+            href={secondaryHref}
+            target="_blank"
+            rel="noreferrer"
+            className={cn("w-full", stacked ? "" : "sm:w-auto")}
+          >
+            <Button
+              type="button"
+              variant="default"
+              className={cn(
+                whatsappCtaButtonClass,
+                stacked && "h-auto min-h-11 whitespace-normal py-3 text-center leading-snug sm:py-3"
+              )}
+              size="lg"
+              onClick={onSecondaryClick}
+              disabled={disabled}
+            >
+              <MessageCircle className="mr-2 h-4 w-4 shrink-0" />
+              {secondaryLabel}
+            </Button>
+          </a>
+        ) : null}
+      </div>
+      {note ? (
+        <p className={cn("mt-3 text-sm text-slate-400", align === "center" ? "mx-auto max-w-2xl" : "")}>
+          {note}
+        </p>
+      ) : null}
+    </div>
+  );
+};
+
+const QuoteUnlockForm = ({
+  variant,
+  formStep,
+  formSubmitted,
+  name,
+  mobile,
+  vehicleMake,
+  vehicleModel,
+  vehicleYear,
+  phoneError,
+  vehicleError,
+  isSubmitting,
+  vehicleSummary,
+  onNameChange,
+  onMobileChange,
+  onVehicleMakeChange,
+  onVehicleModelChange,
+  onVehicleYearChange,
+  onContinue,
+  onBack,
+  onSubmit,
+  onOpenCalculator,
+  whatsAppUrl,
+  onWhatsAppClick,
+}: {
+  variant: "modal" | "embedded";
+  formStep: 1 | 2 | 3;
+  formSubmitted: boolean;
+  name: string;
+  mobile: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: string;
+  phoneError: string;
+  vehicleError: string;
+  isSubmitting: boolean;
+  vehicleSummary: string;
+  onNameChange: (value: string) => void;
+  onMobileChange: (value: string) => void;
+  onVehicleMakeChange: (value: string) => void;
+  onVehicleModelChange: (value: string) => void;
+  onVehicleYearChange: (value: string) => void;
+  onContinue: () => void;
+  onBack: () => void;
+  onSubmit: () => void;
+  onOpenCalculator: () => void;
+  whatsAppUrl: string;
+  onWhatsAppClick: () => void;
+}) => {
+  const isModal = variant === "modal";
+
+  return (
+    <div className={cn(smokeGlassPanelClass, isModal ? "w-full" : "w-full max-w-2xl")}>
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent)]" />
+        <div className="absolute -left-12 top-10 h-40 w-40 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute right-0 top-16 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+      </div>
+
+      <div className="relative border-b border-white/10 px-5 pb-4 pt-5 sm:px-7">
+        {isModal ? (
+          <DialogClose
+            type="button"
+            className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/50 text-white shadow-lg backdrop-blur-md transition hover:bg-black/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            aria-label="Close estimate form"
+          >
+            <X className="h-5 w-5" strokeWidth={2.25} />
+          </DialogClose>
+        ) : null}
+        <div className={cn("flex flex-wrap items-center gap-3", isModal && "pr-11 sm:pr-12")}>
+          {[
+            { step: 1, label: "Contact" },
+            { step: 2, label: "Vehicle" },
+            { step: 3, label: "Unlock" },
+          ].map((item) => {
+            const isActive = formStep === item.step;
+            const isComplete = formSubmitted || formStep > item.step;
+
+            return (
+              <div key={item.step} className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
+                    isActive
+                      ? "border-white/15 bg-white/16 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
+                      : isComplete
+                        ? "border-white/12 bg-white/10 text-white/82"
+                        : "border-white/10 bg-black/18 text-white/40"
+                  )}
+                >
+                  {isComplete && !isActive ? <Check className="h-4 w-4" /> : item.step}
+                </div>
+                <span
+                  className={cn(
+                    "text-[11px] uppercase tracking-[0.24em]",
+                    isActive || isComplete ? "text-white/72" : "text-white/32"
+                  )}
+                >
+                  {item.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="relative px-5 pb-5 pt-5 sm:px-7 sm:pb-7">
+        {formStep === 1 ? (
+          <div className="space-y-5">
+            <div>
+              <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                Get My PPF Estimate
+              </p>
+              <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                Name and number first. We keep this part short so the quote unlock feels fast.
+              </p>
+            </div>
+
+            <div className="grid gap-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-white/78">Name</label>
+                <Input
+                  value={name}
+                  onChange={(event) => onNameChange(event.target.value)}
+                  placeholder="Your name"
+                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-white/78">Mobile number</label>
+                <Input
+                  value={mobile}
+                  onChange={(event) => onMobileChange(event.target.value)}
+                  placeholder="+971 50 123 4567"
+                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
+                />
+                {phoneError ? <p className="mt-2 text-sm text-red-400">{phoneError}</p> : null}
+              </div>
+            </div>
+
+            <Button className={cn(primaryPpfCtaButtonClass, "w-full")} size="lg" variant="default" onClick={onContinue}>
+              Continue
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        ) : null}
+
+        {formStep === 2 ? (
+          <div className="space-y-5">
+            <div>
+              <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                Tell us about your car
+              </p>
+              <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                Add the make, model, and year so Sean gets something useful, not a vague lead.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-[1fr_1fr_120px]">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-white/78">Make</label>
+                <Input
+                  value={vehicleMake}
+                  onChange={(event) => onVehicleMakeChange(event.target.value)}
+                  placeholder="Porsche"
+                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-white/78">Model</label>
+                <Input
+                  value={vehicleModel}
+                  onChange={(event) => onVehicleModelChange(event.target.value)}
+                  placeholder="911 Turbo S"
+                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-white/78">Year</label>
+                <Input
+                  value={vehicleYear}
+                  onChange={(event) => onVehicleYearChange(event.target.value)}
+                  placeholder="2024"
+                  inputMode="numeric"
+                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
+                />
+              </div>
+            </div>
+
+            {vehicleError ? <p className="text-sm text-red-400">{vehicleError}</p> : null}
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="w-full border-white/10 bg-[rgba(255,255,255,0.04)] text-white hover:bg-[rgba(255,255,255,0.07)] sm:w-auto"
+                onClick={onBack}
+              >
+                Back
+              </Button>
+              <Button
+                className={cn(primaryPpfCtaButtonClass, "w-full")}
+                size="lg"
+                variant="default"
+                onClick={onSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting your enquiry..." : "Unlock My Estimate"}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {formStep === 3 ? (
+          <div className="space-y-5">
+            <div>
+              <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                Your enquiry is in
+              </p>
+              <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                {isModal
+                  ? "Thanks. Your details have been sent. Would you like to open the calculator and compare the options?"
+                  : "We have your details and the calculator is now ready. You can compare finish, coverage, and warranty without leaving this section."}
+              </p>
+            </div>
+
+            <div className="rounded-[26px] border border-white/10 bg-[rgba(255,255,255,0.05)] p-5">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-white/48">Lead captured</p>
+              <p className="mt-3 text-lg font-medium text-white">{vehicleSummary}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Sean now has your name, number, and vehicle details.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button className={cn(primaryPpfCtaButtonClass, "w-full")} size="lg" variant="default" onClick={onOpenCalculator}>
+                Open PPF Price Calculator
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="default"
+                  className={cn(whatsappCtaButtonClass, "w-full")}
+                  size="lg"
+                  onClick={onWhatsAppClick}
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Speak to Sean on WhatsApp
+                </Button>
+              </a>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
 const PpfDubaiQuote = () => {
   const [heroFormOpen, setHeroFormOpen] = useState(false);
+  const [formStep, setFormStep] = useState<1 | 2 | 3>(1);
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("+971");
-  const [vehicle, setVehicle] = useState("");
-  const [ownershipStage, setOwnershipStage] = useState<OwnershipStage>("I have the car now");
+  const [vehicleMake, setVehicleMake] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [vehicleYear, setVehicleYear] = useState("");
   const [phoneError, setPhoneError] = useState("");
+  const [vehicleError, setVehicleError] = useState("");
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingCalculatorLead, setIsSendingCalculatorLead] = useState(false);
   const [isWhyStekPlaying, setIsWhyStekPlaying] = useState(false);
-  const [selection, setSelection] = useState<CalculatorSelection>(defaultSelection);
+  const [selection, setSelection] = useState<CalculatorSelection | null>(null);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  /** Dev-only: hide the calculator lead overlay to inspect layout without submitting / email. */
+  const [devCalculatorOverlayDismissed, setDevCalculatorOverlayDismissed] = useState(false);
 
   const hasTrackedFormStart = useRef(false);
   const hasTrackedEstimate = useRef(false);
@@ -179,6 +538,9 @@ const PpfDubaiQuote = () => {
   const whyStekVideoRef = useRef<HTMLVideoElement | null>(null);
   /** Dedupes pointerup + click (common on Chrome Android) so play() runs once. */
   const whyStekPlayGateRef = useRef(0);
+
+  const devCalculatorPeek =
+    import.meta.env.DEV && devCalculatorOverlayDismissed;
 
   const utmParams = useMemo(() => {
     if (typeof window === "undefined") return {};
@@ -193,12 +555,10 @@ const PpfDubaiQuote = () => {
     };
   }, []);
 
-  const estimateLabel = useMemo(() => formatAED(selection.estimateMin), [selection.estimateMin]);
-
-  const packageLabel = useMemo(() => {
-    const line = selection.stekLine ? ` ${selection.stekLine}` : "";
-    return `${selection.brand}${line} ${selection.warrantyYears}-year`;
-  }, [selection.brand, selection.stekLine, selection.warrantyYears]);
+  const vehicleSummary = useMemo(
+    () => [vehicleYear.trim(), vehicleMake.trim(), vehicleModel.trim()].filter(Boolean).join(" "),
+    [vehicleMake, vehicleModel, vehicleYear]
+  );
 
   const whatsAppUrl = useMemo(() => {
     const lines = [
@@ -206,15 +566,9 @@ const PpfDubaiQuote = () => {
       "",
       `Name: ${name || "-"}`,
       `Phone: ${mobile || "-"}`,
-      `Vehicle: ${vehicle || "-"}`,
-      `Ownership stage: ${ownershipStage}`,
-      `Package: ${packageLabel}`,
-      `Car size: ${selection.size}`,
-      `Coverage: ${selection.coverage}`,
-      `Finish: ${selection.finish}`,
-      `Estimate: ${estimateLabel}`,
+      `Vehicle: ${vehicleSummary || "-"}`,
       "",
-      "Please confirm the right package, final pricing, and earliest availability.",
+      "Please confirm the right package and earliest availability.",
     ];
 
     if (utmParams.utm_source || utmParams.gclid) {
@@ -226,18 +580,12 @@ const PpfDubaiQuote = () => {
 
     return `https://wa.me/971567191045?text=${encodeURIComponent(lines.join("\n"))}`;
   }, [
-    estimateLabel,
     mobile,
     name,
-    ownershipStage,
-    packageLabel,
-    selection.coverage,
-    selection.finish,
-    selection.size,
     utmParams.gclid,
     utmParams.utm_campaign,
     utmParams.utm_source,
-    vehicle,
+    vehicleSummary,
   ]);
 
   const trackEvent = (eventName: string, payload: Record<string, unknown> = {}) => {
@@ -271,8 +619,9 @@ const PpfDubaiQuote = () => {
   }, [utmParams]);
 
   useEffect(() => {
-    if (!formSubmitted || hasTrackedEstimate.current) return;
+    if (!formSubmitted || !selection || hasTrackedEstimate.current) return;
     hasTrackedEstimate.current = true;
+    const packageLabel = `${selection.brand}${selection.stekLine ? ` ${selection.stekLine}` : ""} ${selection.warrantyYears}-year`;
     trackEvent("ppf_estimate_shown", {
       funnel_name: "ppf_dubai_quote",
       package_name: packageLabel,
@@ -282,7 +631,7 @@ const PpfDubaiQuote = () => {
       estimate_value: selection.estimateMin,
       ...utmParams,
     });
-  }, [formSubmitted, packageLabel, selection, utmParams]);
+  }, [formSubmitted, selection, utmParams]);
 
   useEffect(() => {
     const video = trustVideoRef.current;
@@ -338,34 +687,42 @@ const PpfDubaiQuote = () => {
     });
   };
 
-  const handleSubmit = async () => {
+  const handleStepOne = () => {
     trackFormStartIfNeeded();
 
-    if (!name.trim() || !vehicle.trim() || !mobile.trim()) {
-      if (!validatePhoneNumber(mobile)) {
-        setPhoneError("Use a valid international number, for example +971 50 123 4567.");
-      }
-      return;
-    }
+    if (!name.trim()) return;
 
-    if (!validatePhoneNumber(mobile)) {
+    if (!mobile.trim() || !validatePhoneNumber(mobile)) {
       setPhoneError("Use a valid international number, for example +971 50 123 4567.");
       return;
     }
 
     setPhoneError("");
+    setFormStep(2);
+  };
+
+  const handleSubmit = async () => {
+    trackFormStartIfNeeded();
+
+    if (!vehicleMake.trim() || !vehicleModel.trim() || !vehicleYear.trim()) {
+      setVehicleError("Add the make, model, and year so Sean can quote properly.");
+      return;
+    }
+
+    if (!/^\d{4}$/.test(vehicleYear.trim())) {
+      setVehicleError("Use a 4-digit year, for example 2024.");
+      return;
+    }
+
+    setVehicleError("");
     setIsSubmitting(true);
 
     const emailPayload = {
       customer_name: name,
       customer_phone: mobile,
-      vehicle_info: vehicle,
-      vehicle_size: selection.size,
+      vehicle_info: vehicleSummary,
       service_name: "PPF Dubai Quote Lead",
       service_category: "PPF Quote Funnel",
-      service_price: estimateLabel,
-      final_price: estimateLabel,
-      discount_code: ownershipStage,
       timestamp: new Date().toISOString(),
     };
 
@@ -381,28 +738,126 @@ const PpfDubaiQuote = () => {
     } finally {
       setIsSubmitting(false);
       setFormSubmitted(true);
-      setHeroFormOpen(false);
+      setFormStep(3);
       trackEvent("ppf_quote_form_submit", {
         funnel_name: "ppf_dubai_quote",
-        ownership_stage: ownershipStage,
-        vehicle,
+        vehicle: vehicleSummary,
         ...utmParams,
       });
-      calculatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
   const handleWhatsAppClick = () => {
     trackEvent("ppf_whatsapp_click", {
       funnel_name: "ppf_dubai_quote",
-      package_name: packageLabel,
-      size: selection.size,
-      coverage: selection.coverage,
-      finish: selection.finish,
-      estimate_value: selection.estimateMin,
       ...utmParams,
     });
   };
+
+  const handleCalculatorWhatsApp = async (calculatorSelection: CalculatorSelection) => {
+    const packageLabel = `${calculatorSelection.brand}${calculatorSelection.stekLine ? ` ${calculatorSelection.stekLine}` : ""} ${calculatorSelection.warrantyYears}-year`;
+    const estimateLabel = formatAED(calculatorSelection.estimateMin);
+    const message = [
+      "Hi Sean, I used the PPF calculator and want to discuss this setup.",
+      "",
+      `Name: ${name || "-"}`,
+      `Phone: ${mobile || "-"}`,
+      `Vehicle: ${vehicleSummary || "-"}`,
+      `Package: ${packageLabel}`,
+      `Car size: ${calculatorSelection.size}`,
+      `Coverage: ${calculatorSelection.coverage}`,
+      `Finish: ${calculatorSelection.finish}`,
+      `Estimate: ${estimateLabel}`,
+      "",
+      "Please confirm the right package, final pricing, and earliest availability.",
+    ].join("\n");
+
+    setIsSendingCalculatorLead(true);
+    try {
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          customer_name: name,
+          customer_phone: mobile,
+          vehicle_info: vehicleSummary,
+          vehicle_size: calculatorSelection.size,
+          service_name: "PPF Calculator WhatsApp Lead",
+          service_category: "PPF Calculator",
+          service_price: estimateLabel,
+          final_price: estimateLabel,
+          discount_code: `${calculatorSelection.coverage} | ${calculatorSelection.finish} | ${packageLabel}`,
+          timestamp: new Date().toISOString(),
+        },
+        EMAILJS_PUBLIC_KEY
+      );
+    } catch (error) {
+      console.error("Failed to send calculator WhatsApp lead email:", error);
+    } finally {
+      setIsSendingCalculatorLead(false);
+      trackEvent("ppf_whatsapp_click", {
+        funnel_name: "ppf_dubai_quote",
+        package_name: packageLabel,
+        size: calculatorSelection.size,
+        coverage: calculatorSelection.coverage,
+        finish: calculatorSelection.finish,
+        estimate_value: calculatorSelection.estimateMin,
+        ...utmParams,
+      });
+      window.open(
+        `https://wa.me/971567191045?text=${encodeURIComponent(message)}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    }
+  };
+
+  const openHeroForm = () => {
+    trackFormStartIfNeeded();
+    setHeroFormOpen(true);
+  };
+
+  const handleUnlockCalculator = () => {
+    setFormStep(1);
+  };
+
+  const handleModalOpenChange = (open: boolean) => {
+    setHeroFormOpen(open);
+  };
+
+  const handleOpenCalculatorFromModal = () => {
+    setHeroFormOpen(false);
+    setFormStep(1);
+    calculatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const faqItems = [
+    {
+      question: "Is full front enough, or should I go full body?",
+      answer:
+        "Full front suits buyers focused on the highest-impact areas like the bumper, bonnet, wings, and mirrors. Full body is better if you want every painted panel protected, plan to keep the car longer, or simply want the cleanest overall result.",
+    },
+    {
+      question: "Should I choose gloss or matte PPF?",
+      answer:
+        "Gloss keeps the factory shine and adds protection without changing the look too much. Matte is the better fit if you want a satin-style finish or a more customised appearance while still protecting the paint underneath.",
+    },
+    {
+      question: "How long does PPF installation usually take?",
+      answer:
+        "That depends on the car, the coverage, and how much prep is needed, but the quote process will give you a realistic direction. Sean can then confirm the right package, timing, and the earliest availability for your car.",
+    },
+    {
+      question: "How does the STEK warranty registration work?",
+      answer:
+        "After installation and the one-week check, the film is registered properly through the STEK process so the warranty is traceable. That is part of why this page puts so much emphasis on genuine film and verified registration.",
+    },
+    {
+      question: "Can I just message Sean before deciding?",
+      answer:
+        "Yes. If you are still comparing options, you can go straight to WhatsApp and ask what coverage, finish, or warranty level makes sense for your car before committing to anything.",
+    },
+  ];
 
   useEffect(() => {
     const section = whyStekSectionRef.current;
@@ -561,7 +1016,13 @@ const PpfDubaiQuote = () => {
           <div className="container mx-auto max-w-6xl">
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start lg:gap-x-8 lg:gap-y-0">
               <div className="order-1 max-w-3xl lg:col-start-1 lg:row-start-1 lg:self-start">
-                <img src={logo} alt="Grand Touch" className="h-10 w-auto" />
+                <Link
+                  to="/"
+                  className="inline-flex transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(0_0%_8%)]"
+                  aria-label="Grand Touch Auto — home"
+                >
+                  <img src={logo} alt="Grand Touch" className="h-10 w-auto" />
+                </Link>
                 <div className="mt-6 flex flex-wrap gap-2">
                   <Badge variant="secondary" className="gap-2 border border-white/10 bg-white/8 px-3 py-1.5 shadow-sm backdrop-blur-sm">
                     <GoogleWordmark />
@@ -584,96 +1045,66 @@ const PpfDubaiQuote = () => {
                 </p>
 
                 <div className="mt-6 flex flex-col gap-3">
-                  <Dialog open={heroFormOpen} onOpenChange={setHeroFormOpen}>
+                  <Dialog open={heroFormOpen} onOpenChange={handleModalOpenChange}>
                     <DialogTrigger asChild>
-                      <Button size="lg" className="w-full">
+                      <Button size="lg" variant="default" className={cn(primaryPpfCtaButtonClass, "w-full")} onClick={openHeroForm}>
                         Get My PPF Estimate
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-xl border-primary/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(18,18,18,0.98))] p-6 shadow-[0_35px_120px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:p-8">
-                      <DialogHeader>
-                        <DialogTitle className="text-2xl">Get My PPF Estimate</DialogTitle>
-                        <DialogDescription>
-                          Share the basics and the calculator unlocks straight after submission.
-                        </DialogDescription>
-                      </DialogHeader>
-
-                      <div className="mt-4 space-y-4">
-                        <div>
-                          <label className="mb-2 block text-sm font-medium">Name</label>
-                          <Input
-                            value={name}
-                            onChange={(event) => {
-                              trackFormStartIfNeeded();
-                              setName(event.target.value);
-                            }}
-                            placeholder="Your name"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-2 block text-sm font-medium">Mobile number</label>
-                          <Input
-                            value={mobile}
-                            onChange={(event) => {
-                              trackFormStartIfNeeded();
-                              setMobile(event.target.value);
-                              if (phoneError) setPhoneError("");
-                            }}
-                            placeholder="+971 50 123 4567"
-                          />
-                          {phoneError ? <p className="mt-2 text-sm text-red-400">{phoneError}</p> : null}
-                        </div>
-
-                        <div>
-                          <label className="mb-2 block text-sm font-medium">Vehicle make and model</label>
-                          <Input
-                            value={vehicle}
-                            onChange={(event) => {
-                              trackFormStartIfNeeded();
-                              setVehicle(event.target.value);
-                            }}
-                            placeholder="Example: Porsche 911 Turbo S"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-2 block text-sm font-medium">Buying stage</label>
-                          <div className="grid gap-2">
-                            {OWNERSHIP_STAGES.map((stage) => (
-                              <button
-                                key={stage}
-                                type="button"
-                                onClick={() => {
-                                  trackFormStartIfNeeded();
-                                  setOwnershipStage(stage);
-                                }}
-                                className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
-                                  ownershipStage === stage
-                                    ? "border-primary bg-primary/10"
-                                    : "border-border bg-background hover:border-primary/50"
-                                }`}
-                              >
-                                {stage}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <Button className="w-full" size="lg" onClick={handleSubmit} disabled={isSubmitting}>
-                          {isSubmitting ? "Saving your details..." : "Get My PPF Estimate"}
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </div>
+                    <DialogContent className="max-w-2xl border-white/10 bg-transparent p-0 shadow-none [&>button]:hidden">
+                      <QuoteUnlockForm
+                        variant="modal"
+                        formStep={formStep}
+                        formSubmitted={formSubmitted}
+                        name={name}
+                        mobile={mobile}
+                        vehicleMake={vehicleMake}
+                        vehicleModel={vehicleModel}
+                        vehicleYear={vehicleYear}
+                        phoneError={phoneError}
+                        vehicleError={vehicleError}
+                        isSubmitting={isSubmitting}
+                        vehicleSummary={vehicleSummary}
+                        onNameChange={(value) => {
+                          trackFormStartIfNeeded();
+                          setName(value);
+                        }}
+                        onMobileChange={(value) => {
+                          trackFormStartIfNeeded();
+                          setMobile(value);
+                          if (phoneError) setPhoneError("");
+                        }}
+                        onVehicleMakeChange={(value) => {
+                          trackFormStartIfNeeded();
+                          setVehicleMake(value);
+                          if (vehicleError) setVehicleError("");
+                        }}
+                        onVehicleModelChange={(value) => {
+                          trackFormStartIfNeeded();
+                          setVehicleModel(value);
+                          if (vehicleError) setVehicleError("");
+                        }}
+                        onVehicleYearChange={(value) => {
+                          trackFormStartIfNeeded();
+                          setVehicleYear(value.replace(/[^0-9]/g, "").slice(0, 4));
+                          if (vehicleError) setVehicleError("");
+                        }}
+                        onContinue={handleStepOne}
+                        onBack={() => setFormStep(1)}
+                        onSubmit={handleSubmit}
+                        onOpenCalculator={handleOpenCalculatorFromModal}
+                        whatsAppUrl={whatsAppUrl}
+                        onWhatsAppClick={handleWhatsAppClick}
+                      />
                     </DialogContent>
                   </Dialog>
 
                   <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full">
                     <Button
                       type="button"
-                      variant="outline"
-                      className="w-full border-[#25D366]/35 bg-[#25D366]/10 text-white hover:bg-[#25D366]/18"
+                      variant="default"
+                      className={heroWhatsAppButtonClass}
                       size="lg"
                       onClick={handleWhatsAppClick}
                     >
@@ -829,13 +1260,14 @@ const PpfDubaiQuote = () => {
           className="border-y border-border/50 bg-[radial-gradient(circle_at_18%_20%,rgba(245,181,43,0.07),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14"
         >
           <div className="container mx-auto max-w-6xl">
-            <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center lg:gap-10">
-              <div className="order-2 relative overflow-hidden rounded-[32px] border border-primary/15 bg-[radial-gradient(circle_at_50%_18%,rgba(245,181,43,0.16),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(10,10,10,0.92))] px-4 pt-7 shadow-[0_28px_90px_rgba(0,0,0,0.38)] sm:px-8 sm:pt-10 lg:order-none">
+            <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start lg:gap-10">
+              <div className="order-2 lg:order-none">
+                <div className="relative min-h-0 overflow-hidden rounded-[32px] border border-primary/15 bg-[radial-gradient(circle_at_50%_18%,rgba(245,181,43,0.16),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(10,10,10,0.92))] px-4 pt-7 shadow-[0_28px_90px_rgba(0,0,0,0.38)] sm:px-8 sm:pt-10">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute left-1/2 top-16 h-56 w-56 -translate-x-1/2 rounded-full bg-primary/12 blur-3xl" />
                   <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/45 to-transparent" />
                 </div>
-                <div className="relative mb-8 overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:mb-10">
+                <div className="relative mb-7 overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:mb-8">
                   <video
                     ref={trustVideoRef}
                     className="aspect-[4/5] h-auto w-full object-cover"
@@ -866,12 +1298,18 @@ const PpfDubaiQuote = () => {
                     Deal Directly with Sean
                   </p>
                   <p className="mt-2 max-w-[28ch] text-sm leading-6 text-slate-300">
-                  Sean stays involved from first conversation to final result..
+                  Sean stays involved from first conversation to final result.
                   </p>
+                </div>
+
+                <div className="px-4 pb-6 pt-0 sm:px-8">
+                  <SectionCta stacked className="mt-6" onPrimaryClick={openHeroForm} />
+                </div>
                 </div>
               </div>
 
-              <div className="order-1 relative overflow-hidden rounded-[32px] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8 lg:order-none">
+              <div className="order-1 lg:order-none">
+                <div className="relative min-h-0 overflow-hidden rounded-[32px] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute -right-12 top-0 h-44 w-44 rounded-full bg-primary/8 blur-3xl" />
                   <div className="absolute -left-10 top-28 h-32 w-32 rounded-full bg-primary/6 blur-3xl" />
@@ -887,7 +1325,7 @@ const PpfDubaiQuote = () => {
                       matters more.
                     </span>
                   </h2>
-                  <div className="mt-5 max-w-[58ch] space-y-3 text-base leading-7 text-slate-300">
+                  <div className="mt-6 max-w-[58ch] space-y-4 text-base leading-7 text-slate-300">
                     <p>At Grand Touch, buyers trust Sean for the parts that matter most:</p>
                     <p className="text-[1.02rem] leading-8 text-white/92">
                       <span className="font-semibold text-[#f6c76d]">proper prep</span>,{" "}
@@ -899,12 +1337,12 @@ const PpfDubaiQuote = () => {
                     </p>
                   </div>
 
-                  <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/6 px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-[#f6c76d] shadow-[0_12px_35px_rgba(245,181,43,0.08)]">
+                  <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/6 px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-[#f6c76d] shadow-[0_12px_35px_rgba(245,181,43,0.08)]">
                     <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_14px_rgba(245,181,43,0.7)]" />
                     Trust is built before the film goes on
                   </div>
 
-                  <div className="mt-8 rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] p-[1px] shadow-[0_22px_60px_rgba(0,0,0,0.28)]">
+                  <div className="mt-7 rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] p-[1px] shadow-[0_22px_60px_rgba(0,0,0,0.28)]">
                     <div className="rounded-[27px] bg-[linear-gradient(180deg,rgba(20,20,20,0.96),rgba(14,14,14,0.98))] px-5 sm:px-6">
                     <div className="py-5 sm:py-6">
                       <div className="flex items-start gap-4">
@@ -961,6 +1399,7 @@ const PpfDubaiQuote = () => {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
           </div>
         </section>
@@ -970,8 +1409,8 @@ const PpfDubaiQuote = () => {
           className="border-b border-border/50 bg-[radial-gradient(circle_at_75%_20%,rgba(245,181,43,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14"
         >
           <div className="container mx-auto max-w-6xl">
-            <div className="grid gap-7 lg:grid-cols-[1fr_0.92fr] lg:items-center">
-              <div className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
+            <div className="grid gap-7 lg:grid-cols-[1fr_0.92fr] lg:items-start">
+              <div className="relative min-h-0 overflow-hidden rounded-[32px] border border-primary/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute -left-12 top-6 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
                   <div className="absolute right-0 top-16 h-32 w-32 rounded-full bg-white/5 blur-3xl" />
@@ -983,12 +1422,12 @@ const PpfDubaiQuote = () => {
                   <h2 className="mt-3 max-w-[20ch] text-3xl font-bold leading-[0.98] text-white sm:text-4xl">
                     In this market, trust matters more than talk.
                   </h2>
-                  <p className="mt-4 max-w-[58ch] text-base leading-7 text-slate-300">
+                  <p className="mt-5 max-w-[58ch] text-base leading-7 text-slate-300">
                     I wanted a film I could genuinely stand behind — not just for the finish, but
                     because what we say we fit is what actually goes on the car.
                   </p>
 
-                  <div className="mt-7 grid gap-3 sm:max-w-xl">
+                  <div className="mt-8 grid gap-4 sm:max-w-xl">
                     {[
                       {
                         title: "Genuine film. Properly registered.",
@@ -1013,16 +1452,22 @@ const PpfDubaiQuote = () => {
                     ))}
                   </div>
 
-                  <div className="mt-6 rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.12),rgba(245,181,43,0.04))] px-5 py-4 shadow-[0_14px_40px_rgba(245,181,43,0.08)]">
+                  <div className="mt-8 rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.12),rgba(245,181,43,0.04))] px-5 py-4 shadow-[0_14px_40px_rgba(245,181,43,0.08)]">
                     <p className="text-center text-sm font-semibold tracking-[0.08em] text-[#f6c76d] sm:text-[0.95rem]">
                       Genuine STEK <span className="mx-2 text-primary/70">&bull;</span> Installed properly{" "}
                       <span className="mx-2 text-primary/70">&bull;</span> Verified
                     </p>
                   </div>
+
+                  <SectionCta
+                    stacked
+                    className="mt-6"
+                    onPrimaryClick={openHeroForm}
+                  />
                 </div>
               </div>
 
-              <div className="relative mx-auto flex w-full max-w-[480px] min-h-0 flex-col justify-end pb-0 pt-2">
+              <div className="relative mx-auto flex w-full max-w-[480px] min-h-0 flex-col pb-0 pt-2">
                 <div className="relative mx-auto aspect-[9/19.5] w-full min-h-0 min-w-0 max-h-full max-w-[420px] shrink-0">
                   <div className="pointer-events-none absolute -left-[5px] top-[157px] z-20 h-[4.5rem] w-[4px] rounded-full bg-gradient-to-b from-white/55 via-white/15 to-white/35 shadow-[0_0_12px_rgba(255,255,255,0.16)]" />
                   <div className="pointer-events-none absolute -left-[5px] top-[250px] z-20 h-28 w-[4px] rounded-full bg-gradient-to-b from-white/45 via-white/12 to-white/30 shadow-[0_0_12px_rgba(255,255,255,0.14)]" />
@@ -1191,10 +1636,19 @@ const PpfDubaiQuote = () => {
                 </div>
               </Card>
             </div>
+
+            <SectionCta
+              primaryLabel="Get My PPF Quote"
+              secondaryLabel="Speak to Sean on WhatsApp"
+              onPrimaryClick={openHeroForm}
+              secondaryHref={whatsAppUrl}
+              onSecondaryClick={handleWhatsAppClick}
+              note="Seen the proof. Open the quote form, or message Sean on WhatsApp if you prefer."
+            />
           </div>
         </section>
 
-        <section className="px-0 py-14">
+        <section className="px-0 pb-24 pt-14 sm:pb-28">
           <div className="container mx-auto max-w-6xl">
             <div className="relative overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.1),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-7">
               <div className="pointer-events-none absolute inset-0">
@@ -1353,18 +1807,12 @@ const PpfDubaiQuote = () => {
                         </div>
                       </div>
 
-                      <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="mt-5 block">
-                        <Button
-                          className="w-full bg-primary text-black hover:bg-primary/90"
-                          size="lg"
-                          onClick={handleWhatsAppClick}
-                          disabled={!formSubmitted}
-                        >
-                          <MessageCircle className="mr-2 h-4 w-4" />
-                          Speak to Sean on WhatsApp
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </a>
+                      <SectionCta
+                        stacked
+                        className="mt-5"
+                        onPrimaryClick={openHeroForm}
+                        note="When you are ready, open Get My PPF Quote — same action as at the top of the page."
+                      />
                     </div>
                   </Card>
                 </div>
@@ -1373,35 +1821,90 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
-        <section ref={calculatorRef} className="px-0 py-12">
+        <section
+          ref={calculatorRef}
+          className="border-t border-border/50 bg-[radial-gradient(circle_at_50%_0%,rgba(245,181,43,0.04),transparent_42%)] px-0 pb-16 pt-16 [overflow-anchor:none] sm:pb-20 sm:pt-20"
+        >
           <div className="container mx-auto max-w-6xl">
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">Step 2</p>
-                <h2 className="mt-2 text-3xl font-bold">Build the estimate visually</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Same compact layout, now with the visual calculator back in.
-                </p>
-              </div>
-              <div className="hidden rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 md:block">
-                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Current estimate</p>
-                <p className="mt-1 text-xl font-semibold">{estimateLabel}</p>
-              </div>
+            <div className="mb-8 overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-8">
+              <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">PPF Calculator</p>
+              <h2 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
+                Compare the right finish, coverage, and warranty for your car
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
+                Use the calculator to build the setup you actually want, then send the exact
+                configuration to Sean on WhatsApp for confirmation and final pricing.
+              </p>
             </div>
 
-            <div className="relative">
-              {!formSubmitted ? (
-                <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl border border-border/60 bg-background/78 px-6 text-center backdrop-blur-sm">
-                  <div className="max-w-md">
-                    <p className="text-lg font-semibold">Submit the short form first</p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Once your details are captured, the calculator and the rest of the funnel unlock.
-                    </p>
-                  </div>
+            <div className="relative [overflow-anchor:none]">
+              {(!formSubmitted || formStep === 3) && !devCalculatorPeek ? (
+                <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl border border-border/60 bg-[rgba(8,8,8,0.56)] px-4 py-6 backdrop-blur-md sm:px-6">
+                  {import.meta.env.DEV ? (
+                    <button
+                      type="button"
+                      onClick={() => setDevCalculatorOverlayDismissed(true)}
+                      className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                      aria-label="Dismiss overlay and preview calculator (development only)"
+                      title="Dev: preview calculator without submitting"
+                    >
+                      <X className="h-5 w-5" strokeWidth={2.25} />
+                    </button>
+                  ) : null}
+                  <QuoteUnlockForm
+                    variant="embedded"
+                    formStep={formStep}
+                    formSubmitted={formSubmitted}
+                    name={name}
+                    mobile={mobile}
+                    vehicleMake={vehicleMake}
+                    vehicleModel={vehicleModel}
+                    vehicleYear={vehicleYear}
+                    phoneError={phoneError}
+                    vehicleError={vehicleError}
+                    isSubmitting={isSubmitting}
+                    vehicleSummary={vehicleSummary}
+                    onNameChange={(value) => {
+                      trackFormStartIfNeeded();
+                      setName(value);
+                    }}
+                    onMobileChange={(value) => {
+                      trackFormStartIfNeeded();
+                      setMobile(value);
+                      if (phoneError) setPhoneError("");
+                    }}
+                    onVehicleMakeChange={(value) => {
+                      trackFormStartIfNeeded();
+                      setVehicleMake(value);
+                      if (vehicleError) setVehicleError("");
+                    }}
+                    onVehicleModelChange={(value) => {
+                      trackFormStartIfNeeded();
+                      setVehicleModel(value);
+                      if (vehicleError) setVehicleError("");
+                    }}
+                    onVehicleYearChange={(value) => {
+                      trackFormStartIfNeeded();
+                      setVehicleYear(value.replace(/[^0-9]/g, "").slice(0, 4));
+                      if (vehicleError) setVehicleError("");
+                    }}
+                    onContinue={handleStepOne}
+                    onBack={() => setFormStep(1)}
+                    onSubmit={handleSubmit}
+                    onOpenCalculator={handleUnlockCalculator}
+                    whatsAppUrl={whatsAppUrl}
+                    onWhatsAppClick={handleWhatsAppClick}
+                  />
                 </div>
               ) : null}
 
-              <div className={!formSubmitted ? "pointer-events-none select-none opacity-40" : ""}>
+              <div
+                className={
+                  !formSubmitted && !devCalculatorPeek
+                    ? "pointer-events-none select-none opacity-40"
+                    : ""
+                }
+              >
                 <PpfCostCalculatorWidget
                   variant="embedded"
                   showIntro={false}
@@ -1411,36 +1914,105 @@ const PpfDubaiQuote = () => {
                   defaultBrand="STEK"
                   defaultWarrantyYears={10}
                   onSelectionChange={(nextSelection) => setSelection(nextSelection)}
+                  onWhatsAppRequest={handleCalculatorWhatsApp}
                 />
               </div>
             </div>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full">
-                <Button
-                  className="w-full bg-[#25D366] text-white hover:bg-[#20BD5A]"
-                  size="lg"
-                  onClick={handleWhatsAppClick}
-                  disabled={!formSubmitted}
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Send My Quote to WhatsApp
-                </Button>
-              </a>
-              <Button
+            {isSendingCalculatorLead ? (
+              <p className="mt-4 text-sm text-slate-400">
+                Sending your calculator setup to Sean before WhatsApp opens...
+              </p>
+            ) : null}
+            {import.meta.env.DEV && devCalculatorOverlayDismissed ? (
+              <button
                 type="button"
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto"
-                onClick={() =>
-                  document.getElementById("speak-to-sean")?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                  })
-                }
+                onClick={() => setDevCalculatorOverlayDismissed(false)}
+                className="mt-4 text-left text-xs font-medium text-primary/90 underline-offset-4 hover:text-primary hover:underline"
               >
-                Speak to Sean
-              </Button>
+                Dev: show lead form overlay again
+              </button>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="border-y border-border/50 bg-[radial-gradient(circle_at_15%_20%,rgba(245,181,43,0.06),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14">
+          <div className="container mx-auto max-w-5xl">
+            <div className="text-center">
+              <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">FAQ</p>
+              <h2 className="mt-2 text-3xl font-bold sm:text-4xl">
+                Questions buyers usually ask before booking PPF
+              </h2>
+              <p className="mx-auto mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
+                The calculator helps with coverage and finish choices. These answers handle the last
+                few objections buyers usually have before they enquire.
+              </p>
+            </div>
+
+            <div className="mt-8 grid gap-3">
+              {faqItems.map((item, index) => {
+                const isOpen = openFaqIndex === index;
+                return (
+                  <Card
+                    key={item.question}
+                    className="overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))]"
+                  >
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left sm:px-6 sm:py-5"
+                      onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                      aria-expanded={isOpen}
+                    >
+                      <span className="text-base font-semibold text-white sm:text-lg">{item.question}</span>
+                      <span
+                        className={cn(
+                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary transition-transform",
+                          isOpen ? "rotate-180" : ""
+                        )}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </span>
+                    </button>
+                    {isOpen ? (
+                      <div className="border-t border-white/10 px-5 py-4 text-sm leading-7 text-slate-300 sm:px-6">
+                        {item.answer}
+                      </div>
+                    ) : null}
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-0 py-16">
+          <div className="container mx-auto max-w-5xl">
+            <div className="relative overflow-hidden rounded-[34px] border border-primary/20 bg-[radial-gradient(circle_at_top,rgba(245,181,43,0.16),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(10,10,10,0.98))] px-6 py-10 text-center shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:px-10 sm:py-12">
+              <div className="pointer-events-none absolute inset-0">
+                <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-primary/12 blur-3xl" />
+                <div className="absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-white/5 blur-3xl" />
+                <div className="absolute -right-6 top-10 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+              </div>
+
+              <div className="relative">
+                <p className="text-sm uppercase tracking-[0.25em] text-primary/80">Final step</p>
+                <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-5xl">
+                  Ready to protect your car properly?
+                </h2>
+                <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
+                  Get a clear quote, compare the right coverage and finish for your car, and speak
+                  directly with Sean if you want a recommendation before you book.
+                </p>
+
+                <SectionCta
+                  primaryLabel="Get My PPF Quote"
+                  secondaryLabel="Speak to Sean on WhatsApp"
+                  onPrimaryClick={openHeroForm}
+                  secondaryHref={whatsAppUrl}
+                  onSecondaryClick={handleWhatsAppClick}
+                  align="center"
+                  note="Fast quote. Direct contact. No vague handoff."
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -1451,7 +2023,8 @@ const PpfDubaiQuote = () => {
         <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="block">
           <Button
             type="button"
-            className="w-full bg-[#25D366] text-white shadow-[0_18px_45px_rgba(37,211,102,0.28)] hover:bg-[#20BD5A]"
+            variant="default"
+            className={whatsappCtaButtonClass}
             size="lg"
             onClick={handleWhatsAppClick}
           >

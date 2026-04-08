@@ -545,7 +545,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
                   </Button>
                   <Button
                     asChild
-                    className="shrink-0 bg-[#25D366] hover:bg-[#20BD5A] text-white border-0"
+                    className="shrink-0 border-0 bg-[#1f8350] text-white hover:bg-[#278f5a]"
                   >
                     <a
                       href={`https://wa.me/971567191045?text=${encodeURIComponent(

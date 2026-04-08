@@ -59,7 +59,7 @@ const Navbar = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
               </Link>
             ))}
-            <Link to="/ppf-cost-calculator">
+            <Link to="/ppf-dubai-quote">
               <Button
                 size="sm"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow"
@@ -96,7 +96,7 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
-            <Link to="/ppf-cost-calculator" onClick={() => setIsMobileMenuOpen(false)}>
+            <Link to="/ppf-dubai-quote" onClick={() => setIsMobileMenuOpen(false)}>
               <Button
                 size="sm"
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"

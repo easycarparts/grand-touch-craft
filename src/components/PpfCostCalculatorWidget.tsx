@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Lock, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
+import { Lock, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   getPpfPriceRange,
   isFrontCoverageAvailable,
@@ -12,8 +13,8 @@ import {
   stekSeriesName,
   warrantyYearsForBrand,
   type PpfPricingBrand,
-  type PpfPricingSize,
   type PpfPricingCoverage,
+  type PpfPricingSize,
 } from "@/data/ppf-calculator-pricing";
 
 type Brand = PpfPricingBrand;
@@ -25,21 +26,22 @@ const sizes: CarSize[] = ["Sports", "Small", "Medium", "SUV"];
 const coverageOptions: Coverage[] = ["Full Body", "Front"];
 
 const sizeImageGlossByCategory: Record<CarSize, string> = {
-  Sports: "/ppf-size-sports-porsche-gt3.png",
-  Small: "/ppf-size-small-mercedes-a45-amg.png",
-  Medium: "/ppf-size-medium-mercedes-e63s.png",
-  SUV: "/ppf-size-suv-nissan-patrol-gloss.png",
+  Sports: "/calculator-gt3-gloss.jpg",
+  Small: "/calculator-a45-gloss.jpg",
+  Medium: "/calculator-e63s-gloss.jpg",
+  SUV: "/calculator-patrol-gloss.jpg",
 };
 
 const sizeImageMatteByCategory: Record<CarSize, string> = {
-  Sports: "/ppf-size-sports-porsche-gt3-matte.png",
-  Small: "/ppf-size-small-mercedes-a45-amg-matte.png",
-  Medium: "/ppf-size-medium-mercedes-e63s-matte.png",
-  SUV: "/ppf-size-suv-nissan-patrol-matte.png",
+  Sports: "/calculator-gt3-matte.jpg",
+  Small: "/calculator-a45-matte.jpg",
+  Medium: "/calculator-e63s-matte.jpg",
+  SUV: "/calculator-patrol-matte.jpg",
 };
 
-function previewImageFor(size: CarSize, finish: Finish): string {
-  return finish === "Matte" ? sizeImageMatteByCategory[size] : sizeImageGlossByCategory[size];
+function previewImageFor(size: CarSize, finish: Finish | null): string {
+  if (finish === "Matte") return sizeImageMatteByCategory[size];
+  return sizeImageGlossByCategory[size];
 }
 
 const sizeLabels: Record<CarSize, { title: string; subtitle: string }> = {
@@ -51,6 +53,16 @@ const sizeLabels: Record<CarSize, { title: string; subtitle: string }> = {
 
 const formatAED = (value: number) => `AED ${value.toLocaleString("en-AE")}`;
 
+type CalculatorSelection = {
+  brand: Brand;
+  warrantyYears: number;
+  finish: Finish;
+  size: CarSize;
+  coverage: Coverage;
+  estimateMin: number;
+  stekLine: string | null;
+};
+
 export type PpfCostCalculatorWidgetProps = {
   variant?: "standalone" | "embedded";
   showIntro?: boolean;
@@ -59,16 +71,22 @@ export type PpfCostCalculatorWidgetProps = {
   brandOptions?: Brand[];
   defaultBrand?: Brand;
   defaultWarrantyYears?: number;
-  onSelectionChange?: (selection: {
-    brand: Brand;
-    warrantyYears: number;
-    finish: Finish;
-    size: CarSize;
-    coverage: Coverage;
-    estimateMin: number;
-    stekLine: string | null;
-  }) => void;
+  onSelectionChange?: (selection: CalculatorSelection | null) => void;
+  onWhatsAppRequest?: (selection: CalculatorSelection) => void;
 };
+
+/** `overflow-anchor: none` opts this subtree out of CSS scroll anchoring so layout growth below Finish does not pull the viewport. */
+const shellClass =
+  "relative overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(12,12,12,0.98))] shadow-[0_28px_90px_rgba(0,0,0,0.3)] [overflow-anchor:none]";
+
+const panelClass =
+  "relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(18,18,18,0.98))] shadow-[0_24px_70px_rgba(0,0,0,0.26)]";
+
+const cardBaseClass =
+  "rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.14))] transition duration-300";
+
+const selectedCardClass =
+  "border-primary bg-[linear-gradient(180deg,rgba(245,181,43,0.14),rgba(245,181,43,0.05))] shadow-[0_0_0_1px_rgba(245,181,43,0.24),0_18px_40px_rgba(245,181,43,0.06)]";
 
 const PpfCostCalculatorWidget = ({
   variant = "standalone",
@@ -77,40 +95,80 @@ const PpfCostCalculatorWidget = ({
   showActionButtons = true,
   brandOptions = ["STEK", "GYEON"],
   defaultBrand = "STEK",
-  defaultWarrantyYears = 10,
   onSelectionChange,
+  onWhatsAppRequest,
 }: PpfCostCalculatorWidgetProps) => {
+  /** Embedded in a page that already uses `container` (e.g. PPF quote) — avoid nested section padding + second container. */
+  const isEmbeddedInPage = variant === "embedded" && !showIntro;
+
   const [brand, setBrand] = useState<Brand>(defaultBrand);
-  const [warrantyYears, setWarrantyYears] = useState<number>(defaultWarrantyYears);
-  const [finish, setFinish] = useState<Finish>("Gloss");
-  const [size, setSize] = useState<CarSize>("Medium");
-  const [coverage, setCoverage] = useState<Coverage>("Full Body");
+  const [warrantyYears, setWarrantyYears] = useState<number | null>(null);
+  const [size, setSize] = useState<CarSize | null>(null);
+  const [finish, setFinish] = useState<Finish | null>(null);
+  const [coverage, setCoverage] = useState<Coverage | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  const stageTwoRef = useRef<HTMLDivElement | null>(null);
+  const hasAutoOpenedStageTwo = useRef(false);
 
   const effectiveWarrantyYears = useMemo(
-    () => normalizeWarrantyYearsForBrand(brand, warrantyYears),
+    () => (warrantyYears === null ? null : normalizeWarrantyYearsForBrand(brand, warrantyYears)),
     [brand, warrantyYears]
   );
 
-  const frontAvailable = isFrontCoverageAvailable(brand, effectiveWarrantyYears);
+  const frontAvailable = useMemo(
+    () => (effectiveWarrantyYears === null ? false : isFrontCoverageAvailable(brand, effectiveWarrantyYears)),
+    [brand, effectiveWarrantyYears]
+  );
+
+  const isPrimaryReady = effectiveWarrantyYears !== null && size !== null;
+  const isPriceReady = effectiveWarrantyYears !== null && size !== null && finish !== null && coverage !== null;
+
+  useEffect(() => {
+    if (!isPrimaryReady) {
+      setFinish(null);
+      setCoverage(null);
+      hasAutoOpenedStageTwo.current = false;
+      return;
+    }
+
+    if (coverage === null) {
+      setCoverage("Full Body");
+    }
+  }, [coverage, isPrimaryReady]);
 
   useEffect(() => {
     if (!frontAvailable && coverage === "Front") {
       setCoverage("Full Body");
     }
-  }, [frontAvailable, coverage]);
-
-  const estimate = useMemo(
-    () => getPpfPriceRange(brand, effectiveWarrantyYears, size, coverage, finish),
-    [brand, effectiveWarrantyYears, finish, size, coverage]
-  );
-
-  const stekLine = brand === "STEK" ? stekSeriesName(effectiveWarrantyYears) : null;
-
-  const onSelectionChangeRef = useRef(onSelectionChange);
-  onSelectionChangeRef.current = onSelectionChange;
+  }, [coverage, frontAvailable]);
 
   useEffect(() => {
-    onSelectionChangeRef.current?.({
+    if (!isPrimaryReady || hasAutoOpenedStageTwo.current) return;
+    hasAutoOpenedStageTwo.current = true;
+    window.setTimeout(() => {
+      stageTwoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 220);
+  }, [isPrimaryReady]);
+
+  const estimate = useMemo(() => {
+    if (!isPriceReady || effectiveWarrantyYears === null || size === null || finish === null || coverage === null) {
+      return null;
+    }
+    return getPpfPriceRange(brand, effectiveWarrantyYears, size, coverage, finish);
+  }, [brand, coverage, effectiveWarrantyYears, finish, isPriceReady, size]);
+
+  const stekLine = useMemo(
+    () => (effectiveWarrantyYears !== null && brand === "STEK" ? stekSeriesName(effectiveWarrantyYears) : null),
+    [brand, effectiveWarrantyYears]
+  );
+
+  const currentSelection = useMemo<CalculatorSelection | null>(() => {
+    if (!isPriceReady || !estimate || effectiveWarrantyYears === null || size === null || finish === null || coverage === null) {
+      return null;
+    }
+
+    return {
       brand,
       warrantyYears: effectiveWarrantyYears,
       finish,
@@ -118,46 +176,36 @@ const PpfCostCalculatorWidget = ({
       coverage,
       estimateMin: estimate.min,
       stekLine,
-    });
-  }, [brand, coverage, effectiveWarrantyYears, estimate.min, finish, size, stekLine]);
+    };
+  }, [brand, coverage, effectiveWarrantyYears, estimate, finish, isPriceReady, size, stekLine]);
 
-  const whatsAppUrl = useMemo(() => {
-    const message = [
-      "Hi Sean, I used the PPF Cost Calculator.",
-      `Brand: ${brand}`,
-      `Warranty: ${effectiveWarrantyYears} years${stekLine ? ` (${stekLine})` : ""}`,
-      `Finish: ${finish}`,
-      `Car size: ${size}`,
-      `Coverage: ${coverage}`,
-      `From: ${formatAED(estimate.min)}`,
-      "",
-      "Please confirm final pricing and earliest availability.",
-    ].join("\n");
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
 
-    return `https://wa.me/971567191045?text=${encodeURIComponent(message)}`;
-  }, [brand, effectiveWarrantyYears, finish, size, coverage, estimate.min, stekLine]);
+  useEffect(() => {
+    onSelectionChangeRef.current?.(hasInteracted ? currentSelection : null);
+  }, [currentSelection, hasInteracted]);
 
   const intro = (
     <>
       <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
         <Sparkles className="h-4 w-4 text-primary" />
-        <span className="text-sm font-medium text-primary">PPF Cost Calculator Dubai</span>
+        <span className="text-sm font-medium text-primary">PPF Calculator</span>
       </div>
       {variant === "standalone" ? (
-        <h1 className="mb-4 mt-6">Get your PPF estimate in under 30 seconds</h1>
+        <h1 className="mb-4 mt-6">Build the right PPF setup for your car</h1>
       ) : (
         <h2 className="mb-4 mt-6 text-3xl font-bold tracking-tight md:text-4xl">
-          Get your PPF estimate in under 30 seconds
+          Build the right PPF setup for your car
         </h2>
       )}
       <p className="max-w-3xl text-lg text-muted-foreground">
-        Choose warranty, car size, finish, and coverage. See the visual preview, then confirm the
-        right setup with Sean.
+        Choose the warranty and car size first, then we open the rest of the setup below.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <Badge variant="secondary">STEK Certified</Badge>
-        <Badge variant="secondary">GYEON Certified</Badge>
-        <Badge variant="outline">Image-led quote flow</Badge>
+        <Badge variant="outline">Studio preview imagery</Badge>
+        <Badge variant="outline">Guided setup flow</Badge>
       </div>
     </>
   );
@@ -175,249 +223,365 @@ const PpfCostCalculatorWidget = ({
       ) : null}
 
       <section
-        className={`px-4 sm:px-6 lg:px-8 ${
+        className={cn(
+          isEmbeddedInPage ? "px-0" : "px-4 sm:px-6 lg:px-8",
           variant === "standalone"
             ? showIntro
               ? "pb-16"
               : "pt-0 pb-16"
             : "pb-16 md:pb-20"
-        }`}
+        )}
       >
-        <div className="container mx-auto max-w-6xl grid gap-6 lg:grid-cols-2">
-          <Card className="space-y-8 p-6 sm:p-8">
-            {showBrandSelector ? (
-              <div>
-                <p className="mb-3 text-sm text-muted-foreground">1) Choose film brand</p>
-                <div className={`grid gap-3 ${brandOptions.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-                  {brandOptions.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => {
-                        setBrand(option);
-                        setWarrantyYears((y) => normalizeWarrantyYearsForBrand(option, y));
-                      }}
-                      className={`rounded-lg border px-4 py-3 text-left transition ${
-                        brand === option
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
+        <div className={isEmbeddedInPage ? "w-full max-w-none" : "container mx-auto max-w-6xl"}>
+          <div className={shellClass}>
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute -left-20 top-0 h-52 w-52 rounded-full bg-primary/8 blur-3xl" />
+              <div className="absolute right-0 top-10 h-40 w-40 rounded-full bg-white/5 blur-3xl" />
+              <div className="absolute bottom-0 left-1/3 h-28 w-28 rounded-full bg-primary/6 blur-3xl" />
+            </div>
+
+            <div
+              className={cn(
+                "relative space-y-5 [overflow-anchor:none]",
+                isEmbeddedInPage ? "p-3 sm:p-4 md:p-5" : "p-4 sm:p-6"
+              )}
+            >
+              <Card className={cn(panelClass, isEmbeddedInPage ? "p-4 sm:p-5" : "p-5 sm:p-6")}>
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),transparent)]" />
+
+                <div className="space-y-6">
+                  {showBrandSelector ? (
+                    <div>
+                      <p className="mb-3 text-sm text-muted-foreground">Film brand</p>
+                      <div className={`grid gap-3 ${brandOptions.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                        {brandOptions.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                              setHasInteracted(true);
+                              setBrand(option);
+                              if (warrantyYears !== null) {
+                                setWarrantyYears(normalizeWarrantyYearsForBrand(option, warrantyYears));
+                              }
+                            }}
+                            className={cn(
+                              cardBaseClass,
+                              "px-4 py-4 text-left",
+                              brand === option ? selectedCardClass : "hover:border-primary/40"
+                            )}
+                          >
+                            <p className="font-semibold text-white">{option}</p>
+                            <p className="mt-1 text-xs text-slate-400">Premium film option</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.12),rgba(245,181,43,0.04))] px-5 py-4">
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">Film line</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{brand}</p>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        Certified installation with verified warranty registration.
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="mb-3 flex items-end justify-between gap-3">
+                      <p className="text-sm text-muted-foreground">Warranty term</p>
+                      <p className="text-xs text-slate-400">
+                        {brand === "STEK"
+                          ? "5 yr F3, 10 yr ForceShield, 12 yr DynoShield"
+                          : "10 year warranty"}
+                      </p>
+                    </div>
+                    <div
+                      className={`grid gap-3 ${
+                        warrantyYearsForBrand(brand).length === 3
+                          ? "grid-cols-3"
+                          : warrantyYearsForBrand(brand).length === 2
+                            ? "grid-cols-2"
+                            : "grid-cols-1 max-w-xs"
                       }`}
                     >
-                      <p className="font-semibold">{option}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Premium film option</p>
-                    </button>
-                  ))}
+                      {warrantyYearsForBrand(brand).map((years) => {
+                        const series = brand === "STEK" ? stekSeriesName(years) : null;
+                        return (
+                          <button
+                            key={years}
+                            type="button"
+                            onClick={() => {
+                              setHasInteracted(true);
+                              setWarrantyYears(years);
+                            }}
+                            className={cn(
+                              cardBaseClass,
+                              "px-3 py-4 text-center",
+                              effectiveWarrantyYears === years ? selectedCardClass : "hover:border-primary/40"
+                            )}
+                          >
+                            <p className="text-2xl font-bold leading-none text-white">{years}</p>
+                            <p className="mt-1 text-xs text-slate-400">years</p>
+                            {series ? (
+                              <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
+                                {series}
+                              </p>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-3 text-sm text-muted-foreground">Car size</p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {sizes.map((option) => {
+                        const { title, subtitle } = sizeLabels[option];
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                              setHasInteracted(true);
+                              setSize(option);
+                            }}
+                            className={cn(
+                              "overflow-hidden rounded-[22px] border text-left transition duration-300",
+                              size === option
+                                ? selectedCardClass
+                                : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] hover:border-primary/40"
+                            )}
+                          >
+                            <div className="relative aspect-video w-full overflow-hidden bg-black">
+                              <img
+                                src={sizeImageGlossByCategory[option]}
+                                alt={`${title} - ${subtitle}`}
+                                className="absolute inset-0 h-full w-full object-cover object-center"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div className="px-3 py-3">
+                              <p className="text-sm font-semibold text-white">{title}</p>
+                              <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-                <p className="text-sm text-muted-foreground">Film line</p>
-                <p className="mt-1 font-semibold">{brand}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Certified installation with verified warranty registration.
-                </p>
-              </div>
-            )}
+              </Card>
 
-            <div>
-              <p className="mb-3 text-sm text-muted-foreground">
-                {showBrandSelector ? "2) Choose warranty term" : "1) Choose warranty term"}
-              </p>
-              <p className="mb-3 text-xs text-muted-foreground">
-                {brand === "STEK"
-                  ? "STEK: 5 yr F3, 10 yr ForceShield, 12 yr DynoShield."
-                  : "GYEON: 10 year warranty (Q² PPF)."}
-              </p>
               <div
-                className={`grid gap-3 ${
-                  warrantyYearsForBrand(brand).length === 3
-                    ? "grid-cols-3"
-                    : warrantyYearsForBrand(brand).length === 2
-                      ? "grid-cols-2"
-                      : "grid-cols-1 max-w-xs"
-                }`}
+                ref={stageTwoRef}
+                className={cn(
+                  "[overflow-anchor:none] overflow-hidden transition-all duration-500 ease-out",
+                  isPrimaryReady ? "max-h-[2400px] opacity-100" : "max-h-0 opacity-0"
+                )}
               >
-                {warrantyYearsForBrand(brand).map((years) => {
-                  const series = brand === "STEK" ? stekSeriesName(years) : null;
-                  return (
-                    <button
-                      key={years}
-                      type="button"
-                      onClick={() => setWarrantyYears(years)}
-                      className={`rounded-lg border px-3 py-3 text-center transition ${
-                        effectiveWarrantyYears === years
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <p className="text-lg font-bold leading-none">{years}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">years</p>
-                      {series ? (
-                        <p className="mt-1 text-[11px] font-medium leading-tight text-primary">
-                          {series}
-                        </p>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                <div className="grid gap-5">
+                  <Card
+                    className={cn(
+                      panelClass,
+                      "[overflow-anchor:none]",
+                      isEmbeddedInPage ? "p-4 sm:p-5" : "p-5 sm:p-6"
+                    )}
+                  >
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),transparent)]" />
 
-            <div>
-              <p className="mb-3 text-sm text-muted-foreground">
-                {showBrandSelector ? "3) Choose car size" : "2) Choose car size"}
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {sizes.map((option) => {
-                  const { title, subtitle } = sizeLabels[option];
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => setSize(option)}
-                      className={`group relative overflow-hidden rounded-lg border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                        size === option
-                          ? "border-primary ring-2 ring-primary/40"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <div className="aspect-video w-full bg-muted">
-                        <img
-                          src={sizeImageGlossByCategory[option]}
-                          alt={`${title} - ${subtitle}`}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                      <div className={`px-3 py-2.5 ${size === option ? "bg-primary/10" : "bg-card/95"}`}>
-                        <p className="text-sm font-semibold leading-tight">{title}</p>
-                        <p className="mt-0.5 text-xs leading-tight text-muted-foreground">
-                          {subtitle}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-3 text-sm text-muted-foreground">
-                {showBrandSelector ? "4) Choose coverage" : "3) Choose coverage"}
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {coverageOptions.map((option) => {
-                  const isFront = option === "Front";
-                  const disabled = isFront && !frontAvailable;
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => {
-                        if (!disabled) setCoverage(option);
-                      }}
-                      className={`rounded-lg border px-4 py-3 text-left transition ${
-                        disabled
-                          ? "cursor-not-allowed border-border/60 bg-muted/40 text-muted-foreground opacity-70"
-                          : coverage === option
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        {disabled ? (
-                          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                        ) : null}
-                        <div className="min-w-0">
-                          <p className="font-semibold">{option}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {disabled
-                              ? "Only available with STEK 5-year (F3)."
-                              : isFront
-                                ? "High impact front-area protection"
-                                : "Complete all-around paint protection"}
-                          </p>
+                    <div className="space-y-5 [overflow-anchor:none]">
+                      <div>
+                        <p className="mb-3 text-sm text-muted-foreground">Finish</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {(["Gloss", "Matte"] as Finish[]).map((option) => (
+                            <button
+                              key={option}
+                              type="button"
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                              }}
+                              onClick={() => {
+                                setHasInteracted(true);
+                                setFinish(option);
+                              }}
+                              className={cn(
+                                cardBaseClass,
+                                "px-4 py-4 text-left",
+                                finish === option ? selectedCardClass : "hover:border-primary/40"
+                              )}
+                            >
+                              <p className="font-semibold text-white">{option}</p>
+                              <p className="mt-1 text-xs text-slate-400">
+                                {option === "Gloss" ? "Deep glossy look" : "Satin matte look"}
+                              </p>
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </Card>
 
-          <Card className="p-6 sm:p-8">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Visual preview</p>
-              <Badge variant="outline">Live size preview</Badge>
-            </div>
+                      {size ? (
+                        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.14))] p-4">
+                          <div className="relative aspect-video overflow-hidden rounded-[22px] border border-white/10 bg-black">
+                            <img
+                              src={previewImageFor(size, finish)}
+                              alt={`Preview - ${sizeLabels[size].subtitle}${finish ? ` (${finish})` : ""}`}
+                              className="absolute inset-0 h-full w-full object-cover object-center"
+                            />
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent px-4 pb-4 pt-10">
+                              <div className="flex items-end justify-between gap-3">
+                                <div>
+                                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/60">
+                                    {sizeLabels[size].title}
+                                  </p>
+                                  <p className="mt-1 text-base font-semibold text-white">
+                                    {sizeLabels[size].subtitle}
+                                  </p>
+                                </div>
+                                {finish ? (
+                                  <div className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-xs font-medium text-white/85 backdrop-blur-sm">
+                                    {finish}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
 
-            <div className="mb-5">
-              <p className="mb-3 text-sm text-muted-foreground">Finish</p>
-              <div className="grid grid-cols-2 gap-3">
-                {(["Gloss", "Matte"] as Finish[]).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setFinish(option)}
-                    className={`rounded-lg border px-4 py-3 text-left transition ${
-                      finish === option
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <p className="font-semibold">{option}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {option === "Gloss" ? "Deep glossy look" : "Satin matte look"}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
+                      {effectiveWarrantyYears === 5 ? (
+                        <div>
+                          <p className="mb-3 text-sm text-muted-foreground">Coverage</p>
+                          <div className="grid gap-3">
+                            {coverageOptions.map((option) => {
+                              const isFront = option === "Front";
+                              const disabled = isFront && !frontAvailable;
 
-            <div className="rounded-xl border bg-card/50 p-5">
-              <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-muted">
-                <img
-                  src={previewImageFor(size, finish)}
-                  alt={`Preview - ${sizeLabels[size].subtitle} (${finish})`}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            </div>
+                              return (
+                                <button
+                                  key={option}
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={() => {
+                                    if (!disabled) {
+                                      setHasInteracted(true);
+                                      setCoverage(option);
+                                    }
+                                  }}
+                                  className={cn(
+                                    "rounded-[20px] border px-4 py-4 text-left transition duration-300",
+                                    disabled
+                                      ? "cursor-not-allowed border-white/8 bg-white/[0.03] text-white/35 opacity-70"
+                                      : coverage === option
+                                        ? selectedCardClass
+                                        : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] hover:border-primary/40"
+                                  )}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    {disabled ? <Lock className="mt-0.5 h-4 w-4 shrink-0 text-white/35" /> : null}
+                                    <div>
+                                      <p className="font-semibold text-white">{option}</p>
+                                      <p className="mt-1 text-xs text-slate-400">
+                                        {disabled
+                                          ? "Only available with STEK 5-year"
+                                          : isFront
+                                            ? "High impact front-area protection"
+                                            : "Complete all-around paint protection"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-[22px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.10),rgba(245,181,43,0.03))] px-4 py-4">
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-white/55">Coverage</p>
+                          <p className="mt-2 text-sm font-medium text-white">Full body coverage</p>
+                          <p className="mt-1 text-sm leading-6 text-slate-300">
+                            Included as standard on 10-year and 12-year STEK packages.
+                          </p>
+                        </div>
+                      )}
 
-            <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-5">
-              <p className="mb-2 text-sm text-muted-foreground">Starting from</p>
-              <p className="mb-2 text-3xl font-bold">{formatAED(estimate.min)}</p>
-              <p className="text-sm text-muted-foreground">
-                {brand}
-                {stekLine ? ` (${stekLine})` : ""} • {effectiveWarrantyYears} yr • {finish} • {size} •{" "}
-                {coverage}
-              </p>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Final quote depends on condition, panel complexity, and inspection.
-              </p>
-            </div>
+                      <div className={cn("[overflow-anchor:none]", !isPriceReady && "hidden")}>
+                        {currentSelection ? (
+                          <div className="space-y-4">
+                            <div className="rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.12),rgba(245,181,43,0.04))] p-4">
+                              <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">Selected setup</p>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {[
+                                  stekLine ? `${brand} ${stekLine}` : brand,
+                                  `${currentSelection.warrantyYears}-year`,
+                                  currentSelection.finish,
+                                  currentSelection.size,
+                                  currentSelection.coverage,
+                                ].map((item) => (
+                                  <span
+                                    key={item}
+                                    className="rounded-full border border-white/10 bg-black/18 px-3 py-1.5 text-xs font-medium text-white/88"
+                                  >
+                                    {item}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="mt-4 border-t border-white/10 pt-4">
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">Starting from</p>
+                                <p className="mt-2 text-3xl font-bold text-white">
+                                  {formatAED(currentSelection.estimateMin)}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-slate-300">
+                                  Final quote depends on paint condition, panel complexity, and inspection.
+                                </p>
+                              </div>
+                            </div>
 
-            {showActionButtons ? (
-              <>
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                  <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full">
-                    <Button className="w-full">
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      Talk to Sean on WhatsApp
-                    </Button>
-                  </a>
-                  <Link to="/portfolio" className="w-full">
-                    <Button variant="outline" className="w-full">
-                      View Our PPF Portfolio
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
+                            <Button
+                              className="w-full bg-[#1f8350] text-white shadow-[0_16px_42px_rgba(31,131,80,0.22)] hover:bg-[#278f5a]"
+                              type="button"
+                              onClick={() => onWhatsAppRequest?.(currentSelection)}
+                            >
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              Discuss This Setup on WhatsApp
+                            </Button>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                              <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3">
+                                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Next</p>
+                                <p className="mt-1 text-sm font-medium text-white">Direct reply from Sean</p>
+                              </div>
+                              <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3">
+                                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Check</p>
+                                <p className="mt-1 text-sm font-medium text-white">Setup confirmed properly</p>
+                              </div>
+                              <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3">
+                                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Quote</p>
+                                <p className="mt-1 text-sm font-medium text-white">Final pricing after inspection</p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {!isPriceReady ? (
+                        <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                          <p className="text-sm text-slate-400">
+                            {effectiveWarrantyYears === 5
+                              ? "Choose your finish and coverage to reveal the price and WhatsApp handoff."
+                              : "Choose your finish to reveal the price and WhatsApp handoff."}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  </Card>
                 </div>
+              </div>
 
-                <div className="mt-8 border-t border-border pt-6">
-                  <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              {showActionButtons ? (
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.02] px-5 py-5">
+                  <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
                     <ShieldCheck className="h-4 w-4 text-primary" />
                     Learn before you decide
                   </p>
@@ -439,9 +603,9 @@ const PpfCostCalculatorWidget = ({
                     </Link>
                   </div>
                 </div>
-              </>
-            ) : null}
-          </Card>
+              ) : null}
+            </div>
+          </div>
         </div>
       </section>
     </>
