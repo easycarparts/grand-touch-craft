@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Lock, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 
@@ -110,6 +110,8 @@ const PpfCostCalculatorWidget = ({
 
   const stageTwoRef = useRef<HTMLDivElement | null>(null);
   const hasAutoOpenedStageTwo = useRef(false);
+  /** Mobile Safari scrolls focused controls into view; capture Y on pointerdown then restore after paint. */
+  const finishScrollLockY = useRef<number | null>(null);
 
   const effectiveWarrantyYears = useMemo(
     () => (warrantyYears === null ? null : normalizeWarrantyYearsForBrand(brand, warrantyYears)),
@@ -146,10 +148,29 @@ const PpfCostCalculatorWidget = ({
   useEffect(() => {
     if (!isPrimaryReady || hasAutoOpenedStageTwo.current) return;
     hasAutoOpenedStageTwo.current = true;
+    const isCoarsePointer =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(pointer: coarse)").matches === true;
+    // Smooth scroll-into-view feels right on desktop; on touch it fights finish-tap scroll locks.
     window.setTimeout(() => {
-      stageTwoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      stageTwoRef.current?.scrollIntoView({
+        behavior: isCoarsePointer ? "auto" : "smooth",
+        block: "start",
+      });
     }, 220);
   }, [isPrimaryReady]);
+
+  useLayoutEffect(() => {
+    if (finishScrollLockY.current === null) return;
+    const y = finishScrollLockY.current;
+    finishScrollLockY.current = null;
+    const restore = () => window.scrollTo({ top: y, left: 0, behavior: "auto" });
+    restore();
+    requestAnimationFrame(() => {
+      restore();
+      requestAnimationFrame(restore);
+    });
+  }, [finish]);
 
   const estimate = useMemo(() => {
     if (!isPriceReady || effectiveWarrantyYears === null || size === null || finish === null || coverage === null) {
@@ -399,10 +420,15 @@ const PpfCostCalculatorWidget = ({
                             <button
                               key={option}
                               type="button"
-                              onMouseDown={(event) => {
+                              onPointerDown={(event) => {
+                                finishScrollLockY.current = window.scrollY;
                                 event.preventDefault();
                               }}
                               onClick={() => {
+                                if (finish === option) {
+                                  finishScrollLockY.current = null;
+                                  return;
+                                }
                                 setHasInteracted(true);
                                 setFinish(option);
                               }}
