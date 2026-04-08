@@ -306,7 +306,6 @@ const PpfDubaiQuote = () => {
           }
         } else if (mostlyHidden) {
           video.pause();
-          video.currentTime = 0;
         }
       },
       {
