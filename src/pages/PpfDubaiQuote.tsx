@@ -340,12 +340,13 @@ const QuoteUnlockForm = ({
     if (formStep !== 1 && formStep !== 2) return;
 
     const vv = window.visualViewport;
-    const onChange = () => scrollPrimaryCtaAboveKeyboard();
-    vv.addEventListener("resize", onChange);
-    vv.addEventListener("scroll", onChange);
+    /** `resize` tracks keyboard open/close. Do not listen to `scroll`: on mobile, document scroll
+     * updates the visual viewport and would re-fire constantly, and the embedded calculator form
+     * (same shared state, still mounted) would call scrollIntoView and trap the page on that section. */
+    const onResize = () => scrollPrimaryCtaAboveKeyboard();
+    vv.addEventListener("resize", onResize);
     return () => {
-      vv.removeEventListener("resize", onChange);
-      vv.removeEventListener("scroll", onChange);
+      vv.removeEventListener("resize", onResize);
     };
   }, [formStep, scrollPrimaryCtaAboveKeyboard]);
 
@@ -917,7 +918,10 @@ const PpfDubaiQuote = () => {
   const handleOpenCalculatorFromModal = () => {
     setHeroFormOpen(false);
     setFormStep(1);
-    scrollToCalculatorSection();
+    /** Radix dialog / mobile browsers often keep scroll locked briefly while the overlay closes;
+     * run after that so scrollTo actually applies (see scrollToCalculatorSection retries). */
+    window.setTimeout(() => scrollToCalculatorSection(), 280);
+    window.setTimeout(() => scrollToCalculatorSection(), 520);
   };
 
   const faqItems = [
