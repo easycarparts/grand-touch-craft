@@ -14,8 +14,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import PpfCostCalculatorWidget from "@/components/PpfCostCalculatorWidget";
-import PpfQuoteSummary from "@/components/PpfQuoteSummary";
+import PpfCostCalculatorWidgetV1 from "@/components/PpfCostCalculatorWidgetV1";
+import PpfQuoteSummaryV1 from "@/components/PpfQuoteSummaryV1";
 import { updatePageSEO } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
@@ -173,22 +173,22 @@ const buildWhatsAppUrl = (message: string) =>
  * `Button`’s default `hover:bg-primary/90` does not flatten it to a duller solid.
  */
 const primaryPpfCtaButtonClass =
-  "border-0 !bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_52%,#e79a13_100%)] !text-neutral-950 shadow-[0_12px_40px_rgba(247,181,43,0.28)] transition-all duration-200 ease-out hover:!bg-[linear-gradient(180deg,#ffd47a_0%,#f8bd3d_52%,#f2a318_100%)] hover:!text-neutral-950 hover:shadow-[0_18px_52px_rgba(247,181,43,0.36)] focus-visible:ring-2 focus-visible:ring-[#f7b52b]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.99] disabled:!opacity-60 disabled:active:scale-100";
+  "h-12 rounded-2xl border-0 !bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_52%,#e79a13_100%)] px-6 !text-neutral-950 shadow-[0_14px_44px_rgba(247,181,43,0.28)] transition-all duration-200 ease-out hover:!bg-[linear-gradient(180deg,#ffd47a_0%,#f8bd3d_52%,#f2a318_100%)] hover:!text-neutral-950 hover:shadow-[0_20px_54px_rgba(247,181,43,0.36)] focus-visible:ring-2 focus-visible:ring-[#f7b52b]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.99] disabled:!opacity-60 disabled:active:scale-100";
 
 /** Muted WhatsApp-adjacent green (less neon than official #25D366). */
 const whatsappCtaButtonClass =
-  "w-full border-0 bg-[#1f8350] text-white shadow-[0_12px_36px_rgba(31,131,80,0.22)] transition-all duration-200 ease-out hover:bg-[#278f5a] hover:text-white hover:shadow-[0_14px_44px_rgba(31,131,80,0.32)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#1f8350]/50 active:scale-[0.99] active:text-white";
+  "w-full h-12 rounded-2xl border-0 bg-[#25D366] px-6 text-white shadow-[0_18px_46px_rgba(37,211,102,0.28)] transition-all duration-200 ease-out hover:bg-[#1ebe5d] hover:text-white hover:shadow-[0_22px_56px_rgba(37,211,102,0.4)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#25D366]/50 active:scale-[0.99] active:text-white";
 
 /** Stronger hover so the hero WhatsApp CTA is obvious on rollover (still softer base green). */
 const heroWhatsAppButtonClass =
-  "w-full border-0 bg-[#1f8350] text-white shadow-[0_14px_40px_rgba(31,131,80,0.26)] transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-[#2d9a63] hover:text-white hover:shadow-[0_22px_56px_rgba(31,131,80,0.4)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#1f8350]/55 active:scale-[0.99] active:text-white";
+  "w-full h-12 rounded-2xl border-0 bg-[#25D366] px-6 text-white shadow-[0_18px_46px_rgba(37,211,102,0.28)] transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-[#1ebe5d] hover:text-white hover:shadow-[0_22px_56px_rgba(37,211,102,0.4)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#25D366]/55 active:scale-[0.99] active:text-white";
 
 const smokeGlassPanelClass =
   "relative isolate overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045)_18%,rgba(18,18,18,0.62)_42%,rgba(8,8,8,0.84)_100%)] shadow-[0_36px_120px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[22px]";
 
 const SectionCta = ({
   primaryLabel = "Get My PPF Quote",
-  secondaryLabel = "Speak to Sean on WhatsApp",
+  secondaryLabel = "Ask Sean on WhatsApp",
   onPrimaryClick,
   secondaryHref,
   onSecondaryClick,
@@ -225,7 +225,7 @@ const SectionCta = ({
         <Button
           size="lg"
           variant="default"
-          className={cn(
+            className={cn(
             primaryPpfCtaButtonClass,
             "w-full",
             stacked ? "h-auto min-h-11 whitespace-normal py-3 sm:py-3" : showSecondary ? "sm:w-auto" : "sm:max-w-md"
@@ -585,11 +585,11 @@ const QuoteUnlockForm = ({
                   Your personalised quote
                 </p>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-                  Price first, with the included prep and protection work shown clearly underneath.
+                  Your setup and starting price, with the included value built in.
                 </p>
               </div>
 
-              <PpfQuoteSummary
+            <PpfQuoteSummaryV1
                 selection={calculatorSelection}
                 vehicleSummary={vehicleSummary}
                 onWhatsAppClick={onCalculatorWhatsAppClick}
@@ -630,7 +630,7 @@ const QuoteUnlockForm = ({
                     onClick={onWhatsAppClick}
                   >
                     <MessageCircle className="mr-2 h-4 w-4" />
-                    Speak to Sean on WhatsApp
+                    Ask Sean on WhatsApp
                   </Button>
                 </a>
               </div>
@@ -642,7 +642,7 @@ const QuoteUnlockForm = ({
   );
 };
 
-const PpfDubaiQuote = () => {
+const PpfDubaiQuoteV1 = () => {
   const [heroFormOpen, setHeroFormOpen] = useState(false);
   const [quoteModalFlow, setQuoteModalFlow] = useState<QuoteModalFlow>("standard");
   const [formStep, setFormStep] = useState<1 | 2 | 3>(1);
@@ -1116,27 +1116,37 @@ const PpfDubaiQuote = () => {
     {
       question: "Is full front enough, or should I go full body?",
       answer:
-        "Full front suits buyers focused on the highest-impact areas like the bumper, bonnet, wings, and mirrors. Full body is better if you want every painted panel protected, plan to keep the car longer, or simply want the cleanest overall result.",
+        "Full front works well if you mainly want the highest-impact areas protected and want to keep the spend tighter. Full body is the better fit if you want every painted panel covered, plan to keep the car longer, or simply do not want to leave the doors, quarters, and rear exposed. Sean can tell you very quickly which route makes more sense for your car.",
     },
     {
       question: "Should I choose gloss or matte PPF?",
       answer:
-        "Gloss keeps the factory shine and adds protection without changing the look too much. Matte is the better fit if you want a satin-style finish or a more customised appearance while still protecting the paint underneath.",
+        "Gloss keeps the factory shine and is the right choice if you want the car to look clean, bright, and close to OEM. Matte gives the paint a satin finish and suits buyers who want a more deliberate, stealthier look. The right answer depends on the look you want the car to have every day, not just on delivery day.",
     },
     {
       question: "How long does PPF installation usually take?",
       answer:
-        "That depends on the car, the coverage, and how much prep is needed, but the quote process will give you a realistic direction. Sean can then confirm the right package, timing, and the earliest availability for your car.",
+        "That depends on the car, the coverage, and how much prep or correction is needed before film goes on. A smaller package can move faster, while full-body protection on a larger car takes longer because the prep and QC matter as much as the film itself. Sean can confirm realistic timing once he knows the car and the package you are considering.",
+    },
+    {
+      question: "What does the quote already include?",
+      answer:
+        "The starting figure is not just film on paint. It already stacks in multi-stage paint correction, full interior and exterior detailing, headlights and door sill protection, leather ceramic, rim ceramic, and ongoing PPF inspection support. That is why the quote should be read as a complete package direction, not a stripped-back install price.",
+    },
+    {
+      question: "Are the prices final, and do they include VAT?",
+      answer:
+        "The prices shown are starting figures and exclude VAT. Final pricing depends on the condition of the paint, the exact vehicle, and panel complexity once the car is inspected properly. The calculator is there to give you a realistic direction before Sean confirms the final package and price.",
     },
     {
       question: "How does the STEK warranty registration work?",
       answer:
-        "After installation and the one-week check, the film is registered properly through the STEK process so the warranty is traceable. That is part of why this page puts so much emphasis on genuine film and verified registration.",
+        "After installation and the one-week check, the film is registered through the correct STEK process so the warranty is traceable to the actual material on the car. That matters because plenty of buyers are told they are getting premium film and warranty cover without ever seeing a proper registration trail.",
     },
     {
-      question: "Can I just message Sean before deciding?",
+      question: "Can I message Sean before I decide?",
       answer:
-        "Yes. If you are still comparing options, you can go straight to WhatsApp and ask what coverage, finish, or warranty level makes sense for your car before committing to anything.",
+        "Yes. If you are still comparing gloss versus matte, full front versus full body, or you just want a quick sense-check on the right package, you can go straight to WhatsApp and ask. That is exactly why the page keeps a direct Sean route open instead of forcing you through a sales handoff.",
     },
   ];
 
@@ -1310,7 +1320,7 @@ const PpfDubaiQuote = () => {
                     <span>4.9 stars</span>
                   </Badge>
                   <Badge variant="outline" className="border-white/15 bg-black/20 px-3 py-1.5 backdrop-blur-sm">
-                    Warranty-registered film
+                    Warranty-registered STEK film
                   </Badge>
                 </div>
 
@@ -1322,7 +1332,7 @@ const PpfDubaiQuote = () => {
                   </span>
                 </h1>
                 <p className="mt-4 max-w-2xl text-lg text-slate-300">
-                  British-owned, trust-led PPF for buyers who care about genuine film, clean installs, and a warranty process that is actually real.
+                  Get a clear PPF quote, choose the right coverage for your car, and deal directly with Sean from first message to final handover.
                 </p>
 
                 <div className="mt-6 flex flex-col gap-3">
@@ -1407,7 +1417,7 @@ const PpfDubaiQuote = () => {
                       onClick={handleWhatsAppClick}
                     >
                       <MessageCircle className="mr-2 h-4 w-4" />
-                      Speak to Sean on WhatsApp
+                      Ask Sean on WhatsApp
                     </Button>
                   </a>
 
@@ -1418,7 +1428,7 @@ const PpfDubaiQuote = () => {
                       className="w-full text-white/75 hover:bg-white/5 hover:text-white"
                       onClick={scrollToCalculatorSection}
                     >
-                      Open calculator
+                      Open price calculator
                     </Button>
                   ) : null}
                 </div>
@@ -1477,9 +1487,9 @@ const PpfDubaiQuote = () => {
                       <TrustStars starClassName="h-4 w-4 sm:h-[1.25rem] sm:w-[1.25rem]" />
                     </div>
                     <div className="min-w-0 flex-1 sm:mt-2 sm:flex-none">
-                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">4.9-star trust</p>
+                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Trusted by real buyers</p>
                       <p className="mt-0.5 text-sm leading-snug text-slate-300 sm:mt-1 sm:max-w-[19ch] sm:text-[0.8125rem]">
-                        Proof from real Grand Touch buyers.
+                        Google proof from real Grand Touch handovers.
                       </p>
                     </div>
                   </div>
@@ -1493,9 +1503,9 @@ const PpfDubaiQuote = () => {
                       />
                     </div>
                     <div className="min-w-0 flex-1 sm:mt-2 sm:flex-none">
-                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Certified installer</p>
+                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Certified STEK installs</p>
                       <p className="mt-0.5 text-sm leading-snug text-slate-300 sm:mt-1 sm:max-w-[17ch] sm:text-[0.8125rem]">
-                        STEK fitted properly.
+                        Genuine STEK, fitted properly.
                       </p>
                     </div>
                   </div>
@@ -1539,9 +1549,9 @@ const PpfDubaiQuote = () => {
                       </div>
                     </div>
                     <div className="min-w-0 flex-1 sm:mt-2 sm:flex-none">
-                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Verified warranty</p>
+                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Warranty you can trace</p>
                       <p className="mt-0.5 text-sm leading-snug text-slate-300 sm:mt-1 sm:max-w-[18ch] sm:text-[0.8125rem]">
-                        Serial-tracked and registered online.
+                        Serial-tracked and registered properly.
                       </p>
                     </div>
                   </div>
@@ -1594,7 +1604,7 @@ const PpfDubaiQuote = () => {
                     Deal Directly with Sean
                   </p>
                   <p className="mt-2 max-w-[28ch] text-sm leading-6 text-slate-300">
-                  Sean stays involved from first conversation to final result.
+                  One conversation, one person accountable, and no vague handoff between sales and install.
                   </p>
                 </div>
 
@@ -1622,7 +1632,7 @@ const PpfDubaiQuote = () => {
                     </span>
                   </h2>
                   <div className="mt-6 max-w-[58ch] space-y-4 text-base leading-7 text-slate-300">
-                    <p>At Grand Touch, buyers trust Sean for the parts that matter most:</p>
+                    <p>People do not just buy film here. They buy confidence in the prep, the fitment, and the paperwork afterwards.</p>
                     <p className="text-[1.02rem] leading-8 text-white/92">
                       <span className="font-semibold text-[#f6c76d]">proper prep</span>,{" "}
                       <span className="font-semibold text-white">genuine STEK film</span>, and{" "}
@@ -1648,7 +1658,7 @@ const PpfDubaiQuote = () => {
                             <span className="text-[#f6c76d]">British-owned.</span> Sean-led.
                           </p>
                           <p className="mt-1 text-sm leading-6 text-slate-300">
-                          Clear communication, honest advice, and a process Sean stands behind himself.
+                          Straight advice, direct accountability, and a process Sean stands behind himself.
                           </p>
                         </div>
                       </div>
@@ -1664,7 +1674,7 @@ const PpfDubaiQuote = () => {
                             No shortcuts in <span className="text-[#f6c76d]">prep.</span>
                           </p>
                           <p className="mt-1 text-sm leading-6 text-slate-300">
-                          The finish depends on what happens before installation, so we take that seriously.
+                          Good film still looks bad on badly prepared paint, so prep is treated as part of the product.
                           </p>
                         </div>
                       </div>
@@ -1680,7 +1690,7 @@ const PpfDubaiQuote = () => {
                             Genuine film. <span className="text-[#f6c76d]">Verified warranty.</span>
                           </p>
                           <p className="mt-1 text-sm leading-6 text-slate-300">
-                          Your STEK film is scanned, registered, and backed online through the proper portal.
+                          The film on your car is scanned, registered, and traceable through the proper STEK process.
                           </p>
                         </div>
                       </div>
@@ -1713,29 +1723,28 @@ const PpfDubaiQuote = () => {
                 </div>
                 <div className="relative">
                   <p className="text-sm uppercase tracking-[0.26em] text-muted-foreground">
-                    WHY I CHOSE STEK
+                    WHY WE USE STEK
                   </p>
                   <h2 className="mt-3 max-w-[20ch] text-3xl font-bold leading-[0.98] text-white sm:text-4xl">
-                    In this market, trust matters more than talk.
+                    The film on your car should match what you were promised.
                   </h2>
                   <p className="mt-5 max-w-[58ch] text-base leading-7 text-slate-300">
-                    I wanted a film I could genuinely stand behind — not just for the finish, but
-                    because what we say we fit is what actually goes on the car.
+                    Grand Touch uses STEK because Sean can recommend it without caveats: genuine supply, registered warranty options, strong gloss and matte finishes, and coverage levels that make sense for real owners in Dubai.
                   </p>
 
                   <div className="mt-8 grid gap-4 sm:max-w-xl">
                     {[
                       {
-                        title: "Genuine film. Properly registered.",
-                        text: "What we say we fit is what actually goes on the car.",
+                        title: "What we quote is what we fit.",
+                        text: "The car gets genuine STEK film, correctly sourced and correctly registered.",
                       },
                       {
-                        title: "Gloss and matte options",
-                        text: "Different finishes depending on the look you want.",
+                        title: "Finish options that suit the car",
+                        text: "Choose gloss to keep the OEM shine or matte for a more deliberate satin look.",
                       },
                       {
-                        title: "5, 10, and 12-year options",
-                        text: "Different levels to suit different needs and budgets.",
+                        title: "Warranty options that match ownership",
+                        text: "5, 10, and 12-year packages depending on budget, usage, and how long you plan to keep the car.",
                       },
                     ].map((item) => (
                       <div
@@ -1750,8 +1759,8 @@ const PpfDubaiQuote = () => {
 
                   <div className="mt-8 rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.12),rgba(245,181,43,0.04))] px-5 py-4 shadow-[0_14px_40px_rgba(245,181,43,0.08)]">
                     <p className="text-center text-sm font-semibold tracking-[0.08em] text-[#f6c76d] sm:text-[0.95rem]">
-                      Genuine STEK <span className="mx-2 text-primary/70">&bull;</span> Installed properly{" "}
-                      <span className="mx-2 text-primary/70">&bull;</span> Verified
+                      Genuine STEK <span className="mx-2 text-primary/70">&bull;</span> Real finish options{" "}
+                      <span className="mx-2 text-primary/70">&bull;</span> Registered warranty
                     </p>
                   </div>
 
@@ -1759,6 +1768,7 @@ const PpfDubaiQuote = () => {
                     stacked
                     className="mt-6"
                     onPrimaryClick={openHeroForm}
+                    secondaryLabel="Ask Sean which package fits"
                   />
                 </div>
               </div>
@@ -1840,7 +1850,7 @@ const PpfDubaiQuote = () => {
               <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
                 Customer reviews & our work
               </p>
-              <h2 className="mt-2 text-3xl font-bold">Google reviews, testimonials, and real edits</h2>
+              <h2 className="mt-2 text-3xl font-bold">Real buyers, real handovers, real cars</h2>
             </div>
             <div className="grid gap-6 md:grid-cols-3 md:items-stretch">
               <Card className="flex h-full flex-col border-[#4285F4]/20 bg-[linear-gradient(180deg,rgba(66,133,244,0.07),rgba(255,255,255,0.02)_22%,rgba(255,255,255,0.02)_100%)] p-4 sm:p-6">
@@ -1856,9 +1866,7 @@ const PpfDubaiQuote = () => {
                 </div>
                 <h3 className="mt-4 text-xl font-semibold">Mark | Zeekr 001</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  "Top-notch service, Sean. Unreal. Sean picked my car up from Abu Dhabi, kept the
-                  whole process easy, and the finish, including the Hermes orange calipers, came
-                  out amazing."
+                  "Sean made the whole process easy, even from Abu Dhabi, and the finish came out amazing."
                 </p>
                 <div className="mt-auto">
                   <VideoModalCard
@@ -1885,8 +1893,7 @@ const PpfDubaiQuote = () => {
                 </div>
                 <h3 className="mt-4 text-xl font-semibold">Recent Grand Touch work</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Four G700 builds finished with STEK PPF in gloss and matte options, 10-year
-                  warranty coverage, and selected custom paintwork details by the Grand Touch team.
+                  Recent STEK installs across gloss and matte finishes, longer-term warranty packages, and full delivery-standard handovers.
                 </p>
                 <div className="mt-auto">
                   <VideoModalCard
@@ -1917,9 +1924,7 @@ const PpfDubaiQuote = () => {
                   </div>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  "I left my Jetour T2 with Sean for a matte green colour PPF transformation and
-                  couldn't be happier. Great finish, smooth process, and a team I was happy to
-                  trust with my car."
+                  "Great finish, smooth process, and a team I was happy to trust with my car."
                 </p>
                 <div className="mt-auto">
                   <VideoModalCard
@@ -1935,16 +1940,16 @@ const PpfDubaiQuote = () => {
 
             <SectionCta
               primaryLabel="Get My PPF Quote"
-              secondaryLabel="Speak to Sean on WhatsApp"
+              secondaryLabel="Ask Sean on WhatsApp"
               onPrimaryClick={openHeroForm}
               secondaryHref={whatsAppUrl}
               onSecondaryClick={handleWhatsAppClick}
-              note="Seen the proof. Open the quote form, or message Sean on WhatsApp if you prefer."
+              note="Seen the proof. Open the quote or ask Sean directly."
             />
           </div>
         </section>
 
-        <section className="px-0 pb-24 pt-14 sm:pb-28">
+        <section className="hidden px-0 pb-24 pt-14 sm:pb-28">
           <div className="container mx-auto max-w-6xl">
             <div className="relative overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.1),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-7">
               <div className="pointer-events-none absolute inset-0">
@@ -2123,19 +2128,19 @@ const PpfDubaiQuote = () => {
         >
           <div className="container mx-auto max-w-6xl">
             <div className="mb-8 overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-8">
-              <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">PPF Calculator</p>
+              <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">PPF Configurator</p>
               <h2 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
-                Compare the right finish, coverage, and warranty for your car
+                Build the right setup for your car
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Build the setup openly, then reveal the live estimate when you are ready to send
-                your details through to Sean.
+                Choose the package, size, finish, and coverage openly. Reveal the estimate only when
+                you are ready to send your details through to Sean.
               </p>
             </div>
 
             <div className="relative [overflow-anchor:none]">
               <div>
-                <PpfCostCalculatorWidget
+                <PpfCostCalculatorWidgetV1
                   variant="embedded"
                   showIntro={false}
                   showBrandSelector={false}
@@ -2161,16 +2166,180 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
+        <section className="px-0 pb-24 pt-14 sm:pb-28">
+          <div className="container mx-auto max-w-6xl">
+            <div className="relative overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.1),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-7">
+              <div className="pointer-events-none absolute inset-0">
+                <div className="absolute -left-16 top-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+                <div className="absolute right-0 top-8 h-32 w-32 rounded-full bg-white/5 blur-3xl" />
+              </div>
+
+              <div className="relative">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="max-w-3xl">
+                    <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
+                      Our process
+                    </p>
+                    <h2 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
+                      From decontamination to
+                      <span className="bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent">
+                        {" "}verified warranty
+                      </span>
+                    </h2>
+                    <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
+                      A proper PPF result depends on prep, controlled install, final QC, and the warranty process after the handover.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[360px]">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">Prep first</p>
+                      <p className="mt-1 text-sm font-semibold text-white">No film over bad paint</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">QC built in</p>
+                      <p className="mt-1 text-sm font-semibold text-white">Reset if standards slip</p>
+                    </div>
+                    <div className="rounded-2xl border border-primary/20 bg-primary/8 px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-primary/80">Registered</p>
+                      <p className="mt-1 text-sm font-semibold text-white">Traceable STEK warranty</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4 lg:grid-cols-[0.96fr_1.04fr]">
+                  <div className="grid grid-cols-1 gap-4">
+                    <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.24)] sm:p-5">
+                      <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(245,181,43,0.8),rgba(245,181,43,0))]" />
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                          <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
+                          Stage 1
+                        </div>
+                      </div>
+                      <h3 className="mt-4 text-lg font-semibold text-white">Prep and paint correction</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        Decontamination, wash, clay, edge prep, and paint correction before film touches the car.
+                      </p>
+                    </Card>
+
+                    <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.24)] sm:p-5">
+                      <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(245,181,43,0.8),rgba(245,181,43,0))]" />
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                          <ShieldCheck className="h-5 w-5" />
+                        </div>
+                        <div className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
+                          Stage 2
+                        </div>
+                      </div>
+                      <h3 className="mt-4 text-lg font-semibold text-white">Install only after QC</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        If prep or cleanliness is off, the team stops, resets, and fixes it before installation continues.
+                      </p>
+                    </Card>
+
+                    <Card className="relative overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(15,15,15,0.98))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.24)] sm:p-5">
+                      <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(245,181,43,0.8),rgba(245,181,43,0))]" />
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                          <Star className="h-5 w-5" />
+                        </div>
+                        <div className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
+                          Stage 3
+                        </div>
+                      </div>
+                      <h3 className="mt-4 text-lg font-semibold text-white">Final QC and handover finish</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        Final quality control, delivery detailing, rim ceramic, and leather ceramic as part of the handover finish.
+                      </p>
+                    </Card>
+                  </div>
+
+                  <Card
+                    id="speak-to-sean-legacy"
+                    className="relative overflow-hidden border-primary/30 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.18),transparent_26%),linear-gradient(180deg,rgba(245,181,43,0.14),rgba(18,18,18,0.98))] p-5 shadow-[0_24px_80px_rgba(245,181,43,0.14)] sm:p-6"
+                  >
+                    <div className="pointer-events-none absolute inset-0">
+                      <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-primary/12 blur-3xl" />
+                    </div>
+
+                    <div className="relative">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex items-start gap-4">
+                          <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-black shadow-[0_12px_30px_rgba(245,181,43,0.28)]">
+                            <ScanSearch className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm uppercase tracking-[0.2em] text-primary/85">
+                              Stage 4 | Most important
+                            </p>
+                            <h3 className="mt-1 text-2xl font-semibold text-white">
+                              One-week check + verified warranty
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="rounded-full border border-primary/20 bg-black/15 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#ffd47a]">
+                          Traceable proof
+                        </div>
+                      </div>
+
+                      <p className="mt-4 max-w-2xl text-base leading-7 text-slate-100">
+                        After one week, the vehicle is checked again, the install is confirmed, and the STEK warranty is registered properly with full traceability.
+                      </p>
+
+                      <div className="mt-5 grid gap-4 md:grid-cols-[1.08fr_0.92fr]">
+                        <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black/18">
+                          <img
+                            src={stekWarrantySticker}
+                            alt="STEK warranty proof sticker"
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+
+                        <div className="rounded-[24px] border border-primary/20 bg-black/18 p-4">
+                          <div className="inline-flex items-center rounded-full border border-primary/16 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ffd47a]">
+                            Warranty proof
+                          </div>
+                          <p className="mt-4 text-2xl font-semibold leading-tight text-white">
+                            Tamper-proof sticker linked to your film roll
+                          </p>
+                          <p className="mt-2 text-base leading-7 text-slate-200">
+                            Registered and traceable.
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="lg"
+                        variant="default"
+                        className={cn(primaryPpfCtaButtonClass, "mt-6 w-full")}
+                        onClick={openHeroForm}
+                      >
+                        Get My PPF Quote
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="border-y border-border/50 bg-[radial-gradient(circle_at_15%_20%,rgba(245,181,43,0.06),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14">
           <div className="container mx-auto max-w-5xl">
             <div className="text-center">
               <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">FAQ</p>
               <h2 className="mt-2 text-3xl font-bold sm:text-4xl">
-                Questions buyers usually ask before booking PPF
+                Questions serious buyers usually ask before booking
               </h2>
               <p className="mx-auto mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                The calculator helps with coverage and finish choices. These answers handle the last
-                few objections buyers usually have before they enquire.
+                The calculator helps with setup choices. These answers handle the practical questions
+                buyers usually want cleared up before they enquire.
               </p>
             </div>
 
@@ -2222,21 +2391,20 @@ const PpfDubaiQuote = () => {
               <div className="relative">
                 <p className="text-sm uppercase tracking-[0.25em] text-primary/80">Final step</p>
                 <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-5xl">
-                  Ready to protect your car properly?
+                  Ready to get the right PPF package for your car?
                 </h2>
                 <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-                  Get a clear quote, compare the right coverage and finish for your car, and speak
-                  directly with Sean if you want a recommendation before you book.
+                  Open the quote, compare the setup, and message Sean directly if you want a fast recommendation before you book.
                 </p>
 
                 <SectionCta
                   primaryLabel="Get My PPF Quote"
-                  secondaryLabel="Speak to Sean on WhatsApp"
+                  secondaryLabel="Ask Sean on WhatsApp"
                   onPrimaryClick={openHeroForm}
                   secondaryHref={whatsAppUrl}
                   onSecondaryClick={handleWhatsAppClick}
                   align="center"
-                  note="Fast quote. Direct contact. No vague handoff."
+                  note="Fast quote. Direct Sean contact. No vague handoff."
                 />
               </div>
             </div>
@@ -2255,7 +2423,7 @@ const PpfDubaiQuote = () => {
             onClick={handleWhatsAppClick}
           >
             <MessageCircle className="mr-2 h-4 w-4" />
-            Speak to Sean on WhatsApp
+            Ask Sean on WhatsApp
           </Button>
         </a>
       </div>
@@ -2266,7 +2434,7 @@ const PpfDubaiQuote = () => {
           target="_blank"
           rel="noreferrer"
           onClick={handleWhatsAppClick}
-          aria-label="Speak to Sean on WhatsApp"
+          aria-label="Ask Sean on WhatsApp"
           className="group pointer-events-auto absolute bottom-0 right-6 z-0 block cursor-pointer"
         >
           <img
@@ -2281,4 +2449,6 @@ const PpfDubaiQuote = () => {
   );
 };
 
-export default PpfDubaiQuote;
+export default PpfDubaiQuoteV1;
+
+

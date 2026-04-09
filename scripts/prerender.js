@@ -227,6 +227,32 @@ const pages = [
     noscriptExtra:
       "<p><strong>Enable JavaScript</strong> to use the short quote form, estimate controls, and WhatsApp handoff.</p>",
   },
+  {
+    path: "/ppf-dubai-quote-v1",
+    title: "PPF Dubai Quote V1 | Grand Touch",
+    description:
+      "Sandbox version of the Grand Touch PPF quote funnel with premium trust messaging, a guided calculator, and direct WhatsApp follow-up from Sean.",
+    keywords:
+      "PPF Dubai quote V1, Grand Touch PPF funnel, STEK PPF Dubai quote, PPF calculator Dubai, premium PPF quote",
+    ogTitle: "PPF Dubai Quote V1 | Grand Touch",
+    ogDescription:
+      "Sandbox review version of the Grand Touch PPF quote page with updated funnel copy, proof, and guided estimate flow.",
+    seoBody: `
+        <h1>PPF Dubai quote sandbox from Grand Touch</h1>
+        <p>This route is a review version of the Grand Touch paint protection film quote page in Dubai, built to test stronger trust messaging, proof, and a guided estimator before the live page is replaced.</p>
+        <h2>What this version focuses on</h2>
+        <ul>
+          <li>Premium trust-led PPF messaging for Dubai buyers</li>
+          <li>Stronger proof around Sean, STEK, and warranty registration</li>
+          <li>A guided calculator flow for finish, size, coverage, and pricing direction</li>
+          <li>Direct WhatsApp handoff with conversational message prefills</li>
+        </ul>
+        <h2>Who it is for</h2>
+        <p>Buyers comparing full body versus front protection, gloss versus matte, and longer-term warranty options who still want direct advice before booking.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to review the sandbox quote flow, guided calculator, and WhatsApp handoff.</p>",
+  },
 ];
 
 function applyPage(html, page) {
