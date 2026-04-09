@@ -32,7 +32,7 @@ import gallery5 from "@/assets/octane-gallery-5.jpg";
 import gallery6 from "@/assets/octane-gallery-6.jpg";
 import gallery7 from "@/assets/octane-gallery-7.jpg";
 import gallery8 from "@/assets/octane-gallery-8.jpg";
-import m2Logo from "@/assets/logo.svg";
+import m2Logo from "../../m2luxurycarrental logo.png";
 
 const PORTAL_PASSWORD =
   import.meta.env.VITE_PARTNER_2_B2B_PASSWORD ||
