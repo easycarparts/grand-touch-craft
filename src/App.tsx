@@ -32,6 +32,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
 import OctaneB2B from "./pages/OctaneB2B";
+import Partner2B2B from "./pages/Partner2B2B";
 import TechnicalResourcesB2B from "./pages/TechnicalResourcesB2B";
 
 const queryClient = new QueryClient();
@@ -89,6 +90,7 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />
+            <Route path="/partner/M2Luxury" element={<Partner2B2B />} />
             <Route path="/partners/technical-resources-b2b" element={<TechnicalResourcesB2B />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
