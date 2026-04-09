@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import PpfCostCalculatorWidget from "@/components/PpfCostCalculatorWidget";
+import PpfQuoteSummary from "@/components/PpfQuoteSummary";
 import { updatePageSEO } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
@@ -42,6 +43,19 @@ type CalculatorSelection = {
   estimateMin: number;
   stekLine: string | null;
 };
+
+type QuoteModalFlow = "standard" | "calculator";
+type StoredLeadProfile = {
+  submitted: boolean;
+  name: string;
+  mobile: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: string;
+  savedAt: string;
+};
+
+const LEAD_PROFILE_STORAGE_KEY = "ppf-dubai-quote-lead-v1";
 
 const EMAILJS_SERVICE_ID = "service_f2na96a";
 const EMAILJS_TEMPLATE_ID = "template_bs1inle";
@@ -162,7 +176,7 @@ const heroWhatsAppButtonClass =
   "w-full border-0 bg-[#1f8350] text-white shadow-[0_14px_40px_rgba(31,131,80,0.26)] transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-[#2d9a63] hover:text-white hover:shadow-[0_22px_56px_rgba(31,131,80,0.4)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#1f8350]/55 active:scale-[0.99] active:text-white";
 
 const smokeGlassPanelClass =
-  "relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045)_18%,rgba(18,18,18,0.62)_42%,rgba(8,8,8,0.84)_100%)] shadow-[0_36px_120px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[22px]";
+  "relative isolate overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045)_18%,rgba(18,18,18,0.62)_42%,rgba(8,8,8,0.84)_100%)] shadow-[0_36px_120px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[22px]";
 
 const SectionCta = ({
   primaryLabel = "Get My PPF Quote",
@@ -248,6 +262,7 @@ const SectionCta = ({
 
 const QuoteUnlockForm = ({
   variant,
+  flow,
   formStep,
   formSubmitted,
   name,
@@ -270,8 +285,11 @@ const QuoteUnlockForm = ({
   onOpenCalculator,
   whatsAppUrl,
   onWhatsAppClick,
+  calculatorSelection,
+  onCalculatorWhatsAppClick,
 }: {
   variant: "modal" | "embedded";
+  flow: QuoteModalFlow;
   formStep: 1 | 2 | 3;
   formSubmitted: boolean;
   name: string;
@@ -294,10 +312,23 @@ const QuoteUnlockForm = ({
   onOpenCalculator: () => void;
   whatsAppUrl: string;
   onWhatsAppClick: () => void;
+  calculatorSelection: CalculatorSelection | null;
+  onCalculatorWhatsAppClick: () => void;
 }) => {
   const isModal = variant === "modal";
+  const isCalculatorFlow = flow === "calculator";
   const step1CtaRef = useRef<HTMLDivElement>(null);
   const step2CtaRef = useRef<HTMLDivElement>(null);
+  const flowSteps = isCalculatorFlow
+    ? [
+        { step: 1, label: "Contact" },
+        { step: 2, label: "Vehicle" },
+      ]
+    : [
+        { step: 1, label: "Contact" },
+        { step: 2, label: "Vehicle" },
+        { step: 3, label: "Unlock" },
+      ];
 
   /**
    * Modal only: nudge the primary CTA inside the dialog when the on-screen keyboard resizes the
@@ -348,7 +379,7 @@ const QuoteUnlockForm = ({
   return (
     <div className={cn(smokeGlassPanelClass, isModal ? "w-full" : "w-full max-w-2xl")}>
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent)]" />
+        <div className="absolute inset-x-0 top-0 h-20 rounded-t-[32px] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent)]" />
         <div className="absolute -left-12 top-10 h-40 w-40 rounded-full bg-white/5 blur-3xl" />
         <div className="absolute right-0 top-16 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
       </div>
@@ -363,41 +394,48 @@ const QuoteUnlockForm = ({
             <X className="h-5 w-5" strokeWidth={2.25} />
           </DialogClose>
         ) : null}
-        <div className={cn("flex flex-wrap items-center gap-3", isModal && "pr-11 sm:pr-12")}>
-          {[
-            { step: 1, label: "Contact" },
-            { step: 2, label: "Vehicle" },
-            { step: 3, label: "Unlock" },
-          ].map((item) => {
-            const isActive = formStep === item.step;
-            const isComplete = formSubmitted || formStep > item.step;
+        {isCalculatorFlow && formStep === 3 ? (
+          <div className={cn("flex items-center gap-3", isModal && "pr-11 sm:pr-12")}>
+            <div className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-primary/20 bg-primary/12 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <span className="text-[11px] uppercase tracking-[0.24em] text-white/68">
+              Your personalised quote
+            </span>
+          </div>
+        ) : (
+          <div className={cn("flex flex-wrap items-center gap-3", isModal && "pr-11 sm:pr-12")}>
+            {flowSteps.map((item) => {
+              const isActive = formStep === item.step;
+              const isComplete = formSubmitted || formStep > item.step;
 
-            return (
-              <div key={item.step} className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
-                    isActive
-                      ? "border-white/15 bg-white/16 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
-                      : isComplete
-                        ? "border-white/12 bg-white/10 text-white/82"
-                        : "border-white/10 bg-black/18 text-white/40"
-                  )}
-                >
-                  {isComplete && !isActive ? <Check className="h-4 w-4" /> : item.step}
+              return (
+                <div key={item.step} className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
+                      isActive
+                        ? "border-white/15 bg-white/16 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
+                        : isComplete
+                          ? "border-white/12 bg-white/10 text-white/82"
+                          : "border-white/10 bg-black/18 text-white/40"
+                    )}
+                  >
+                    {isComplete && !isActive ? <Check className="h-4 w-4" /> : item.step}
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[11px] uppercase tracking-[0.24em]",
+                      isActive || isComplete ? "text-white/72" : "text-white/32"
+                    )}
+                  >
+                    {item.label}
+                  </span>
                 </div>
-                <span
-                  className={cn(
-                    "text-[11px] uppercase tracking-[0.24em]",
-                    isActive || isComplete ? "text-white/72" : "text-white/32"
-                  )}
-                >
-                  {item.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="relative px-5 pb-5 pt-5 sm:px-7 sm:pb-7">
@@ -408,7 +446,9 @@ const QuoteUnlockForm = ({
                 Get My PPF Estimate
               </p>
               <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
-                Name and number first. We keep this part short so the quote unlock feels fast.
+                {isCalculatorFlow
+                  ? "Name and number first. Keep this quick, then we reveal your personalised quote."
+                  : "Name and number first. We keep this part short so the quote unlock feels fast."}
               </p>
             </div>
 
@@ -518,7 +558,11 @@ const QuoteUnlockForm = ({
                 onClick={onSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Submitting your enquiry..." : "Unlock My Estimate"}
+                {isSubmitting
+                  ? "Submitting your enquiry..."
+                  : isCalculatorFlow
+                    ? "Show My Quote"
+                    : "Unlock My Estimate"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -526,45 +570,64 @@ const QuoteUnlockForm = ({
         ) : null}
 
         {formStep === 3 ? (
-          <div className="space-y-5">
-            <div>
-              <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                Your enquiry is in
-              </p>
-              <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
-                {isModal
-                  ? "Thanks. Your details have been sent. Would you like to open the calculator and compare the options?"
-                  : "We have your details and the calculator is now ready. You can compare finish, coverage, and warranty without leaving this section."}
-              </p>
-            </div>
+          isCalculatorFlow && calculatorSelection ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-[2rem] font-semibold tracking-tight text-white sm:text-[2.4rem]">
+                  Your personalised quote
+                </p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                  Price first, with the included prep and protection work shown clearly underneath.
+                </p>
+              </div>
 
-            <div className="rounded-[26px] border border-white/10 bg-[rgba(255,255,255,0.05)] p-5">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-white/48">Lead captured</p>
-              <p className="mt-3 text-lg font-medium text-white">{vehicleSummary}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Sean now has your name, number, and vehicle details.
-              </p>
+              <PpfQuoteSummary
+                selection={calculatorSelection}
+                vehicleSummary={vehicleSummary}
+                onWhatsAppClick={onCalculatorWhatsAppClick}
+              />
             </div>
+          ) : (
+            <div className="space-y-5">
+              <div>
+                <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                  Your enquiry is in
+                </p>
+                <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                  {isModal
+                    ? "Thanks. Your details have been sent. Would you like to open the calculator and compare the options?"
+                    : "We have your details and the calculator is now ready. You can compare finish, coverage, and warranty without leaving this section."}
+                </p>
+              </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button className={cn(primaryPpfCtaButtonClass, "w-full")} size="lg" variant="default" onClick={onOpenCalculator}>
-                Open PPF Price Calculator
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
-                <Button
-                  type="button"
-                  variant="default"
-                  className={cn(whatsappCtaButtonClass, "w-full")}
-                  size="lg"
-                  onClick={onWhatsAppClick}
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Speak to Sean on WhatsApp
+              <div className="rounded-[26px] border border-white/10 bg-[rgba(255,255,255,0.05)] p-5">
+                <p className="text-[11px] uppercase tracking-[0.24em] text-white/48">Lead captured</p>
+                <p className="mt-3 text-lg font-medium text-white">{vehicleSummary}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Sean now has your name, number, and vehicle details.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button className={cn(primaryPpfCtaButtonClass, "w-full")} size="lg" variant="default" onClick={onOpenCalculator}>
+                  Open PPF Price Calculator
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </a>
+                <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
+                  <Button
+                    type="button"
+                    variant="default"
+                    className={cn(whatsappCtaButtonClass, "w-full")}
+                    size="lg"
+                    onClick={onWhatsAppClick}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Speak to Sean on WhatsApp
+                  </Button>
+                </a>
+              </div>
             </div>
-          </div>
+          )
         ) : null}
       </div>
     </div>
@@ -573,6 +636,7 @@ const QuoteUnlockForm = ({
 
 const PpfDubaiQuote = () => {
   const [heroFormOpen, setHeroFormOpen] = useState(false);
+  const [quoteModalFlow, setQuoteModalFlow] = useState<QuoteModalFlow>("standard");
   const [formStep, setFormStep] = useState<1 | 2 | 3>(1);
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("+971");
@@ -586,13 +650,16 @@ const PpfDubaiQuote = () => {
   const [isSendingCalculatorLead, setIsSendingCalculatorLead] = useState(false);
   const [isWhyStekPlaying, setIsWhyStekPlaying] = useState(false);
   const [selection, setSelection] = useState<CalculatorSelection | null>(null);
+  const [calculatorPriceUnlocked, setCalculatorPriceUnlocked] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
-  /** Dev-only: hide the calculator lead overlay to inspect layout without submitting / email. */
-  const [devCalculatorOverlayDismissed, setDevCalculatorOverlayDismissed] = useState(false);
 
   const hasTrackedFormStart = useRef(false);
-  const hasTrackedEstimate = useRef(false);
+  const lastTrackedQuoteSignature = useRef<string | null>(null);
   const calculatorRef = useRef<HTMLElement | null>(null);
+  const isLocalTestingBypass =
+    import.meta.env.DEV ||
+    (typeof window !== "undefined" &&
+      /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname));
 
   /** Mobile Safari often ignores smooth scroll or runs before overlay unmount; use measured top + delayed retries. */
   const scrollToCalculatorSection = useCallback(() => {
@@ -623,9 +690,6 @@ const PpfDubaiQuote = () => {
   /** Dedupes pointerup + click (common on Chrome Android) so play() runs once. */
   const whyStekPlayGateRef = useRef(0);
 
-  const devCalculatorPeek =
-    import.meta.env.DEV && devCalculatorOverlayDismissed;
-
   const utmParams = useMemo(() => {
     if (typeof window === "undefined") return {};
     const search = new URLSearchParams(window.location.search);
@@ -643,6 +707,39 @@ const PpfDubaiQuote = () => {
     () => [vehicleYear.trim(), vehicleMake.trim(), vehicleModel.trim()].filter(Boolean).join(" "),
     [vehicleMake, vehicleModel, vehicleYear]
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(LEAD_PROFILE_STORAGE_KEY);
+    if (!stored) return;
+
+    try {
+      const parsed = JSON.parse(stored) as StoredLeadProfile;
+      if (!parsed.submitted) return;
+      setName(parsed.name || "");
+      setMobile(parsed.mobile || "+971");
+      setVehicleMake(parsed.vehicleMake || "");
+      setVehicleModel(parsed.vehicleModel || "");
+      setVehicleYear(parsed.vehicleYear || "");
+      setFormSubmitted(true);
+    } catch (error) {
+      console.warn("Failed to restore stored PPF lead profile", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !formSubmitted) return;
+    const payload: StoredLeadProfile = {
+      submitted: true,
+      name,
+      mobile,
+      vehicleMake,
+      vehicleModel,
+      vehicleYear,
+      savedAt: new Date().toISOString(),
+    };
+    window.localStorage.setItem(LEAD_PROFILE_STORAGE_KEY, JSON.stringify(payload));
+  }, [formSubmitted, mobile, name, vehicleMake, vehicleModel, vehicleYear]);
 
   const whatsAppUrl = useMemo(() => {
     const lines = [
@@ -703,8 +800,18 @@ const PpfDubaiQuote = () => {
   }, [utmParams]);
 
   useEffect(() => {
-    if (!formSubmitted || !selection || hasTrackedEstimate.current) return;
-    hasTrackedEstimate.current = true;
+    if (!heroFormOpen || quoteModalFlow !== "calculator" || formStep !== 3 || !selection) return;
+    const signature = JSON.stringify([
+      selection.brand,
+      selection.stekLine,
+      selection.warrantyYears,
+      selection.size,
+      selection.coverage,
+      selection.finish,
+      selection.estimateMin,
+    ]);
+    if (lastTrackedQuoteSignature.current === signature) return;
+    lastTrackedQuoteSignature.current = signature;
     const packageLabel = `${selection.brand}${selection.stekLine ? ` ${selection.stekLine}` : ""} ${selection.warrantyYears}-year`;
     trackEvent("ppf_estimate_shown", {
       funnel_name: "ppf_dubai_quote",
@@ -715,7 +822,7 @@ const PpfDubaiQuote = () => {
       estimate_value: selection.estimateMin,
       ...utmParams,
     });
-  }, [formSubmitted, selection, utmParams]);
+  }, [formStep, heroFormOpen, quoteModalFlow, selection, utmParams]);
 
   useEffect(() => {
     const video = trustVideoRef.current;
@@ -771,6 +878,51 @@ const PpfDubaiQuote = () => {
     });
   };
 
+  const getCalculatorPackageLabel = useCallback((calculatorSelection: CalculatorSelection) => {
+    return `${calculatorSelection.brand}${calculatorSelection.stekLine ? ` ${calculatorSelection.stekLine}` : ""} ${calculatorSelection.warrantyYears}-year`;
+  }, []);
+
+  const sendLeadEmail = useCallback(
+    async (payload: Record<string, string | number>, debugLabel: string) => {
+      if (isLocalTestingBypass) {
+        console.info(`[dev bypass] ${debugLabel}`, payload);
+        return;
+      }
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        payload,
+        EMAILJS_PUBLIC_KEY
+      );
+    },
+    [isLocalTestingBypass]
+  );
+
+  const sendCalculatorRevealEmail = useCallback(
+    async (calculatorSelection: CalculatorSelection) => {
+      const packageLabel = getCalculatorPackageLabel(calculatorSelection);
+      const estimateLabel = formatAED(calculatorSelection.estimateMin);
+
+      await sendLeadEmail(
+        {
+          customer_name: name,
+          customer_phone: mobile,
+          vehicle_info: vehicleSummary,
+          vehicle_size: calculatorSelection.size,
+          service_name: "PPF Calculator Quote Reveal",
+          service_category: "PPF Calculator",
+          service_price: estimateLabel,
+          final_price: estimateLabel,
+          discount_code: `${calculatorSelection.coverage} | ${calculatorSelection.finish} | ${packageLabel}`,
+          timestamp: new Date().toISOString(),
+        },
+        "calculator quote reveal"
+      );
+    },
+    [getCalculatorPackageLabel, mobile, name, sendLeadEmail, vehicleSummary]
+  );
+
   const handleStepOne = () => {
     trackFormStartIfNeeded();
 
@@ -801,31 +953,35 @@ const PpfDubaiQuote = () => {
     setVehicleError("");
     setIsSubmitting(true);
 
-    const emailPayload = {
-      customer_name: name,
-      customer_phone: mobile,
-      vehicle_info: vehicleSummary,
-      service_name: "PPF Dubai Quote Lead",
-      service_category: "PPF Quote Funnel",
-      timestamp: new Date().toISOString(),
-    };
-
     try {
-      await emailjs.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ID,
-        emailPayload,
-        EMAILJS_PUBLIC_KEY
-      );
+      if (quoteModalFlow === "calculator" && selection) {
+        await sendCalculatorRevealEmail(selection);
+      } else {
+        await sendLeadEmail(
+          {
+            customer_name: name,
+            customer_phone: mobile,
+            vehicle_info: vehicleSummary,
+            service_name: "PPF Dubai Quote Lead",
+            service_category: "PPF Quote Funnel",
+            timestamp: new Date().toISOString(),
+          },
+          "standard quote lead"
+        );
+      }
     } catch (error) {
       console.error("Failed to send quote lead email:", error);
     } finally {
       setIsSubmitting(false);
       setFormSubmitted(true);
+      if (quoteModalFlow === "calculator" && selection) {
+        setCalculatorPriceUnlocked(true);
+      }
       setFormStep(3);
       trackEvent("ppf_quote_form_submit", {
         funnel_name: "ppf_dubai_quote",
         vehicle: vehicleSummary,
+        flow: quoteModalFlow,
         ...utmParams,
       });
     }
@@ -839,7 +995,7 @@ const PpfDubaiQuote = () => {
   };
 
   const handleCalculatorWhatsApp = async (calculatorSelection: CalculatorSelection) => {
-    const packageLabel = `${calculatorSelection.brand}${calculatorSelection.stekLine ? ` ${calculatorSelection.stekLine}` : ""} ${calculatorSelection.warrantyYears}-year`;
+    const packageLabel = getCalculatorPackageLabel(calculatorSelection);
     const estimateLabel = formatAED(calculatorSelection.estimateMin);
     const message = [
       "Hi Sean, I used the PPF calculator and want to discuss this setup.",
@@ -858,9 +1014,7 @@ const PpfDubaiQuote = () => {
 
     setIsSendingCalculatorLead(true);
     try {
-      await emailjs.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ID,
+      await sendLeadEmail(
         {
           customer_name: name,
           customer_phone: mobile,
@@ -873,7 +1027,7 @@ const PpfDubaiQuote = () => {
           discount_code: `${calculatorSelection.coverage} | ${calculatorSelection.finish} | ${packageLabel}`,
           timestamp: new Date().toISOString(),
         },
-        EMAILJS_PUBLIC_KEY
+        "calculator whatsapp lead"
       );
     } catch (error) {
       console.error("Failed to send calculator WhatsApp lead email:", error);
@@ -898,12 +1052,29 @@ const PpfDubaiQuote = () => {
 
   const openHeroForm = () => {
     trackFormStartIfNeeded();
+    setQuoteModalFlow("standard");
+    setFormStep(formSubmitted ? 3 : 1);
     setHeroFormOpen(true);
   };
 
-  const handleUnlockCalculator = () => {
+  const openCalculatorQuoteModal = async () => {
+    if (!selection) return;
+    setQuoteModalFlow("calculator");
+
+    if (formSubmitted) {
+      setCalculatorPriceUnlocked(true);
+      setFormStep(3);
+      setHeroFormOpen(true);
+      try {
+        await sendCalculatorRevealEmail(selection);
+      } catch (error) {
+        console.error("Failed to send calculator reveal email:", error);
+      }
+      return;
+    }
+
     setFormStep(1);
-    scrollToCalculatorSection();
+    setHeroFormOpen(true);
   };
 
   const handleModalOpenChange = (open: boolean) => {
@@ -1140,10 +1311,19 @@ const PpfDubaiQuote = () => {
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="flex max-h-[min(90dvh,920px)] min-h-0 w-[calc(100vw-1.25rem)] max-w-2xl flex-col overflow-hidden overflow-x-hidden border-white/10 bg-transparent p-0 shadow-none sm:w-full [&>button]:hidden">
+                    <DialogContent
+                      className={cn(
+                        "flex max-h-[min(90dvh,920px)] min-h-0 w-[calc(100vw-1.25rem)] flex-col overflow-hidden overflow-x-hidden border-0 bg-transparent p-0 shadow-none outline-none focus-visible:outline-none sm:w-full [&>button]:hidden",
+                        quoteModalFlow === "calculator" && formStep === 3 ? "max-w-4xl" : "max-w-2xl"
+                      )}
+                      onCloseAutoFocus={(event) => {
+                        event.preventDefault();
+                      }}
+                    >
                       <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-auto [-webkit-overflow-scrolling:touch]">
                         <QuoteUnlockForm
                         variant="modal"
+                        flow={quoteModalFlow}
                         formStep={formStep}
                         formSubmitted={formSubmitted}
                         name={name}
@@ -1185,6 +1365,12 @@ const PpfDubaiQuote = () => {
                         onOpenCalculator={handleOpenCalculatorFromModal}
                         whatsAppUrl={whatsAppUrl}
                         onWhatsAppClick={handleWhatsAppClick}
+                        calculatorSelection={selection}
+                        onCalculatorWhatsAppClick={() => {
+                          if (selection) {
+                            void handleCalculatorWhatsApp(selection);
+                          }
+                        }}
                       />
                       </div>
                     </DialogContent>
@@ -1920,93 +2106,28 @@ const PpfDubaiQuote = () => {
                 Compare the right finish, coverage, and warranty for your car
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Use the calculator to build the setup you actually want, then send the exact
-                configuration to Sean on WhatsApp for confirmation and final pricing.
+                Build the setup openly, then reveal the live estimate when you are ready to send
+                your details through to Sean.
               </p>
             </div>
 
             <div className="relative [overflow-anchor:none]">
-              {(!formSubmitted || formStep === 3) && !devCalculatorPeek ? (
-                <div className="absolute inset-0 z-20 flex min-h-0 flex-col rounded-3xl border border-border/60 bg-[rgba(8,8,8,0.56)] backdrop-blur-md">
-                  <div className="relative min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-auto [-webkit-overflow-scrolling:touch] px-4 py-6 sm:px-6">
-                    {import.meta.env.DEV ? (
-                      <button
-                        type="button"
-                        onClick={() => setDevCalculatorOverlayDismissed(true)}
-                        className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                        aria-label="Dismiss overlay and preview calculator (development only)"
-                        title="Dev: preview calculator without submitting"
-                      >
-                        <X className="h-5 w-5" strokeWidth={2.25} />
-                      </button>
-                    ) : null}
-                    <div className="mx-auto flex w-full max-w-2xl justify-center sm:min-h-full sm:items-center sm:py-0">
-                  <QuoteUnlockForm
-                    variant="embedded"
-                    formStep={formStep}
-                    formSubmitted={formSubmitted}
-                    name={name}
-                    mobile={mobile}
-                    vehicleMake={vehicleMake}
-                    vehicleModel={vehicleModel}
-                    vehicleYear={vehicleYear}
-                    phoneError={phoneError}
-                    vehicleError={vehicleError}
-                    isSubmitting={isSubmitting}
-                    vehicleSummary={vehicleSummary}
-                    onNameChange={(value) => {
-                      trackFormStartIfNeeded();
-                      setName(value);
-                    }}
-                    onMobileChange={(value) => {
-                      trackFormStartIfNeeded();
-                      setMobile(value);
-                      if (phoneError) setPhoneError("");
-                    }}
-                    onVehicleMakeChange={(value) => {
-                      trackFormStartIfNeeded();
-                      setVehicleMake(value);
-                      if (vehicleError) setVehicleError("");
-                    }}
-                    onVehicleModelChange={(value) => {
-                      trackFormStartIfNeeded();
-                      setVehicleModel(value);
-                      if (vehicleError) setVehicleError("");
-                    }}
-                    onVehicleYearChange={(value) => {
-                      trackFormStartIfNeeded();
-                      setVehicleYear(value.replace(/[^0-9]/g, "").slice(0, 4));
-                      if (vehicleError) setVehicleError("");
-                    }}
-                    onContinue={handleStepOne}
-                    onBack={() => setFormStep(1)}
-                    onSubmit={handleSubmit}
-                    onOpenCalculator={handleUnlockCalculator}
-                    whatsAppUrl={whatsAppUrl}
-                    onWhatsAppClick={handleWhatsAppClick}
-                  />
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              <div
-                className={
-                  !formSubmitted && !devCalculatorPeek
-                    ? "pointer-events-none select-none opacity-40"
-                    : ""
-                }
-              >
+              <div>
                 <PpfCostCalculatorWidget
                   variant="embedded"
                   showIntro={false}
                   showBrandSelector={false}
                   showActionButtons={false}
+                  priceUnlocked={calculatorPriceUnlocked}
                   brandOptions={["STEK"]}
                   defaultBrand="STEK"
                   defaultWarrantyYears={10}
+                  vehicleSummary={vehicleSummary}
                   onSelectionChange={(nextSelection) => setSelection(nextSelection)}
                   onWhatsAppRequest={handleCalculatorWhatsApp}
+                  onPriceUnlockRequest={() => {
+                    void openCalculatorQuoteModal();
+                  }}
                 />
               </div>
             </div>
@@ -2014,15 +2135,6 @@ const PpfDubaiQuote = () => {
               <p className="mt-4 text-sm text-slate-400">
                 Sending your calculator setup to Sean before WhatsApp opens...
               </p>
-            ) : null}
-            {import.meta.env.DEV && devCalculatorOverlayDismissed ? (
-              <button
-                type="button"
-                onClick={() => setDevCalculatorOverlayDismissed(false)}
-                className="mt-4 text-left text-xs font-medium text-primary/90 underline-offset-4 hover:text-primary hover:underline"
-              >
-                Dev: show lead form overlay again
-              </button>
             ) : null}
           </div>
         </section>
