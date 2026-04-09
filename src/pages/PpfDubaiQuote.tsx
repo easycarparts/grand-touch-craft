@@ -299,9 +299,16 @@ const QuoteUnlockForm = ({
   const step1CtaRef = useRef<HTMLDivElement>(null);
   const step2CtaRef = useRef<HTMLDivElement>(null);
 
-  /** Keep primary actions visible above the mobile keyboard (embedded = window scroll; modal = dialog scroll). */
+  /**
+   * Modal only: nudge the primary CTA inside the dialog when the on-screen keyboard resizes the
+   * visual viewport. Embedded variant must not use this: (1) the lead form sits in an inner
+   * `overflow-y-auto` layer, so `scrollIntoView` scrolls that layer and can crop the UI to a
+   * single button; (2) `visualViewport.resize` also fires when the browser chrome shows/hides
+   * during page scroll, which would fight normal scrolling if we called `scrollIntoView` from the
+   * embedded instance (still mounted with shared state).
+   */
   const scrollPrimaryCtaAboveKeyboard = useCallback(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !isModal) return;
     if (window.matchMedia?.("(pointer: coarse)").matches !== true) return;
 
     const el =
@@ -309,21 +316,7 @@ const QuoteUnlockForm = ({
     if (!el) return;
 
     const nudge = () => {
-      if (isModal) {
-        el.scrollIntoView({ block: "end", behavior: "auto", inline: "nearest" });
-        return;
-      }
-      const vv = window.visualViewport;
-      if (vv) {
-        const rect = el.getBoundingClientRect();
-        const margin = 20;
-        const visibleBottom = vv.offsetTop + vv.height;
-        const delta = rect.bottom - visibleBottom + margin;
-        if (delta > 0) {
-          window.scrollBy({ top: delta, left: 0, behavior: "auto" });
-        }
-      }
-      el.scrollIntoView({ block: "nearest", behavior: "auto", inline: "nearest" });
+      el.scrollIntoView({ block: "end", behavior: "auto", inline: "nearest" });
     };
 
     requestAnimationFrame(() => {
@@ -335,20 +328,22 @@ const QuoteUnlockForm = ({
   }, [formStep, isModal]);
 
   useEffect(() => {
+    if (!isModal) return;
     if (typeof window === "undefined" || !window.visualViewport) return;
     if (window.matchMedia?.("(pointer: coarse)").matches !== true) return;
     if (formStep !== 1 && formStep !== 2) return;
 
     const vv = window.visualViewport;
-    /** `resize` tracks keyboard open/close. Do not listen to `scroll`: on mobile, document scroll
-     * updates the visual viewport and would re-fire constantly, and the embedded calculator form
-     * (same shared state, still mounted) would call scrollIntoView and trap the page on that section. */
-    const onResize = () => scrollPrimaryCtaAboveKeyboard();
+    const onResize = () => {
+      /** Ignore chrome-only resizes (e.g. address bar) so we do not scroll the open dialog spuriously. */
+      if (vv.height >= window.innerHeight * 0.88) return;
+      scrollPrimaryCtaAboveKeyboard();
+    };
     vv.addEventListener("resize", onResize);
     return () => {
       vv.removeEventListener("resize", onResize);
     };
-  }, [formStep, scrollPrimaryCtaAboveKeyboard]);
+  }, [formStep, isModal, scrollPrimaryCtaAboveKeyboard]);
 
   return (
     <div className={cn(smokeGlassPanelClass, isModal ? "w-full" : "w-full max-w-2xl")}>
@@ -423,7 +418,7 @@ const QuoteUnlockForm = ({
                 <Input
                   value={name}
                   onChange={(event) => onNameChange(event.target.value)}
-                  onFocus={scrollPrimaryCtaAboveKeyboard}
+                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
                   placeholder="Your name"
                   autoComplete="name"
                   className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
@@ -435,7 +430,7 @@ const QuoteUnlockForm = ({
                 <Input
                   value={mobile}
                   onChange={(event) => onMobileChange(event.target.value)}
-                  onFocus={scrollPrimaryCtaAboveKeyboard}
+                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
                   placeholder="+971 50 123 4567"
                   inputMode="tel"
                   autoComplete="tel"
@@ -471,7 +466,7 @@ const QuoteUnlockForm = ({
                 <Input
                   value={vehicleMake}
                   onChange={(event) => onVehicleMakeChange(event.target.value)}
-                  onFocus={scrollPrimaryCtaAboveKeyboard}
+                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
                   placeholder="Porsche"
                   autoComplete="off"
                   className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
@@ -483,7 +478,7 @@ const QuoteUnlockForm = ({
                 <Input
                   value={vehicleModel}
                   onChange={(event) => onVehicleModelChange(event.target.value)}
-                  onFocus={scrollPrimaryCtaAboveKeyboard}
+                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
                   placeholder="911 Turbo S"
                   autoComplete="off"
                   className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
@@ -495,7 +490,7 @@ const QuoteUnlockForm = ({
                 <Input
                   value={vehicleYear}
                   onChange={(event) => onVehicleYearChange(event.target.value)}
-                  onFocus={scrollPrimaryCtaAboveKeyboard}
+                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
                   placeholder="2024"
                   inputMode="numeric"
                   autoComplete="off"
@@ -1145,8 +1140,9 @@ const PpfDubaiQuote = () => {
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-h-[min(90dvh,920px)] w-[calc(100vw-1.25rem)] max-w-2xl overflow-y-auto overflow-x-hidden overscroll-contain border-white/10 bg-transparent p-0 shadow-none sm:w-full [&>button]:hidden">
-                      <QuoteUnlockForm
+                    <DialogContent className="flex max-h-[min(90dvh,920px)] min-h-0 w-[calc(100vw-1.25rem)] max-w-2xl flex-col overflow-hidden overflow-x-hidden border-white/10 bg-transparent p-0 shadow-none sm:w-full [&>button]:hidden">
+                      <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-auto [-webkit-overflow-scrolling:touch]">
+                        <QuoteUnlockForm
                         variant="modal"
                         formStep={formStep}
                         formSubmitted={formSubmitted}
@@ -1190,6 +1186,7 @@ const PpfDubaiQuote = () => {
                         whatsAppUrl={whatsAppUrl}
                         onWhatsAppClick={handleWhatsAppClick}
                       />
+                      </div>
                     </DialogContent>
                   </Dialog>
 
@@ -1930,18 +1927,20 @@ const PpfDubaiQuote = () => {
 
             <div className="relative [overflow-anchor:none]">
               {(!formSubmitted || formStep === 3) && !devCalculatorPeek ? (
-                <div className="absolute inset-0 z-20 flex max-h-full min-h-0 items-start justify-center overflow-y-auto overscroll-y-contain rounded-3xl border border-border/60 bg-[rgba(8,8,8,0.56)] px-4 py-6 backdrop-blur-md sm:items-center sm:px-6">
-                  {import.meta.env.DEV ? (
-                    <button
-                      type="button"
-                      onClick={() => setDevCalculatorOverlayDismissed(true)}
-                      className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                      aria-label="Dismiss overlay and preview calculator (development only)"
-                      title="Dev: preview calculator without submitting"
-                    >
-                      <X className="h-5 w-5" strokeWidth={2.25} />
-                    </button>
-                  ) : null}
+                <div className="absolute inset-0 z-20 flex min-h-0 flex-col rounded-3xl border border-border/60 bg-[rgba(8,8,8,0.56)] backdrop-blur-md">
+                  <div className="relative min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-auto [-webkit-overflow-scrolling:touch] px-4 py-6 sm:px-6">
+                    {import.meta.env.DEV ? (
+                      <button
+                        type="button"
+                        onClick={() => setDevCalculatorOverlayDismissed(true)}
+                        className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                        aria-label="Dismiss overlay and preview calculator (development only)"
+                        title="Dev: preview calculator without submitting"
+                      >
+                        <X className="h-5 w-5" strokeWidth={2.25} />
+                      </button>
+                    ) : null}
+                    <div className="mx-auto flex w-full max-w-2xl justify-center sm:min-h-full sm:items-center sm:py-0">
                   <QuoteUnlockForm
                     variant="embedded"
                     formStep={formStep}
@@ -1986,6 +1985,8 @@ const PpfDubaiQuote = () => {
                     whatsAppUrl={whatsAppUrl}
                     onWhatsAppClick={handleWhatsAppClick}
                   />
+                    </div>
+                  </div>
                 </div>
               ) : null}
 
