@@ -57,6 +57,7 @@ type StoredLeadProfile = {
 
 const LEAD_PROFILE_STORAGE_KEY = "ppf-dubai-quote-lead-v1";
 const WHATSAPP_NUMBER = "971567191045";
+const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEP0I1PBB";
 
 const EMAILJS_SERVICE_ID = "service_f2na96a";
 const EMAILJS_TEMPLATE_ID = "template_bs1inle";
@@ -798,6 +799,16 @@ const PpfDubaiQuote = () => {
     }
   };
 
+  const trackGoogleAdsLeadConversion = () => {
+    if (typeof window === "undefined" || !window.gtag) return;
+
+    window.gtag("event", "conversion", {
+      send_to: GOOGLE_ADS_SUBMIT_LEAD_SEND_TO,
+      value: 1.0,
+      currency: "AED",
+    });
+  };
+
   useEffect(() => {
     updatePageSEO("ppf-dubai-quote", {
       title: "PPF Dubai Quote | Grand Touch",
@@ -931,12 +942,18 @@ const PpfDubaiQuote = () => {
           service_price: estimateLabel,
           final_price: estimateLabel,
           discount_code: `${calculatorSelection.coverage} | ${calculatorSelection.finish} | ${packageLabel}`,
+          utm_source: utmParams.utm_source,
+          utm_medium: utmParams.utm_medium,
+          utm_campaign: utmParams.utm_campaign,
+          utm_term: utmParams.utm_term,
+          utm_content: utmParams.utm_content,
+          gclid: utmParams.gclid,
           timestamp: new Date().toISOString(),
         },
         "calculator quote reveal"
       );
     },
-    [mobile, name, sendLeadEmail, vehicleSummary]
+    [mobile, name, sendLeadEmail, utmParams, vehicleSummary]
   );
 
   const handleStepOne = () => {
@@ -980,6 +997,12 @@ const PpfDubaiQuote = () => {
             vehicle_info: vehicleSummary,
             service_name: "PPF Dubai Quote Lead",
             service_category: "PPF Quote Funnel",
+            utm_source: utmParams.utm_source,
+            utm_medium: utmParams.utm_medium,
+            utm_campaign: utmParams.utm_campaign,
+            utm_term: utmParams.utm_term,
+            utm_content: utmParams.utm_content,
+            gclid: utmParams.gclid,
             timestamp: new Date().toISOString(),
           },
           "standard quote lead"
@@ -1000,6 +1023,7 @@ const PpfDubaiQuote = () => {
         flow: quoteModalFlow,
         ...utmParams,
       });
+      trackGoogleAdsLeadConversion();
     }
   };
 
