@@ -11,6 +11,12 @@
     "build": "vite build && node scripts/prerender.js",
     "build:seo": "vite build && node scripts/prerender.js",
     "build:dev": "vite build --mode development",
+    "ads:doctor": "node scripts/google-ads/doctor.mjs",
+    "ads:list-customers": "node scripts/google-ads/list-customers.mjs",
+    "ads:campaigns": "node scripts/google-ads/campaigns.mjs",
+    "ads:conversions": "node scripts/google-ads/conversions.mjs",
+    "ads:conversion-review": "node scripts/google-ads/conversion-review.mjs",
+    "ads:review": "node scripts/google-ads/review.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "prerender": "node scripts/prerender.js"
