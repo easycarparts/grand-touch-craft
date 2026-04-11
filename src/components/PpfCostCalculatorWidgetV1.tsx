@@ -55,7 +55,7 @@ const sizeLabels: Record<CarSize, { title: string; subtitle: string }> = {
 const warrantyOptionMeta: Record<number, { subtitle: string; helper: string; badge?: string }> = {
   5: {
     subtitle: "F3",
-    helper: "Entry coverage",
+    helper: "Entry point",
   },
   10: {
     subtitle: "ForceShield",
@@ -64,7 +64,7 @@ const warrantyOptionMeta: Record<number, { subtitle: string; helper: string; bad
   },
   12: {
     subtitle: "DynoShield",
-    helper: "Maximum cover",
+    helper: "Maximum protection",
   },
 };
 
@@ -319,7 +319,7 @@ const PpfCostCalculatorWidgetV1 = ({
                         </p>
                         {!showBrandSelector ? (
                           <p className="mt-1 text-sm leading-6 text-slate-300">
-                            Pick the STEK package that matches how long you want the car protected.
+                            Choose the STEK package that matches how long you plan to keep the car.
                           </p>
                         ) : null}
                       </div>
