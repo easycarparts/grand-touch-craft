@@ -57,7 +57,7 @@ type StoredLeadProfile = {
 
 const LEAD_PROFILE_STORAGE_KEY = "ppf-dubai-quote-lead-v1";
 const WHATSAPP_NUMBER = "971567191045";
-const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEP0I1PBB";
+const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
 
 const EMAILJS_SERVICE_ID = "service_f2na96a";
 const EMAILJS_TEMPLATE_ID = "template_bs1inle";

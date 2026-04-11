@@ -10,7 +10,7 @@ function printTable(rows) {
     status: row.campaign?.status || "",
     impressions: Number(row.metrics?.impressions || 0),
     clicks: Number(row.metrics?.clicks || 0),
-    ctr: `${Number(row.metrics?.ctr || 0).toFixed(2)}%`,
+    ctr: `${(Number(row.metrics?.ctr || 0) * 100).toFixed(2)}%`,
     avgCpcAed: microsToCurrency(row.metrics?.averageCpc).toFixed(2),
     costAed: microsToCurrency(row.metrics?.costMicros).toFixed(2),
     conversions: Number(row.metrics?.conversions || 0).toFixed(2),
