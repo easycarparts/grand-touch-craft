@@ -14,8 +14,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import PpfCostCalculatorWidgetV1 from "@/components/PpfCostCalculatorWidgetV1";
-import PpfQuoteSummaryV1 from "@/components/PpfQuoteSummaryV1";
+import PpfCostCalculatorWidget from "@/components/PpfCostCalculatorWidget";
+import PpfQuoteSummary from "@/components/PpfQuoteSummary";
 import { updatePageSEO } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
@@ -592,7 +592,7 @@ const QuoteUnlockForm = ({
                 </p>
               </div>
 
-            <PpfQuoteSummaryV1
+            <PpfQuoteSummary
                 selection={calculatorSelection}
                 vehicleSummary={vehicleSummary}
                 onWhatsAppClick={onCalculatorWhatsAppClick}
@@ -2235,7 +2235,7 @@ const PpfDubaiQuote = () => {
 
             <div className="relative [overflow-anchor:none]">
               <div>
-                <PpfCostCalculatorWidgetV1
+                <PpfCostCalculatorWidget
                   variant="embedded"
                   showIntro={false}
                   showBrandSelector={false}
@@ -2546,4 +2546,3 @@ const PpfDubaiQuote = () => {
 };
 
 export default PpfDubaiQuote;
-
