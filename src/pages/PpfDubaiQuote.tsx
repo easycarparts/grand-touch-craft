@@ -1845,21 +1845,23 @@ const PpfDubaiQuote = () => {
                     properly.
                   </p>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:gap-3.5 sm:px-3.5 sm:py-3">
-                    <img
-                      src="/stek-white-small.png"
-                      alt="STEK"
-                      className="h-7 w-auto shrink-0 object-contain opacity-95 sm:h-8"
-                      loading="lazy"
-                    />
-                    <span className="hidden h-6 w-px shrink-0 bg-white/12 sm:block" />
-                    <img
-                      src={stekWarrantySticker}
-                      alt="STEK warranty sticker"
-                      className="h-11 w-auto max-w-[min(100%,200px)] shrink-0 rounded-md border border-white/12 bg-black/35 object-contain object-left sm:h-[3.25rem] sm:max-w-[220px]"
-                      loading="lazy"
-                    />
-                    <p className="min-w-0 flex-1 text-sm font-medium leading-snug text-slate-200 sm:text-[0.9375rem]">
+                  <div className="mt-4 flex flex-col gap-2.5 rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:flex-row sm:items-center sm:gap-3.5 sm:px-3.5 sm:py-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-3">
+                      <img
+                        src="/stek-white-small.png"
+                        alt="STEK"
+                        className="h-7 w-auto shrink-0 object-contain opacity-95 sm:h-8"
+                        loading="lazy"
+                      />
+                      <span className="hidden h-6 w-px shrink-0 bg-white/12 sm:block" />
+                      <img
+                        src={stekWarrantySticker}
+                        alt="STEK warranty sticker"
+                        className="h-11 w-auto max-w-[min(100%,200px)] shrink-0 rounded-md border border-white/12 bg-black/35 object-contain object-left sm:h-[3.25rem] sm:max-w-[220px]"
+                        loading="lazy"
+                      />
+                    </div>
+                    <p className="w-full text-sm font-medium leading-snug text-slate-200 sm:min-w-0 sm:flex-1 sm:text-[0.9375rem]">
                       Genuine film. Registered warranty.
                     </p>
                   </div>
