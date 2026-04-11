@@ -163,6 +163,46 @@ export async function listAccessibleCustomers(config) {
   return json.resourceNames || [];
 }
 
+export async function mutate(config, mutateOperations, options = {}) {
+  const accessToken = await getAccessToken(config);
+  const endpoint = `https://googleads.googleapis.com/${config.apiVersion}/customers/${config.customerId}/googleAds:mutate`;
+
+  const headers = {
+    authorization: `Bearer ${accessToken}`,
+    "content-type": "application/json",
+    "developer-token": config.developerToken,
+  };
+
+  if (config.loginCustomerId) {
+    headers["login-customer-id"] = config.loginCustomerId;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      mutateOperations,
+      partialFailure: options.partialFailure ?? true,
+      validateOnly: options.validateOnly ?? false,
+    }),
+  });
+
+  const text = await response.text();
+  let json;
+
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(`Google Ads API returned non-JSON response (${response.status}): ${text}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(formatGoogleAdsError(json));
+  }
+
+  return json;
+}
+
 export async function getCustomerInfo(config) {
   const query = `
     SELECT

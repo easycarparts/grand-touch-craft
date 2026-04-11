@@ -16,6 +16,7 @@
     "ads:campaigns": "node scripts/google-ads/campaigns.mjs",
     "ads:conversions": "node scripts/google-ads/conversions.mjs",
     "ads:conversion-review": "node scripts/google-ads/conversion-review.mjs",
+    "ads:apply-expansion": "node scripts/google-ads/apply-expansion.mjs",
     "ads:review": "node scripts/google-ads/review.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
