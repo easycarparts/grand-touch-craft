@@ -2,27 +2,27 @@ import { loadWorkflowConfig, mutate, searchStream } from "./api.mjs";
 
 const HEADLINES = [
   "PPF Dubai You Can Trust",
-  "PPF Dubai Quote",
-  "PPF Price Dubai",
   "Paint Protection Film Dubai",
-  "Premium PPF In Dubai",
   "Get A Real PPF Quote",
   "Warranty You Can Trace",
   "Proper Install. Clear Process.",
-  "Dubai Paint Protection",
-  "Certified STEK Installs",
-  "Genuine STEK Film",
   "Direct With Sean",
-  "Grand Touch PPF Dubai",
-  "Get Your PPF Estimate",
-  "Premium Film. Proper Install.",
+  "Sean-Led Quote & Handover",
+  "Genuine STEK. Registered.",
+  "Dubai PPF Done Properly",
+  "No Vague Handoffs",
+  "See Finish Before Sign-Off",
+  "Get PPF Pricing In Dubai",
+  "Built Around Your Car",
+  "Gloss Or Matte That Fits",
+  "Real Buyer Handover",
 ];
 
 const DESCRIPTIONS = [
-  "Get a real PPF quote in Dubai with clear pricing, proper install, and traceable warranty.",
-  "Premium paint protection film for drivers who value trust, finish quality, and clean work.",
-  "Deal directly with Sean at Grand Touch and compare the right protection for your car.",
-  "Certified STEK installs, genuine materials, and a cleaner experience than PPF shops.",
+  "Get a real PPF quote with proper install, genuine STEK, and warranty you can trace.",
+  "Sean guides the quote and handover, so the standard promised is the standard delivered.",
+  "Compare the right finish and coverage for your car, then ask Sean directly on WhatsApp.",
+  "Built for Dubai drivers who care about clean prep, finish quality, and no vague handoff.",
 ];
 
 async function getRsa(config, campaignName) {
