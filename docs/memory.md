@@ -219,6 +219,51 @@ Important markers exist in:
 
 - [src/pages/PpfDubaiQuote.tsx](C:/Users/seane/Desktop/GTA%20Web/grand-touch-craft/src/pages/PpfDubaiQuote.tsx)
 
+---
+
+## 6. Funnel analytics and CRM
+
+### Current state
+
+The project now has:
+
+- Supabase-backed admin auth
+- Supabase-backed lead capture
+- Supabase-backed funnel event storage
+- a live funnel dashboard
+- a live lead desk
+
+### Intent score
+
+The intent score is now intentionally weighted around:
+
+- time on page
+- scroll depth
+- section depth
+- video engagement
+- calculator / quote exploration
+- captured contact data
+- final conversion actions
+
+The detailed weighting is documented here:
+
+- [docs/intent-score-model.md](C:/Users/seane/Desktop/GTA%20Website/grand-touch-craft/docs/intent-score-model.md)
+
+### Lead desk behavior
+
+The lead desk should not only show who the lead is.
+It should also show what they were trying to buy.
+
+Important expectation:
+
+- each lead row can be expanded to reveal package / size / finish / coverage / estimate / engagement snapshot
+
+### Fresh-session handoff
+
+Use this document to start the next CRM build session without reloading the entire old thread:
+
+- [docs/crm-next-step-handoff.md](C:/Users/seane/Desktop/GTA%20Website/grand-touch-craft/docs/crm-next-step-handoff.md)
+
 The detailed line references are in:
 
 - [docs/google-ads-handoff.md](C:/Users/seane/Desktop/GTA%20Web/grand-touch-craft/docs/google-ads-handoff.md)
@@ -537,6 +582,19 @@ The highest-value next tasks are probably:
 4. add better website event tracking
 5. create channel-specific LP variants
 6. later wire Meta / Google / TikTok feedback loops
+
+### Current execution priority
+
+Use:
+
+- [docs/meta-funnel-roadmap.md](C:/Users/seane/Desktop/GTA%20Website/grand-touch-craft/docs/meta-funnel-roadmap.md)
+
+as the active build order for:
+
+- Meta funnel
+- tracking foundation
+- funnel dashboard
+- `/admin` lead desk
 
 ---
 

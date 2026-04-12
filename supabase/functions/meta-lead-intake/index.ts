@@ -1,0 +1,531 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+
+type MetaWebhookBody = {
+  object?: string;
+  entry?: Array<{
+    id?: string;
+    changes?: Array<{
+      field?: string;
+      value?: {
+        leadgen_id?: string;
+        form_id?: string;
+        page_id?: string;
+        ad_id?: string;
+        created_time?: number;
+      };
+    }>;
+  }>;
+};
+
+type MetaLeadField = {
+  name: string;
+  values?: string[];
+};
+
+type MetaLeadResponse = {
+  id: string;
+  created_time?: string;
+  form_id?: string;
+  ad_id?: string;
+  is_organic?: boolean;
+  platform?: string;
+  field_data?: MetaLeadField[];
+};
+
+type MetaAdResponse = {
+  id: string;
+  name?: string;
+  adset?: {
+    id?: string;
+    name?: string;
+    campaign?: {
+      id?: string;
+      name?: string;
+    };
+  };
+};
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL");
+const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const metaAccessToken = Deno.env.get("META_ACCESS_TOKEN");
+const metaAppSecret = Deno.env.get("META_APP_SECRET");
+const metaVerifyToken = Deno.env.get("META_VERIFY_TOKEN");
+const metaSyncSecret = Deno.env.get("META_SYNC_SECRET");
+
+if (!supabaseUrl || !serviceRoleKey) {
+  throw new Error("Missing Supabase environment variables.");
+}
+
+const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+const normalizePhone = (value: string | null | undefined) => (value ?? "").replace(/[^0-9+]/g, "");
+
+const normalizeFieldName = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const formatTokenLabel = (value: string | null | undefined) =>
+  (value ?? "")
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const pickFirstValue = (fieldData: MetaLeadField[] | undefined, matcher: (name: string) => boolean) => {
+  const match = fieldData?.find((item) => matcher(item.name.toLowerCase()));
+  return match?.values?.[0] ?? null;
+};
+
+const makeAppSecretProof = async (token: string, appSecret: string) => {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(appSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(token));
+  return Array.from(new Uint8Array(signature))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+const verifyMetaSignature = async (rawBody: string, signatureHeader: string | null) => {
+  if (!metaAppSecret) {
+    throw new Error("META_APP_SECRET is not configured.");
+  }
+
+  if (!signatureHeader?.startsWith("sha256=")) {
+    throw new Error("Missing Meta signature header.");
+  }
+
+  const expected = signatureHeader.replace("sha256=", "");
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(metaAppSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const digest = await crypto.subtle.sign("HMAC", key, encoder.encode(rawBody));
+  const actual = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+  if (actual !== expected) {
+    throw new Error("Meta webhook signature mismatch.");
+  }
+};
+
+const graphGet = async <T>(path: string, params: Record<string, string>) => {
+  if (!metaAccessToken) {
+    throw new Error("META_ACCESS_TOKEN is not configured.");
+  }
+
+  const proof = metaAppSecret ? await makeAppSecretProof(metaAccessToken, metaAppSecret) : null;
+  const url = new URL(`https://graph.facebook.com/v22.0/${path}`);
+  url.searchParams.set("access_token", metaAccessToken);
+
+  if (proof) {
+    url.searchParams.set("appsecret_proof", proof);
+  }
+
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Meta Graph request failed for ${path}`);
+  }
+
+  return (await response.json()) as T;
+};
+
+const fetchLeadFromMeta = async (leadgenId: string) =>
+  graphGet<MetaLeadResponse>(leadgenId, {
+    fields: "id,created_time,form_id,ad_id,is_organic,platform,field_data",
+  });
+
+const fetchAdContext = async (adId: string | undefined) => {
+  if (!adId) return null;
+
+  try {
+    return await graphGet<MetaAdResponse>(adId, {
+      fields: "id,name,adset{id,name,campaign{id,name}}",
+    });
+  } catch (error) {
+    console.warn("Failed to fetch Meta ad context", error);
+    return null;
+  }
+};
+
+const logSyncRun = async (input: {
+  status: "received" | "processed" | "skipped" | "failed";
+  externalId?: string | null;
+  leadId?: string | null;
+  requestPayload?: Record<string, unknown>;
+  responsePayload?: Record<string, unknown>;
+  errorMessage?: string | null;
+}) => {
+  const { error } = await supabase.from("source_sync_runs").insert({
+    provider: "meta",
+    source_kind: "webhook",
+    status: input.status,
+    external_id: input.externalId ?? null,
+    lead_id: input.leadId ?? null,
+    request_payload: input.requestPayload ?? {},
+    response_payload: input.responsePayload ?? {},
+    error_message: input.errorMessage ?? null,
+  });
+
+  if (error) {
+    console.warn("Failed to log Meta sync run", error);
+  }
+};
+
+const parseLeadFields = (lead: MetaLeadResponse) => {
+  const fieldData = lead.field_data ?? [];
+  const normalizedFields = fieldData.map((field) => ({
+    originalName: field.name,
+    normalizedName: normalizeFieldName(field.name),
+    values: field.values ?? [],
+  }));
+
+  const pickNormalizedValue = (matcher: (name: string) => boolean) =>
+    normalizedFields.find((field) => matcher(field.normalizedName))?.values?.[0] ?? null;
+
+  const pickRawValue = (matcher: (name: string) => boolean) =>
+    normalizedFields.find((field) => matcher(field.originalName.toLowerCase()))?.values?.[0] ?? null;
+
+  const fullName =
+    pickNormalizedValue((name) => ["full_name", "name"].includes(name)) ??
+    pickRawValue((name) => ["full name", "name"].includes(name)) ??
+    null;
+  const email =
+    pickNormalizedValue((name) => name.includes("email")) ??
+    null;
+  const phone =
+    pickNormalizedValue((name) => name.includes("phone")) ??
+    null;
+  const vehicleMake =
+    pickNormalizedValue((name) => name === "vehicle_make" || name === "make" || name.includes("car_make")) ??
+    null;
+  const vehicleModel =
+    pickNormalizedValue((name) => name === "vehicle_model" || name === "model" || name.includes("car_model")) ??
+    null;
+  const vehicleYear =
+    pickNormalizedValue((name) => name === "vehicle_year" || name === "year" || name.includes("car_year")) ??
+    null;
+  const combinedVehicle =
+    pickNormalizedValue(
+      (name) =>
+        name.includes("your_car") ||
+        name.includes("vehicle_make_model_year") ||
+        name.includes("make_model_year") ||
+        name.includes("car_make_model_year"),
+    ) ??
+    null;
+  const deliveryStatus =
+    pickNormalizedValue(
+      (name) =>
+        name === "delivery_status" ||
+        name.includes("have_the_car_now") ||
+        name.includes("do_you_have_the_car_now") ||
+        name.includes("car_now"),
+    ) ?? null;
+  const protectionLevel =
+    pickNormalizedValue(
+      (name) =>
+        name === "protection_level" ||
+        name.includes("package") ||
+        name.includes("protection"),
+    ) ?? null;
+
+  const combinedVehicleTrimmed = combinedVehicle?.trim() || null;
+  const extractedYear =
+    vehicleYear ||
+    combinedVehicleTrimmed?.match(/\b(19|20)\d{2}\b/)?.[0] ||
+    null;
+  const combinedVehicleWithoutYear =
+    combinedVehicleTrimmed && extractedYear
+      ? combinedVehicleTrimmed
+          .replace(new RegExp(`\\b${extractedYear}\\b`, "g"), " ")
+          .replace(/[-,/]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+      : combinedVehicleTrimmed;
+  const fallbackVehicleModel =
+    combinedVehicleWithoutYear && !vehicleModel ? combinedVehicleWithoutYear : vehicleModel;
+
+  const summaryParts = [
+    protectionLevel ? `Package: ${formatTokenLabel(protectionLevel)}` : null,
+    deliveryStatus ? `Timing: ${formatTokenLabel(deliveryStatus)}` : null,
+  ].filter(Boolean);
+
+  return {
+    fullName,
+    email,
+    phone,
+    vehicleMake,
+    vehicleModel: fallbackVehicleModel,
+    vehicleYear: extractedYear,
+    combinedVehicle: combinedVehicleTrimmed,
+    deliveryStatus,
+    protectionLevel,
+    notesSummary: summaryParts.length ? summaryParts.join(" | ") : null,
+    rawFields: Object.fromEntries(
+      normalizedFields.map((field) => [field.originalName, field.values]),
+    ),
+  };
+};
+
+const upsertMetaLeadIntoCrm = async (input: {
+  lead: MetaLeadResponse;
+  adContext: MetaAdResponse | null;
+  pageId?: string | null;
+  webhookPayload: Record<string, unknown>;
+}) => {
+  const parsed = parseLeadFields(input.lead);
+
+  const { data: existingLead, error: existingLeadError } = await supabase
+    .from("leads")
+    .select("id")
+    .eq("lead_source_type", "meta_lead_form")
+    .eq("external_lead_id", input.lead.id)
+    .maybeSingle();
+
+  if (existingLeadError) {
+    throw existingLeadError;
+  }
+
+  const commonUpdate = {
+    full_name: parsed.fullName,
+    phone: normalizePhone(parsed.phone),
+    email: parsed.email,
+    vehicle_make: parsed.vehicleMake,
+    vehicle_model: parsed.vehicleModel,
+    vehicle_year: parsed.vehicleYear,
+    vehicle_label: parsed.combinedVehicle,
+    source_platform: "meta",
+    landing_page_variant: "meta_lead_form",
+    funnel_name: "meta_lead_ads",
+    lead_source_type: "meta_lead_form",
+    notes_summary: parsed.notesSummary,
+    external_lead_id: input.lead.id,
+    external_form_id: input.lead.form_id ?? null,
+    external_page_id: input.pageId ?? null,
+    external_ad_id: input.lead.ad_id ?? null,
+    external_adset_id: input.adContext?.adset?.id ?? null,
+    external_campaign_id: input.adContext?.adset?.campaign?.id ?? null,
+    external_ad_name: input.adContext?.name ?? null,
+    external_adset_name: input.adContext?.adset?.name ?? null,
+    external_campaign_name: input.adContext?.adset?.campaign?.name ?? null,
+    source_received_at: input.lead.created_time ?? new Date().toISOString(),
+    submitted_at: input.lead.created_time ?? new Date().toISOString(),
+    last_activity_at: new Date().toISOString(),
+    import_metadata: {
+      provider: "meta",
+      is_organic: input.lead.is_organic ?? null,
+      platform: input.lead.platform ?? null,
+      delivery_status: parsed.deliveryStatus,
+      protection_level: parsed.protectionLevel,
+      combined_vehicle: parsed.combinedVehicle,
+      field_data: parsed.rawFields,
+      webhook_payload: input.webhookPayload,
+    },
+  };
+
+  if (existingLead?.id) {
+    const { error: updateError } = await supabase
+      .from("leads")
+      .update(commonUpdate)
+      .eq("id", existingLead.id);
+
+    if (updateError) throw updateError;
+    return {
+      leadId: existingLead.id,
+      operation: "updated",
+    };
+  }
+
+  const { data: insertedLead, error: insertError } = await supabase
+    .from("leads")
+    .insert({
+      ...commonUpdate,
+      status: "new",
+      quality_label: "unreviewed",
+      first_captured_at: input.lead.created_time ?? new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (insertError) throw insertError;
+
+  return {
+    leadId: insertedLead.id as string,
+    operation: "inserted",
+  };
+};
+
+const processLeadgenEvent = async (input: {
+  leadgenId: string;
+  pageId?: string | null;
+  formId?: string | null;
+  adId?: string | null;
+  webhookPayload: Record<string, unknown>;
+}) => {
+  await logSyncRun({
+    status: "received",
+    externalId: input.leadgenId,
+    requestPayload: input.webhookPayload,
+  });
+
+  const lead = await fetchLeadFromMeta(input.leadgenId);
+  const adContext = await fetchAdContext(input.adId ?? lead.ad_id);
+  const result = await upsertMetaLeadIntoCrm({
+    lead,
+    adContext,
+    pageId: input.pageId,
+    webhookPayload: input.webhookPayload,
+  });
+
+  await logSyncRun({
+    status: "processed",
+    externalId: input.leadgenId,
+    leadId: result.leadId,
+    requestPayload: input.webhookPayload,
+    responsePayload: {
+      operation: result.operation,
+      meta_lead_id: lead.id,
+      meta_form_id: lead.form_id ?? input.formId ?? null,
+      meta_ad_id: lead.ad_id ?? input.adId ?? null,
+    },
+  });
+
+  return result;
+};
+
+Deno.serve(async (request) => {
+  try {
+    const url = new URL(request.url);
+
+    if (request.method === "GET") {
+      const mode = url.searchParams.get("hub.mode");
+      const verifyToken = url.searchParams.get("hub.verify_token");
+      const challenge = url.searchParams.get("hub.challenge");
+
+      if (mode === "subscribe" && verifyToken && challenge && metaVerifyToken && verifyToken === metaVerifyToken) {
+        return new Response(challenge, { status: 200 });
+      }
+
+      return new Response("Verification failed", { status: 403 });
+    }
+
+    if (request.method !== "POST") {
+      return json({ error: "Method not allowed" }, 405);
+    }
+
+    const rawBody = await request.text();
+    const signature = request.headers.get("x-hub-signature-256");
+    const internalSecret = request.headers.get("x-meta-sync-secret");
+
+    const body = rawBody ? (JSON.parse(rawBody) as Record<string, unknown>) : {};
+
+    if (internalSecret && metaSyncSecret && internalSecret === metaSyncSecret) {
+      const leadgenId = typeof body.leadgen_id === "string" ? body.leadgen_id : null;
+      if (!leadgenId) {
+        return json({ error: "Missing leadgen_id" }, 400);
+      }
+
+      const result = await processLeadgenEvent({
+        leadgenId,
+        pageId: typeof body.page_id === "string" ? body.page_id : null,
+        formId: typeof body.form_id === "string" ? body.form_id : null,
+        adId: typeof body.ad_id === "string" ? body.ad_id : null,
+        webhookPayload: body,
+      });
+
+      return json({ ok: true, mode: "manual_retry", ...result });
+    }
+
+    await verifyMetaSignature(rawBody, signature);
+    const webhook = body as MetaWebhookBody;
+
+    if (webhook.object !== "page" || !webhook.entry?.length) {
+      return json({ ok: true, ignored: true });
+    }
+
+    const processed: Array<Record<string, unknown>> = [];
+
+    for (const entry of webhook.entry) {
+      for (const change of entry.changes ?? []) {
+        if (change.field !== "leadgen" || !change.value?.leadgen_id) {
+          continue;
+        }
+
+        try {
+          const result = await processLeadgenEvent({
+            leadgenId: change.value.leadgen_id,
+            pageId: change.value.page_id ?? entry.id ?? null,
+            formId: change.value.form_id ?? null,
+            adId: change.value.ad_id ?? null,
+            webhookPayload: {
+              entry_id: entry.id ?? null,
+              field: change.field,
+              value: change.value,
+            },
+          });
+
+          processed.push({
+            leadgen_id: change.value.leadgen_id,
+            ...result,
+          });
+        } catch (error) {
+          await logSyncRun({
+            status: "failed",
+            externalId: change.value.leadgen_id,
+            requestPayload: {
+              entry_id: entry.id ?? null,
+              field: change.field,
+              value: change.value,
+            },
+            errorMessage: error instanceof Error ? error.message : "Unknown error",
+          });
+
+          processed.push({
+            leadgen_id: change.value.leadgen_id,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      }
+    }
+
+    return json({
+      ok: true,
+      processed,
+    });
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+    );
+  }
+});

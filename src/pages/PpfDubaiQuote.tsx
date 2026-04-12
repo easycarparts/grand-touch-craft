@@ -16,6 +16,11 @@ import {
 import { Input } from "@/components/ui/input";
 import PpfCostCalculatorWidget from "@/components/PpfCostCalculatorWidget";
 import PpfQuoteSummary from "@/components/PpfQuoteSummary";
+import {
+  captureLeadSnapshot,
+  createFunnelTrackingContext,
+  trackFunnelEvent,
+} from "@/lib/funnel-analytics";
 import { updatePageSEO } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
@@ -52,6 +57,9 @@ type StoredLeadProfile = {
   vehicleMake: string;
   vehicleModel: string;
   vehicleYear: string;
+  sessionId?: string;
+  visitorId?: string;
+  lastCompletedStep?: 1 | 2 | 3;
   savedAt: string;
 };
 
@@ -71,13 +79,8 @@ const WHY_STEK_POSTER = encodeURI("/Screenshot 2026-04-11 162409.png");
 
 /** Max movement (px) between down/up to count as a tap, not a scroll/drag. */
 const WHY_STEK_TAP_SLOP_PX = 14;
-
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-    dataLayer?: Array<Record<string, unknown>>;
-  }
-}
+const SCROLL_DEPTH_MILESTONES = [25, 50, 75, 90] as const;
+const VIDEO_PROGRESS_MILESTONES = [25, 50, 75, 95] as const;
 
 const GoogleWordmark = ({ className }: { className?: string }) => (
   <span aria-label="Google" className={cn("font-semibold tracking-tight", className)}>
@@ -163,6 +166,22 @@ const VideoModalCard = ({
 );
 
 const formatAED = (value: number) => `AED ${value.toLocaleString("en-AE")}`;
+const isValidPhoneNumber = (value: string) => {
+  const cleaned = value.replace(/[\s-]/g, "");
+  return /^\+[0-9]{9,}$/.test(cleaned) && cleaned.length >= 10;
+};
+
+const buildVehicleLabel = ({
+  vehicleMake,
+  vehicleModel,
+  vehicleYear,
+}: {
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: string;
+}) => [vehicleYear.trim(), vehicleMake.trim(), vehicleModel.trim()].filter(Boolean).join(" ");
+
+const sanitizePhoneSignature = (value: string) => value.replace(/[\s-]/g, "");
 
 const getCalculatorPackageLabel = (calculatorSelection: CalculatorSelection) => {
   return `${calculatorSelection.brand}${calculatorSelection.stekLine ? ` ${calculatorSelection.stekLine}` : ""} ${calculatorSelection.warrantyYears}-year`;
@@ -665,12 +684,16 @@ const PpfDubaiQuote = () => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   const hasTrackedFormStart = useRef(false);
+  const hasTrackedConfiguratorStart = useRef(false);
   const lastTrackedQuoteSignature = useRef<string | null>(null);
+  const lastTrackedContactSignature = useRef<string | null>(null);
+  const lastTrackedVehicleSignature = useRef<string | null>(null);
   const calculatorRef = useRef<HTMLElement | null>(null);
-  const isLocalTestingBypass =
-    import.meta.env.DEV ||
-    (typeof window !== "undefined" &&
-      /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname));
+  /**
+   * Local lead testing should behave like the real funnel by default.
+   * Only bypass outbound EmailJS sends when we explicitly opt in via env.
+   */
+  const isLeadEmailBypassEnabled = import.meta.env.VITE_BYPASS_FUNNEL_EMAILS === "true";
 
   /** Mobile Safari often ignores smooth scroll or runs before overlay unmount; use measured top + delayed retries. */
   const scrollToCalculatorSection = useCallback(() => {
@@ -698,26 +721,57 @@ const PpfDubaiQuote = () => {
   const trustVideoRef = useRef<HTMLVideoElement | null>(null);
   const whyStekSectionRef = useRef<HTMLElement | null>(null);
   const whyStekVideoRef = useRef<HTMLVideoElement | null>(null);
+  const sectionVisibleSinceRef = useRef<Map<string, number>>(new Map());
+  const sectionTotalMsRef = useRef<Map<string, number>>(new Map());
+  const sectionSeenRef = useRef<Set<string>>(new Set());
+  const sessionStartedAtRef = useRef(Date.now());
+  const maxScrollDepthRef = useRef(0);
+  const scrollMilestonesTrackedRef = useRef<Set<number>>(new Set());
+  const whyStekVideoMilestonesTrackedRef = useRef<Set<number>>(new Set());
+  const whyStekVideoMaxPercentRef = useRef(0);
+  const lastPageCheckpointAtRef = useRef(0);
   /** Dedupes pointerup + click (common on Chrome Android) so play() runs once. */
   const whyStekPlayGateRef = useRef(0);
-
-  const utmParams = useMemo(() => {
-    if (typeof window === "undefined") return {};
-    const search = new URLSearchParams(window.location.search);
-    return {
-      utm_source: search.get("utm_source") || "",
-      utm_medium: search.get("utm_medium") || "",
-      utm_campaign: search.get("utm_campaign") || "",
-      utm_term: search.get("utm_term") || "",
-      utm_content: search.get("utm_content") || "",
-      gclid: search.get("gclid") || "",
-    };
-  }, []);
+  const funnelContext = useMemo(
+    () =>
+      createFunnelTrackingContext({
+        funnelName: "ppf_dubai_quote",
+        landingPageVariant: "google",
+        defaultSourcePlatform: "google",
+      }),
+    []
+  );
+  const utmParams = funnelContext.attribution;
 
   const vehicleSummary = useMemo(
     () => [vehicleYear.trim(), vehicleMake.trim(), vehicleModel.trim()].filter(Boolean).join(" "),
     [vehicleMake, vehicleModel, vehicleYear]
   );
+  const hasValidContactDetails = useMemo(
+    () => Boolean(name.trim()) && isValidPhoneNumber(mobile),
+    [mobile, name]
+  );
+  const hasValidVehicleDetails = useMemo(
+    () =>
+      Boolean(vehicleMake.trim()) &&
+      Boolean(vehicleModel.trim()) &&
+      /^\d{4}$/.test(vehicleYear.trim()),
+    [vehicleMake, vehicleModel, vehicleYear]
+  );
+  const contactSignature = useMemo(() => {
+    if (!hasValidContactDetails) return "";
+    return `${name.trim().toLowerCase()}|${sanitizePhoneSignature(mobile)}`;
+  }, [hasValidContactDetails, mobile, name]);
+  const vehicleSignature = useMemo(() => {
+    if (!hasValidContactDetails || !hasValidVehicleDetails) return "";
+    return [
+      name.trim().toLowerCase(),
+      sanitizePhoneSignature(mobile),
+      vehicleMake.trim().toLowerCase(),
+      vehicleModel.trim().toLowerCase(),
+      vehicleYear.trim(),
+    ].join("|");
+  }, [hasValidContactDetails, hasValidVehicleDetails, mobile, name, vehicleMake, vehicleModel, vehicleYear]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -726,31 +780,62 @@ const PpfDubaiQuote = () => {
 
     try {
       const parsed = JSON.parse(stored) as StoredLeadProfile;
-      if (!parsed.submitted) return;
       setName(parsed.name || "");
       setMobile(parsed.mobile || "+971");
       setVehicleMake(parsed.vehicleMake || "");
       setVehicleModel(parsed.vehicleModel || "");
       setVehicleYear(parsed.vehicleYear || "");
-      setFormSubmitted(true);
+      setFormSubmitted(Boolean(parsed.submitted));
+      if (parsed.name && parsed.mobile && isValidPhoneNumber(parsed.mobile)) {
+        lastTrackedContactSignature.current = `${parsed.name.trim().toLowerCase()}|${sanitizePhoneSignature(parsed.mobile)}`;
+      }
+      if (
+        parsed.name &&
+        parsed.mobile &&
+        parsed.vehicleMake &&
+        parsed.vehicleModel &&
+        /^\d{4}$/.test(parsed.vehicleYear || "")
+      ) {
+        lastTrackedVehicleSignature.current = [
+          parsed.name.trim().toLowerCase(),
+          sanitizePhoneSignature(parsed.mobile),
+          parsed.vehicleMake.trim().toLowerCase(),
+          parsed.vehicleModel.trim().toLowerCase(),
+          parsed.vehicleYear.trim(),
+        ].join("|");
+      }
     } catch (error) {
       console.warn("Failed to restore stored PPF lead profile", error);
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !formSubmitted) return;
+    if (typeof window === "undefined") return;
     const payload: StoredLeadProfile = {
-      submitted: true,
+      submitted: formSubmitted,
       name,
       mobile,
       vehicleMake,
       vehicleModel,
       vehicleYear,
+      sessionId: funnelContext.sessionId,
+      visitorId: funnelContext.visitorId,
+      lastCompletedStep: formSubmitted ? 3 : hasValidVehicleDetails ? 2 : hasValidContactDetails ? 1 : undefined,
       savedAt: new Date().toISOString(),
     };
     window.localStorage.setItem(LEAD_PROFILE_STORAGE_KEY, JSON.stringify(payload));
-  }, [formSubmitted, mobile, name, vehicleMake, vehicleModel, vehicleYear]);
+  }, [
+    formSubmitted,
+    funnelContext.sessionId,
+    funnelContext.visitorId,
+    hasValidContactDetails,
+    hasValidVehicleDetails,
+    mobile,
+    name,
+    vehicleMake,
+    vehicleModel,
+    vehicleYear,
+  ]);
 
   const whatsAppUrl = useMemo(() => {
     const cleanVehicleSummary = vehicleSummary.trim();
@@ -792,14 +877,123 @@ const PpfDubaiQuote = () => {
     );
   }, [calculatorPriceUnlocked, formSubmitted, selection, vehicleSummary]);
 
-  const trackEvent = (eventName: string, payload: Record<string, unknown> = {}) => {
-    if (typeof window === "undefined") return;
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ event: eventName, ...payload });
-    if (window.gtag) {
-      window.gtag("event", eventName, payload);
-    }
-  };
+  const trackEvent = useCallback(
+    (
+      eventName: string,
+      payload: Record<string, unknown> = {},
+      options?: {
+        metaStandardEvent?: "PageView" | "Lead" | "Contact";
+        metaPayload?: Record<string, unknown>;
+        privatePayload?: Record<string, unknown>;
+      }
+    ) => {
+      trackFunnelEvent({
+        eventName,
+        context: funnelContext,
+        payload,
+        privatePayload: options?.privatePayload,
+        metaStandardEvent: options?.metaStandardEvent,
+        metaPayload: options?.metaPayload,
+      });
+    },
+    [funnelContext]
+  );
+
+  useEffect(() => {
+    if (!contactSignature) return;
+
+    const timeoutId = window.setTimeout(() => {
+      if (lastTrackedContactSignature.current === contactSignature) return;
+      lastTrackedContactSignature.current = contactSignature;
+
+      trackEvent(
+        "lead_contact_captured",
+        {
+          flow: quoteModalFlow,
+          form_step: formStep,
+          contact_ready: true,
+        },
+        {
+          privatePayload: {
+            lead_name: name.trim(),
+            lead_phone: mobile.trim(),
+          },
+        }
+      );
+
+      void captureLeadSnapshot({
+        snapshotType: "contact",
+        context: funnelContext,
+        fullName: name.trim(),
+        phone: mobile.trim(),
+        payload: {
+          flow: quoteModalFlow,
+          form_step: formStep,
+        },
+      });
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [contactSignature, formStep, funnelContext, mobile, name, quoteModalFlow, trackEvent]);
+
+  useEffect(() => {
+    if (!vehicleSignature) return;
+
+    const timeoutId = window.setTimeout(() => {
+      if (lastTrackedVehicleSignature.current === vehicleSignature) return;
+      lastTrackedVehicleSignature.current = vehicleSignature;
+
+      trackEvent(
+        "lead_vehicle_captured",
+        {
+          flow: quoteModalFlow,
+          form_step: formStep,
+          vehicle_ready: true,
+          vehicle_label: buildVehicleLabel({
+            vehicleMake,
+            vehicleModel,
+            vehicleYear,
+          }),
+        },
+        {
+          privatePayload: {
+            lead_name: name.trim(),
+            lead_phone: mobile.trim(),
+            vehicle_make: vehicleMake.trim(),
+            vehicle_model: vehicleModel.trim(),
+            vehicle_year: vehicleYear.trim(),
+          },
+        }
+      );
+
+      void captureLeadSnapshot({
+        snapshotType: "vehicle",
+        context: funnelContext,
+        fullName: name.trim(),
+        phone: mobile.trim(),
+        vehicleMake: vehicleMake.trim(),
+        vehicleModel: vehicleModel.trim(),
+        vehicleYear: vehicleYear.trim(),
+        payload: {
+          flow: quoteModalFlow,
+          form_step: formStep,
+        },
+      });
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    formStep,
+    funnelContext,
+    mobile,
+    name,
+    quoteModalFlow,
+    trackEvent,
+    vehicleMake,
+    vehicleModel,
+    vehicleSignature,
+    vehicleYear,
+  ]);
 
   const trackGoogleAdsLeadConversion = () => {
     if (typeof window === "undefined" || !window.gtag) return;
@@ -810,6 +1004,75 @@ const PpfDubaiQuote = () => {
       currency: "AED",
     });
   };
+
+  const flushSectionDuration = useCallback(
+    (sectionName: string, reason: string) => {
+      const startedAt = sectionVisibleSinceRef.current.get(sectionName);
+      if (!startedAt) return;
+
+      sectionVisibleSinceRef.current.delete(sectionName);
+      const durationMs = Math.max(0, Date.now() - startedAt);
+      const nextTotalMs = (sectionTotalMsRef.current.get(sectionName) ?? 0) + durationMs;
+      sectionTotalMsRef.current.set(sectionName, nextTotalMs);
+
+      if (durationMs < 250) return;
+
+      trackEvent("section_engagement", {
+        section_name: sectionName,
+        duration_ms: durationMs,
+        total_section_ms: nextTotalMs,
+        exit_reason: reason,
+      });
+    },
+    [trackEvent]
+  );
+
+  const restartVisibleSectionsFromViewport = useCallback(() => {
+    if (typeof window === "undefined") return;
+
+    const viewportHeight = window.innerHeight;
+    const now = Date.now();
+    const sections = document.querySelectorAll<HTMLElement>("[data-funnel-section]");
+
+    sections.forEach((section) => {
+      const sectionName = section.dataset.funnelSection;
+      if (!sectionName) return;
+
+      const rect = section.getBoundingClientRect();
+      const isVisible = rect.top < viewportHeight * 0.72 && rect.bottom > viewportHeight * 0.28;
+      if (!isVisible || sectionVisibleSinceRef.current.has(sectionName)) return;
+
+      sectionVisibleSinceRef.current.set(sectionName, now);
+
+      if (!sectionSeenRef.current.has(sectionName)) {
+        sectionSeenRef.current.add(sectionName);
+        trackEvent("section_view", {
+          section_name: sectionName,
+        });
+      }
+    });
+  }, [trackEvent]);
+
+  const trackPageCheckpoint = useCallback(
+    (reason: string) => {
+      const now = Date.now();
+      if (reason !== "resume" && now - lastPageCheckpointAtRef.current < 400) return;
+      lastPageCheckpointAtRef.current = now;
+
+      const visibleSections = Array.from(sectionVisibleSinceRef.current.keys());
+      visibleSections.forEach((sectionName) => {
+        flushSectionDuration(sectionName, reason);
+      });
+
+      trackEvent("page_checkpoint", {
+        checkpoint_reason: reason,
+        elapsed_ms: now - sessionStartedAtRef.current,
+        max_scroll_percent: maxScrollDepthRef.current,
+        visible_sections: visibleSections.join(","),
+      });
+    },
+    [flushSectionDuration, trackEvent]
+  );
 
   useEffect(() => {
     updatePageSEO("ppf-dubai-quote", {
@@ -824,13 +1087,13 @@ const PpfDubaiQuote = () => {
       url: "https://www.grandtouchauto.ae/ppf-dubai-quote",
     });
 
-    trackEvent("page_view_funnel", {
-      funnel_name: "ppf_dubai_quote",
+    trackEvent("lp_view", {
       brand_focus: "Grand Touch",
       default_package: "STEK 10-year",
-      ...utmParams,
+    }, {
+      metaStandardEvent: "PageView",
     });
-  }, [utmParams]);
+  }, [trackEvent]);
 
   useEffect(() => {
     if (!heroFormOpen || quoteModalFlow !== "calculator" || formStep !== 3 || !selection) return;
@@ -846,16 +1109,136 @@ const PpfDubaiQuote = () => {
     if (lastTrackedQuoteSignature.current === signature) return;
     lastTrackedQuoteSignature.current = signature;
     const packageLabel = `${selection.brand}${selection.stekLine ? ` ${selection.stekLine}` : ""} ${selection.warrantyYears}-year`;
-    trackEvent("ppf_estimate_shown", {
-      funnel_name: "ppf_dubai_quote",
+    trackEvent("quote_unlocked", {
       package_name: packageLabel,
       size: selection.size,
       coverage: selection.coverage,
       finish: selection.finish,
       estimate_value: selection.estimateMin,
-      ...utmParams,
     });
-  }, [formStep, heroFormOpen, quoteModalFlow, selection, utmParams]);
+  }, [formStep, heroFormOpen, quoteModalFlow, selection, trackEvent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
+
+    const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-funnel-section]"));
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const sectionName = (entry.target as HTMLElement).dataset.funnelSection;
+          if (!sectionName) continue;
+
+          const isActive = entry.isIntersecting && entry.intersectionRatio >= 0.35;
+          const isLeaving = !entry.isIntersecting || entry.intersectionRatio <= 0.15;
+
+          if (isActive) {
+            if (!sectionVisibleSinceRef.current.has(sectionName)) {
+              sectionVisibleSinceRef.current.set(sectionName, Date.now());
+            }
+
+            if (!sectionSeenRef.current.has(sectionName)) {
+              sectionSeenRef.current.add(sectionName);
+              trackEvent("section_view", {
+                section_name: sectionName,
+              });
+            }
+          } else if (isLeaving) {
+            flushSectionDuration(sectionName, "scroll_out");
+          }
+        }
+      },
+      {
+        threshold: [0, 0.15, 0.35, 0.55, 0.75],
+      }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    restartVisibleSectionsFromViewport();
+
+    return () => {
+      observer.disconnect();
+      Array.from(sectionVisibleSinceRef.current.keys()).forEach((sectionName) => {
+        flushSectionDuration(sectionName, "observer_cleanup");
+      });
+    };
+  }, [flushSectionDuration, restartVisibleSectionsFromViewport, trackEvent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateScrollDepth = () => {
+      const doc = document.documentElement;
+      const scrollableHeight = Math.max(doc.scrollHeight - window.innerHeight, 1);
+      const currentPercent = Math.min(
+        100,
+        Math.round(((window.scrollY || doc.scrollTop || 0) / scrollableHeight) * 100)
+      );
+
+      if (currentPercent > maxScrollDepthRef.current) {
+        maxScrollDepthRef.current = currentPercent;
+      }
+
+      SCROLL_DEPTH_MILESTONES.forEach((milestone) => {
+        if (
+          currentPercent >= milestone &&
+          !scrollMilestonesTrackedRef.current.has(milestone)
+        ) {
+          scrollMilestonesTrackedRef.current.add(milestone);
+          trackEvent("scroll_depth_reached", {
+            scroll_percent: milestone,
+            current_scroll_percent: currentPercent,
+          });
+        }
+      });
+    };
+
+    updateScrollDepth();
+    window.addEventListener("scroll", updateScrollDepth, { passive: true });
+    window.addEventListener("resize", updateScrollDepth);
+
+    return () => {
+      window.removeEventListener("scroll", updateScrollDepth);
+      window.removeEventListener("resize", updateScrollDepth);
+    };
+  }, [trackEvent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        trackPageCheckpoint("hidden");
+        return;
+      }
+
+      trackEvent("page_checkpoint", {
+        checkpoint_reason: "resume",
+        elapsed_ms: Date.now() - sessionStartedAtRef.current,
+        max_scroll_percent: maxScrollDepthRef.current,
+      });
+      restartVisibleSectionsFromViewport();
+    };
+
+    const onPageHide = () => {
+      trackPageCheckpoint("pagehide");
+    };
+
+    const onBeforeUnload = () => {
+      trackPageCheckpoint("beforeunload");
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("beforeunload", onBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [restartVisibleSectionsFromViewport, trackEvent, trackPageCheckpoint]);
 
   useEffect(() => {
     const video = trustVideoRef.current;
@@ -897,23 +1280,21 @@ const PpfDubaiQuote = () => {
     };
   }, []);
 
-  const validatePhoneNumber = (value: string) => {
-    const cleaned = value.replace(/[\s-]/g, "");
-    return /^\+[0-9]{9,}$/.test(cleaned) && cleaned.length >= 10;
-  };
+  const trackConfiguratorStartIfNeeded = useCallback(() => {
+    if (hasTrackedConfiguratorStart.current) return;
+    hasTrackedConfiguratorStart.current = true;
+    trackEvent("quote_config_started");
+  }, [trackEvent]);
 
   const trackFormStartIfNeeded = () => {
     if (hasTrackedFormStart.current) return;
     hasTrackedFormStart.current = true;
-    trackEvent("ppf_quote_form_start", {
-      funnel_name: "ppf_dubai_quote",
-      ...utmParams,
-    });
+    trackEvent("lead_form_started");
   };
 
   const sendLeadEmail = useCallback(
     async (payload: Record<string, string | number>, debugLabel: string) => {
-      if (isLocalTestingBypass) {
+      if (isLeadEmailBypassEnabled) {
         console.info(`[dev bypass] ${debugLabel}`, payload);
         return;
       }
@@ -925,7 +1306,7 @@ const PpfDubaiQuote = () => {
         EMAILJS_PUBLIC_KEY
       );
     },
-    [isLocalTestingBypass]
+    [isLeadEmailBypassEnabled]
   );
 
   const sendCalculatorRevealEmail = useCallback(
@@ -950,6 +1331,8 @@ const PpfDubaiQuote = () => {
           utm_term: utmParams.utm_term,
           utm_content: utmParams.utm_content,
           gclid: utmParams.gclid,
+          fbclid: utmParams.fbclid,
+          ttclid: utmParams.ttclid,
           timestamp: new Date().toISOString(),
         },
         "calculator quote reveal"
@@ -963,13 +1346,18 @@ const PpfDubaiQuote = () => {
 
     if (!name.trim()) return;
 
-    if (!mobile.trim() || !validatePhoneNumber(mobile)) {
+    if (!mobile.trim() || !isValidPhoneNumber(mobile)) {
       setPhoneError("Use a valid international number, for example +971 50 123 4567.");
       return;
     }
 
     setPhoneError("");
     setFormStep(2);
+      trackEvent("lead_form_step_completed", {
+        step_name: "contact",
+        flow: quoteModalFlow,
+        contact_ready: true,
+      });
   };
 
   const handleSubmit = async () => {
@@ -1005,6 +1393,8 @@ const PpfDubaiQuote = () => {
             utm_term: utmParams.utm_term,
             utm_content: utmParams.utm_content,
             gclid: utmParams.gclid,
+            fbclid: utmParams.fbclid,
+            ttclid: utmParams.ttclid,
             timestamp: new Date().toISOString(),
           },
           "standard quote lead"
@@ -1019,17 +1409,48 @@ const PpfDubaiQuote = () => {
         setCalculatorPriceUnlocked(true);
       }
       setFormStep(3);
-      trackEvent("ppf_quote_form_submit", {
-        funnel_name: "ppf_dubai_quote",
+      void captureLeadSnapshot({
+        snapshotType: "submit",
+        context: funnelContext,
+        fullName: name.trim(),
+        phone: mobile.trim(),
+        vehicleMake: vehicleMake.trim(),
+        vehicleModel: vehicleModel.trim(),
+        vehicleYear: vehicleYear.trim(),
+        payload: {
+          flow: quoteModalFlow,
+          vehicle: vehicleSummary,
+        },
+      });
+      trackEvent("lead_form_step_completed", {
+        step_name: "vehicle",
+        flow: quoteModalFlow,
+        vehicle_ready: true,
+      });
+      trackEvent("lead_form_submitted", {
         vehicle: vehicleSummary,
         flow: quoteModalFlow,
-        ...utmParams,
+      }, {
+        metaStandardEvent: "Lead",
+        metaPayload: {
+          content_name: "PPF Quote Funnel",
+          status: "submitted",
+          value: selection?.estimateMin ?? 1,
+          currency: "AED",
+        },
+        privatePayload: {
+          lead_name: name.trim(),
+          lead_phone: mobile.trim(),
+          vehicle_make: vehicleMake.trim(),
+          vehicle_model: vehicleModel.trim(),
+          vehicle_year: vehicleYear.trim(),
+        },
       });
       trackGoogleAdsLeadConversion();
     }
   };
 
-  const handleWhatsAppClick = () => {
+  const handleWhatsAppClick = (placement: string = "unknown") => {
     const whatsappState = selection
       ? calculatorPriceUnlocked
         ? "calculator_quote"
@@ -1038,11 +1459,23 @@ const PpfDubaiQuote = () => {
         ? "known_lead"
         : "cold_start";
 
-    trackEvent("ppf_whatsapp_click", {
-      funnel_name: "ppf_dubai_quote",
+    trackEvent("whatsapp_click", {
+      cta_location: placement,
       whatsapp_state: whatsappState,
-      ...utmParams,
+    }, {
+      metaStandardEvent: "Contact",
+      metaPayload: {
+        contact_channel: "whatsapp",
+        cta_location: placement,
+        whatsapp_state: whatsappState,
+      },
     });
+
+    if (placement === "hero") {
+      trackEvent("hero_whatsapp_click", {
+        whatsapp_state: whatsappState,
+      });
+    }
   };
 
   const handleCalculatorWhatsApp = async (calculatorSelection: CalculatorSelection) => {
@@ -1076,6 +1509,14 @@ const PpfDubaiQuote = () => {
           service_price: estimateLabel,
           final_price: estimateLabel,
           discount_code: `${calculatorSelection.coverage} | ${calculatorSelection.finish} | ${packageLabel}`,
+          utm_source: utmParams.utm_source,
+          utm_medium: utmParams.utm_medium,
+          utm_campaign: utmParams.utm_campaign,
+          utm_term: utmParams.utm_term,
+          utm_content: utmParams.utm_content,
+          gclid: utmParams.gclid,
+          fbclid: utmParams.fbclid,
+          ttclid: utmParams.ttclid,
           timestamp: new Date().toISOString(),
         },
         "calculator whatsapp lead"
@@ -1084,22 +1525,37 @@ const PpfDubaiQuote = () => {
       console.error("Failed to send calculator WhatsApp lead email:", error);
     } finally {
       setIsSendingCalculatorLead(false);
-      trackEvent("ppf_whatsapp_click", {
-        funnel_name: "ppf_dubai_quote",
+      trackEvent("whatsapp_click", {
+        cta_location: "calculator_quote",
         whatsapp_state: "calculator_quote",
         package_name: packageLabel,
         size: calculatorSelection.size,
         coverage: calculatorSelection.coverage,
         finish: calculatorSelection.finish,
         estimate_value: calculatorSelection.estimateMin,
-        ...utmParams,
+      }, {
+        metaStandardEvent: "Contact",
+        metaPayload: {
+          contact_channel: "whatsapp",
+          cta_location: "calculator_quote",
+          package_name: packageLabel,
+          value: calculatorSelection.estimateMin,
+          currency: "AED",
+        },
       });
       window.open(buildWhatsAppUrl(message), "_blank", "noopener,noreferrer");
     }
   };
 
-  const openHeroForm = () => {
+  const openHeroForm = (placement: string = "quote_cta") => {
     trackFormStartIfNeeded();
+    trackEvent(placement === "hero" ? "hero_cta_click" : "quote_cta_click", {
+      cta_location: placement,
+    });
+    trackEvent("quote_modal_opened", {
+      flow: "standard",
+      cta_location: placement,
+    });
     setQuoteModalFlow("standard");
     setFormStep(formSubmitted ? 3 : 1);
     setHeroFormOpen(true);
@@ -1107,6 +1563,17 @@ const PpfDubaiQuote = () => {
 
   const openCalculatorQuoteModal = async () => {
     if (!selection) return;
+    trackEvent("quote_unlock_requested", {
+      package_name: getCalculatorPackageLabel(selection),
+      size: selection.size,
+      coverage: selection.coverage,
+      finish: selection.finish,
+      estimate_value: selection.estimateMin,
+    });
+    trackEvent("quote_modal_opened", {
+      flow: "calculator",
+      cta_location: "calculator_unlock",
+    });
     setQuoteModalFlow("calculator");
 
     if (formSubmitted) {
@@ -1205,6 +1672,51 @@ const PpfDubaiQuote = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const video = whyStekVideoRef.current;
+    if (!video) return;
+
+    const onTimeUpdate = () => {
+      if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+
+      const currentPercent = Math.min(100, Math.round((video.currentTime / video.duration) * 100));
+      if (currentPercent > whyStekVideoMaxPercentRef.current) {
+        whyStekVideoMaxPercentRef.current = currentPercent;
+      }
+
+      VIDEO_PROGRESS_MILESTONES.forEach((milestone) => {
+        if (
+          currentPercent >= milestone &&
+          !whyStekVideoMilestonesTrackedRef.current.has(milestone)
+        ) {
+          whyStekVideoMilestonesTrackedRef.current.add(milestone);
+          trackEvent("video_progress", {
+            video_name: "why_stek",
+            progress_percent: milestone,
+            current_seconds: Number(video.currentTime.toFixed(1)),
+            duration_seconds: Number(video.duration.toFixed(1)),
+          });
+        }
+      });
+    };
+
+    const onEnded = () => {
+      trackEvent("video_completed", {
+        video_name: "why_stek",
+        duration_seconds: Number(video.duration.toFixed(1)),
+        max_progress_percent: whyStekVideoMaxPercentRef.current,
+      });
+    };
+
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("ended", onEnded);
+
+    return () => {
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("ended", onEnded);
+    };
+  }, [trackEvent]);
+
   const handleWhyStekPlay = () => {
     const video = whyStekVideoRef.current;
     if (!video) return;
@@ -1215,6 +1727,10 @@ const PpfDubaiQuote = () => {
       video.currentTime = 0;
     }
     video.muted = false;
+    trackEvent("manual_video_play", {
+      video_name: "why_stek",
+      section: "proof",
+    });
     void video.play().catch(() => {
       setIsWhyStekPlaying(false);
     });
@@ -1307,6 +1823,10 @@ const PpfDubaiQuote = () => {
         video.currentTime = 0;
       }
       video.muted = false;
+      trackEvent("manual_video_play", {
+        video_name: "why_stek",
+        section: "proof",
+      });
       void video.play().catch(() => {
         setIsWhyStekPlaying(false);
       });
@@ -1319,7 +1839,10 @@ const PpfDubaiQuote = () => {
   return (
     <div className="min-h-screen bg-background pb-32 text-foreground md:pb-0">
       <main>
-        <section className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.09),_transparent_42%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.04),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.05),transparent_22%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-0 pb-8 pt-10 sm:bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)]">
+        <section
+          data-funnel-section="hero"
+          className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.09),_transparent_42%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.04),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.05),transparent_22%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-0 pb-8 pt-10 sm:bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)]"
+        >
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-24 top-16 h-56 w-56 rounded-full bg-primary/8 blur-3xl sm:bg-primary/12" />
             <div className="absolute right-[-4rem] top-10 h-64 w-64 rounded-full bg-amber-200/[0.04] blur-3xl sm:bg-amber-200/10" />
@@ -1381,7 +1904,12 @@ const PpfDubaiQuote = () => {
                 <div className="mt-6 flex flex-col gap-3">
                   <Dialog open={heroFormOpen} onOpenChange={handleModalOpenChange}>
                     <DialogTrigger asChild>
-                      <Button size="lg" variant="default" className={cn(primaryPpfCtaButtonClass, "w-full")} onClick={openHeroForm}>
+                      <Button
+                        size="lg"
+                        variant="default"
+                        className={cn(primaryPpfCtaButtonClass, "w-full")}
+                        onClick={() => openHeroForm("hero")}
+                      >
                         Get My PPF Quote
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -1439,7 +1967,7 @@ const PpfDubaiQuote = () => {
                         onSubmit={handleSubmit}
                         onOpenCalculator={handleOpenCalculatorFromModal}
                         whatsAppUrl={whatsAppUrl}
-                        onWhatsAppClick={handleWhatsAppClick}
+                        onWhatsAppClick={() => handleWhatsAppClick("quote_form")}
                         calculatorSelection={selection}
                         onCalculatorWhatsAppClick={() => {
                           if (selection) {
@@ -1457,7 +1985,7 @@ const PpfDubaiQuote = () => {
                       variant="default"
                       className={heroWhatsAppButtonClass}
                       size="lg"
-                      onClick={handleWhatsAppClick}
+                      onClick={() => handleWhatsAppClick("hero")}
                     >
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Ask Sean on WhatsApp
@@ -1591,7 +2119,10 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
-        <section className="border-b border-border/50 bg-[radial-gradient(circle_at_18%_0%,rgba(245,181,43,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-12">
+        <section
+          data-funnel-section="serious_buyer_risks"
+          className="border-b border-border/50 bg-[radial-gradient(circle_at_18%_0%,rgba(245,181,43,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-12"
+        >
           <div className="container mx-auto max-w-6xl">
             <div className="rounded-[32px] border border-primary/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(12,12,12,0.96))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.3)] sm:p-8">
               <div className="grid gap-6 lg:grid-cols-[0.88fr_1.12fr] lg:items-start lg:gap-8">
@@ -1658,6 +2189,7 @@ const PpfDubaiQuote = () => {
 
         <section
           ref={trustSectionRef}
+          data-funnel-section="risk_reduction"
           className="border-y border-border/50 bg-[radial-gradient(circle_at_18%_20%,rgba(245,181,43,0.07),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14"
         >
           <div className="container mx-auto max-w-6xl">
@@ -1763,6 +2295,7 @@ const PpfDubaiQuote = () => {
 
         <section
           ref={whyStekSectionRef}
+          data-funnel-section="why_stek"
           className="border-b border-border/50 bg-[radial-gradient(circle_at_75%_20%,rgba(245,181,43,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14"
         >
           <div className="container mx-auto max-w-6xl">
@@ -1914,7 +2447,10 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
-        <section className="border-y border-border/50 bg-card/30 px-0 py-12">
+        <section
+          data-funnel-section="real_handovers"
+          className="border-y border-border/50 bg-card/30 px-0 py-12"
+        >
           <div className="container mx-auto max-w-6xl">
             <div className="mb-6">
               <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
@@ -2026,9 +2562,9 @@ const PpfDubaiQuote = () => {
             <SectionCta
               primaryLabel="Get My PPF Quote"
               secondaryLabel="Ask Sean on WhatsApp"
-              onPrimaryClick={openHeroForm}
+              onPrimaryClick={() => openHeroForm("mid_page")}
               secondaryHref={whatsAppUrl}
-              onSecondaryClick={handleWhatsAppClick}
+              onSecondaryClick={() => handleWhatsAppClick("mid_page")}
               note="Seen enough? Get your quote or ask Sean directly."
             />
           </div>
@@ -2196,7 +2732,7 @@ const PpfDubaiQuote = () => {
                       <SectionCta
                         stacked
                         className="mt-5"
-                        onPrimaryClick={openHeroForm}
+                        onPrimaryClick={() => openHeroForm("warranty_section")}
                         note="When you are ready, open Get My PPF Quote — same action as at the top of the page."
                       />
                     </div>
@@ -2209,6 +2745,7 @@ const PpfDubaiQuote = () => {
 
         <section
           ref={calculatorRef}
+          data-funnel-section="calculator"
           className="scroll-mt-6 border-t border-border/50 bg-[radial-gradient(circle_at_50%_0%,rgba(245,181,43,0.04),transparent_42%)] px-0 pb-16 pt-16 [overflow-anchor:none] sm:scroll-mt-8 sm:pb-20 sm:pt-20"
         >
           <div className="container mx-auto max-w-6xl">
@@ -2248,6 +2785,31 @@ const PpfDubaiQuote = () => {
                   defaultWarrantyYears={10}
                   vehicleSummary={vehicleSummary}
                   onSelectionChange={(nextSelection) => setSelection(nextSelection)}
+                  onWarrantyYearsChange={(warrantyYears) => {
+                    trackConfiguratorStartIfNeeded();
+                    trackEvent("package_selected", {
+                      package_name: `STEK ${warrantyYears}-year`,
+                      warranty_years: warrantyYears,
+                    });
+                  }}
+                  onSizeChange={(size) => {
+                    trackConfiguratorStartIfNeeded();
+                    trackEvent("vehicle_size_selected", {
+                      vehicle_size: size,
+                    });
+                  }}
+                  onFinishChange={(finish) => {
+                    trackConfiguratorStartIfNeeded();
+                    trackEvent("finish_selected", {
+                      finish,
+                    });
+                  }}
+                  onCoverageChange={(coverage) => {
+                    trackConfiguratorStartIfNeeded();
+                    trackEvent("coverage_selected", {
+                      coverage,
+                    });
+                  }}
                   onWhatsAppRequest={handleCalculatorWhatsApp}
                   onPriceUnlockRequest={() => {
                     void openCalculatorQuoteModal();
@@ -2263,7 +2825,7 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
-        <section className="px-0 pb-24 pt-14 sm:pb-28">
+        <section data-funnel-section="process" className="px-0 pb-24 pt-14 sm:pb-28">
           <div className="container mx-auto max-w-6xl">
             <div className="relative overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.1),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-7">
               <div className="pointer-events-none absolute inset-0">
@@ -2414,7 +2976,7 @@ const PpfDubaiQuote = () => {
                         size="lg"
                         variant="default"
                         className={cn(primaryPpfCtaButtonClass, "mt-6 w-full")}
-                        onClick={openHeroForm}
+                        onClick={() => openHeroForm("warranty_card")}
                       >
                         Get My PPF Quote
                         <ArrowRight className="ml-2 h-4 w-4" />
@@ -2427,7 +2989,10 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
-        <section className="border-y border-border/50 bg-[radial-gradient(circle_at_15%_20%,rgba(245,181,43,0.06),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14">
+        <section
+          data-funnel-section="faq"
+          className="border-y border-border/50 bg-[radial-gradient(circle_at_15%_20%,rgba(245,181,43,0.06),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14"
+        >
           <div className="container mx-auto max-w-5xl">
             <div className="text-center">
               <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">FAQ</p>
@@ -2451,7 +3016,16 @@ const PpfDubaiQuote = () => {
                     <button
                       type="button"
                       className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left sm:px-6 sm:py-5"
-                      onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                      onClick={() => {
+                        const nextOpen = isOpen ? null : index;
+                        setOpenFaqIndex(nextOpen);
+                        if (nextOpen !== null) {
+                          trackEvent("faq_opened", {
+                            faq_question: item.question,
+                            faq_index: index,
+                          });
+                        }
+                      }}
                       aria-expanded={isOpen}
                     >
                       <span className="text-base font-semibold text-white sm:text-lg">{item.question}</span>
@@ -2476,7 +3050,7 @@ const PpfDubaiQuote = () => {
           </div>
         </section>
 
-        <section className="px-0 py-16">
+        <section data-funnel-section="final_cta" className="px-0 py-16">
           <div className="container mx-auto max-w-5xl">
             <div className="relative overflow-hidden rounded-[34px] border border-primary/20 bg-[radial-gradient(circle_at_top,rgba(245,181,43,0.16),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(10,10,10,0.98))] px-6 py-10 text-center shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:px-10 sm:py-12">
               <div className="pointer-events-none absolute inset-0">
@@ -2498,9 +3072,9 @@ const PpfDubaiQuote = () => {
                 <SectionCta
                   primaryLabel="Get My PPF Quote"
                   secondaryLabel="Ask Sean on WhatsApp"
-                  onPrimaryClick={openHeroForm}
+                  onPrimaryClick={() => openHeroForm("final_cta")}
                   secondaryHref={whatsAppUrl}
-                  onSecondaryClick={handleWhatsAppClick}
+                  onSecondaryClick={() => handleWhatsAppClick("final_cta")}
                   align="center"
                   note="Clear quote. Direct accountability. No vague handoff."
                 />
@@ -2518,7 +3092,7 @@ const PpfDubaiQuote = () => {
             variant="default"
             className={whatsappCtaButtonClass}
             size="lg"
-            onClick={handleWhatsAppClick}
+            onClick={() => handleWhatsAppClick("mobile_sticky")}
           >
             <MessageCircle className="mr-2 h-4 w-4" />
             Ask Sean on WhatsApp
@@ -2531,7 +3105,7 @@ const PpfDubaiQuote = () => {
           href={whatsAppUrl}
           target="_blank"
           rel="noreferrer"
-          onClick={handleWhatsAppClick}
+          onClick={() => handleWhatsAppClick("desktop_sticky")}
           aria-label="Ask Sean on WhatsApp"
           className="group pointer-events-auto absolute bottom-0 right-6 z-0 block cursor-pointer"
         >

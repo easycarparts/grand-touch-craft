@@ -90,6 +90,10 @@ export type PpfCostCalculatorWidgetProps = {
   onSelectionChange?: (selection: CalculatorSelection | null) => void;
   onWhatsAppRequest?: (selection: CalculatorSelection) => void;
   onPriceUnlockRequest?: () => void;
+  onWarrantyYearsChange?: (warrantyYears: number, brand: Brand) => void;
+  onSizeChange?: (size: CarSize) => void;
+  onFinishChange?: (finish: Finish) => void;
+  onCoverageChange?: (coverage: Coverage) => void;
   vehicleSummary?: string;
 };
 
@@ -113,6 +117,10 @@ const PpfCostCalculatorWidget = ({
   onSelectionChange,
   onWhatsAppRequest,
   onPriceUnlockRequest,
+  onWarrantyYearsChange,
+  onSizeChange,
+  onFinishChange,
+  onCoverageChange,
   vehicleSummary,
 }: PpfCostCalculatorWidgetProps) => {
   /** Embedded in a page that already uses `container` (e.g. PPF quote) — avoid nested section padding + second container. */
@@ -350,6 +358,7 @@ const PpfCostCalculatorWidget = ({
                             onClick={() => {
                               setHasInteracted(true);
                               setWarrantyYears(years);
+                              onWarrantyYearsChange?.(years, brand);
                             }}
                             className={cn(
                               cardBaseClass,
@@ -394,6 +403,7 @@ const PpfCostCalculatorWidget = ({
                             onClick={() => {
                               setHasInteracted(true);
                               setSize(option);
+                              onSizeChange?.(option);
                             }}
                             className={cn(
                               "overflow-hidden rounded-[22px] border text-left transition duration-300",
@@ -466,6 +476,7 @@ const PpfCostCalculatorWidget = ({
                                 }
                                 setHasInteracted(true);
                                 setFinish(option);
+                                onFinishChange?.(option);
                               }}
                               className={cn(
                                 cardBaseClass,
@@ -554,6 +565,7 @@ const PpfCostCalculatorWidget = ({
                                     if (!disabled) {
                                       setHasInteracted(true);
                                       setCoverage(option);
+                                      onCoverageChange?.(option);
                                     }
                                   }}
                                   className={cn(

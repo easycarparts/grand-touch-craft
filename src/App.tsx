@@ -29,12 +29,16 @@ import PpfCostDubaiPricingGuide from "./pages/articles/PpfCostDubaiPricingGuide"
 import MatteVsGlossPpfDubai from "./pages/articles/MatteVsGlossPpfDubai";
 import PpfDubaiQuote from "./pages/PpfDubaiQuote";
 import PpfDubaiQuoteV1 from "./pages/PpfDubaiQuoteV1";
+import AdminFunnelDashboard from "./pages/AdminFunnelDashboard";
+import AdminLogin from "./pages/AdminLogin";
+import AdminLeads from "./pages/AdminLeads";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
 import OctaneB2B from "./pages/OctaneB2B";
 import Partner2B2B from "./pages/Partner2B2B";
 import TechnicalResourcesB2B from "./pages/TechnicalResourcesB2B";
+import { RequireAdmin } from "@/components/admin/RequireAdmin";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +76,31 @@ function App() {
             <Route path="/ppf-cost-calculator" element={<PpfCostCalculator />} />
             <Route path="/ppf-dubai-quote" element={<PpfDubaiQuote />} />
             <Route path="/ppf-dubai-quote-v1" element={<PpfDubaiQuoteV1 />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route
+              path="/admin"
+              element={
+                <RequireAdmin>
+                  <Navigate to="/admin/leads" replace />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/leads"
+              element={
+                <RequireAdmin>
+                  <AdminLeads />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/funnel-dashboard"
+              element={
+                <RequireAdmin>
+                  <AdminFunnelDashboard />
+                </RequireAdmin>
+              }
+            />
             <Route path="/bookings" element={<Booking />} />
             <Route path="/thank-you" element={<ThankYou />} />
             <Route path="/thankyou" element={<ThankYouPayment />} />

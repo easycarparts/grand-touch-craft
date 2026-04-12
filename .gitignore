@@ -26,3 +26,6 @@ dist-ssr
 # Local Google Ads workflow secrets
 .env.google-ads
 secrets/
+
+# Google OAuth client JSON (contains secrets; never commit)
+client_secret*.json
