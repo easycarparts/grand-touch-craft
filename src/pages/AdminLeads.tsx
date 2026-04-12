@@ -730,6 +730,7 @@ const AdminLeads = () => {
   );
   const [leadPendingDelete, setLeadPendingDelete] = useState<DisplayLeadRow | null>(null);
   const [isTelegramDialogOpen, setIsTelegramDialogOpen] = useState(false);
+  const [isManualLeadDialogOpen, setIsManualLeadDialogOpen] = useState(false);
   const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1787,6 +1788,7 @@ const AdminLeads = () => {
       description: "The manual lead is now inside the CRM and will flow through the same sales process.",
     });
     setExpandedLeadId(insertedLead?.id ?? null);
+    setIsManualLeadDialogOpen(false);
     void loadLeadDesk({ refresh: true });
   };
 
@@ -1950,165 +1952,6 @@ const AdminLeads = () => {
 
         <div className="space-y-6">
           <Card className="hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
-            <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Create lead</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Walk-in or organic intake</h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Use this when a lead comes in by phone, WhatsApp, walk-in, referral, or anything that
-                did not originate from the website form.
-              </p>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <Input
-                value={manualLeadDraft.fullName}
-                onChange={(event) =>
-                  setManualLeadDraft((current) => ({ ...current, fullName: event.target.value }))
-                }
-                placeholder="Full name"
-                className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-              />
-              <Input
-                value={manualLeadDraft.phone}
-                onChange={(event) =>
-                  setManualLeadDraft((current) => ({ ...current, phone: event.target.value }))
-                }
-                placeholder="Phone"
-                className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-              />
-              <Input
-                value={manualLeadDraft.email}
-                onChange={(event) =>
-                  setManualLeadDraft((current) => ({ ...current, email: event.target.value }))
-                }
-                placeholder="Email"
-                className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-              />
-              <Input
-                value={manualLeadDraft.sourcePlatform}
-                onChange={(event) =>
-                  setManualLeadDraft((current) => ({ ...current, sourcePlatform: event.target.value }))
-                }
-                placeholder="walk_in, organic_call, referral..."
-                className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-              />
-              <Input
-                value={manualLeadDraft.vehicleMake}
-                onChange={(event) =>
-                  setManualLeadDraft((current) => ({ ...current, vehicleMake: event.target.value }))
-                }
-                placeholder="Vehicle make"
-                className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-              />
-              <Input
-                value={manualLeadDraft.vehicleModel}
-                onChange={(event) =>
-                  setManualLeadDraft((current) => ({ ...current, vehicleModel: event.target.value }))
-                }
-                placeholder="Vehicle model"
-                className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-              />
-              <Input
-                value={manualLeadDraft.vehicleYear}
-                onChange={(event) =>
-                  setManualLeadDraft((current) => ({ ...current, vehicleYear: event.target.value }))
-                }
-                placeholder="Vehicle year"
-                className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-              />
-              <Select
-                value={manualLeadDraft.leadSourceType}
-                onValueChange={(value) =>
-                  setManualLeadDraft((current) => ({
-                    ...current,
-                    leadSourceType: value as ManualLeadDraft["leadSourceType"],
-                  }))
-                }
-              >
-                <SelectTrigger className="border-white/10 bg-black/20 text-white">
-                  <SelectValue placeholder="Lead type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manual">Manual intake</SelectItem>
-                  <SelectItem value="google_sheet_import">Google Sheet import</SelectItem>
-                  <SelectItem value="api_import">API import</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={manualLeadDraft.assignedTo}
-                onValueChange={(value) =>
-                  setManualLeadDraft((current) => ({ ...current, assignedTo: value }))
-                }
-              >
-                <SelectTrigger className="border-white/10 bg-black/20 text-white">
-                  <SelectValue placeholder="Assign to" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {adminUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.full_name || user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={manualLeadDraft.followupChannel}
-                onValueChange={(value) =>
-                  setManualLeadDraft((current) => ({
-                    ...current,
-                    followupChannel: value as FollowupChannel,
-                  }))
-                }
-              >
-                <SelectTrigger className="border-white/10 bg-black/20 text-white">
-                  <SelectValue placeholder="Follow-up channel" />
-                </SelectTrigger>
-                <SelectContent>
-                  {followupChannelOptions.map((channel) => (
-                    <SelectItem key={channel} value={channel}>
-                      {formatTokenLabel(channel)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="sm:col-span-2">
-                <Input
-                  type="datetime-local"
-                  value={manualLeadDraft.followupDueAt}
-                  onChange={(event) =>
-                    setManualLeadDraft((current) => ({ ...current, followupDueAt: event.target.value }))
-                  }
-                  className="border-white/10 bg-black/20 text-white"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <Textarea
-                  value={manualLeadDraft.notes}
-                  onChange={(event) =>
-                    setManualLeadDraft((current) => ({ ...current, notes: event.target.value }))
-                  }
-                  placeholder="Call notes, walk-in summary, requested package, objections..."
-                  className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-xs text-slate-500">
-                Creating the lead here also lets you attach the first note and optional follow-up in one move.
-              </p>
-              <Button
-                type="button"
-                onClick={() => void handleCreateManualLead()}
-                disabled={Boolean(savingKeys["manual-lead"])}
-              >
-                Create lead
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Telegram alerts</p>
@@ -2262,16 +2105,183 @@ const AdminLeads = () => {
             </p>
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="border-white/10 bg-black/20 text-white hover:bg-white/10"
-            onClick={() => void loadLeadDesk({ refresh: true })}
-            disabled={isLoading || isRefreshing}
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Dialog open={isManualLeadDialogOpen} onOpenChange={setIsManualLeadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button type="button" className="bg-primary text-black hover:bg-primary/90">
+                  Add lead
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl border-white/10 bg-[#111111] text-white">
+                <DialogHeader>
+                  <DialogTitle>Walk-in or organic intake</DialogTitle>
+                  <DialogDescription className="text-slate-400">
+                    Use this when a lead comes in by phone, WhatsApp, walk-in, referral, or anything
+                    that did not originate from the website form.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    value={manualLeadDraft.fullName}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, fullName: event.target.value }))
+                    }
+                    placeholder="Full name"
+                    className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                  />
+                  <Input
+                    value={manualLeadDraft.phone}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, phone: event.target.value }))
+                    }
+                    placeholder="Phone"
+                    className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                  />
+                  <Input
+                    value={manualLeadDraft.email}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, email: event.target.value }))
+                    }
+                    placeholder="Email"
+                    className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                  />
+                  <Input
+                    value={manualLeadDraft.sourcePlatform}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, sourcePlatform: event.target.value }))
+                    }
+                    placeholder="walk_in, organic_call, referral..."
+                    className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                  />
+                  <Input
+                    value={manualLeadDraft.vehicleMake}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, vehicleMake: event.target.value }))
+                    }
+                    placeholder="Vehicle make"
+                    className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                  />
+                  <Input
+                    value={manualLeadDraft.vehicleModel}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, vehicleModel: event.target.value }))
+                    }
+                    placeholder="Vehicle model"
+                    className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                  />
+                  <Input
+                    value={manualLeadDraft.vehicleYear}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, vehicleYear: event.target.value }))
+                    }
+                    placeholder="Vehicle year"
+                    className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                  />
+                  <Select
+                    value={manualLeadDraft.leadSourceType}
+                    onValueChange={(value) =>
+                      setManualLeadDraft((current) => ({
+                        ...current,
+                        leadSourceType: value as ManualLeadDraft["leadSourceType"],
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                      <SelectValue placeholder="Lead type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">Manual intake</SelectItem>
+                      <SelectItem value="google_sheet_import">Google Sheet import</SelectItem>
+                      <SelectItem value="api_import">API import</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={manualLeadDraft.assignedTo}
+                    onValueChange={(value) =>
+                      setManualLeadDraft((current) => ({ ...current, assignedTo: value }))
+                    }
+                  >
+                    <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                      <SelectValue placeholder="Assign to" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {adminUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.full_name || user.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={manualLeadDraft.followupChannel}
+                    onValueChange={(value) =>
+                      setManualLeadDraft((current) => ({
+                        ...current,
+                        followupChannel: value as FollowupChannel,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                      <SelectValue placeholder="Follow-up channel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {followupChannelOptions.map((channel) => (
+                        <SelectItem key={channel} value={channel}>
+                          {formatTokenLabel(channel)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="sm:col-span-2">
+                    <Input
+                      type="datetime-local"
+                      value={manualLeadDraft.followupDueAt}
+                      onChange={(event) =>
+                        setManualLeadDraft((current) => ({ ...current, followupDueAt: event.target.value }))
+                      }
+                      className="border-white/10 bg-black/20 text-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Textarea
+                      value={manualLeadDraft.notes}
+                      onChange={(event) =>
+                        setManualLeadDraft((current) => ({ ...current, notes: event.target.value }))
+                      }
+                      placeholder="Call notes, walk-in summary, requested package, objections..."
+                      className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-slate-500">
+                    Creating the lead here also lets you attach the first note and optional follow-up in one move.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => void handleCreateManualLead()}
+                    disabled={Boolean(savingKeys["manual-lead"])}
+                  >
+                    Create lead
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+              onClick={() => void loadLeadDesk({ refresh: true })}
+              disabled={isLoading || isRefreshing}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">

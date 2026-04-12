@@ -160,6 +160,55 @@ const formatCurrency = (value: number | null) =>
 
 const normalizePhone = (value: string) => value.replace(/[\s-]/g, "");
 
+const DUBAI_LOCALE = "en-CA";
+const DUBAI_TIMEZONE = "Asia/Dubai";
+
+type DashboardDatePreset =
+  | "all"
+  | "today"
+  | "yesterday"
+  | "last_7_days"
+  | "last_30_days"
+  | "custom";
+
+const getDubaiDateKey = (date: Date) =>
+  new Intl.DateTimeFormat(DUBAI_LOCALE, {
+    timeZone: DUBAI_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+
+const shiftDateKey = (dateKey: string, dayOffset: number) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1, day + dayOffset));
+  return shifted.toISOString().slice(0, 10);
+};
+
+const getDateRangeLabel = (
+  preset: DashboardDatePreset,
+  customStartDate: string,
+  customEndDate: string,
+) => {
+  switch (preset) {
+    case "today":
+      return "Today";
+    case "yesterday":
+      return "Yesterday";
+    case "last_7_days":
+      return "Last 7 days";
+    case "last_30_days":
+      return "Last 30 days";
+    case "custom":
+      if (customStartDate && customEndDate) return `${customStartDate} to ${customEndDate}`;
+      if (customStartDate) return `From ${customStartDate}`;
+      if (customEndDate) return `Until ${customEndDate}`;
+      return "Custom dates";
+    default:
+      return "All time";
+  }
+};
+
 const getIntentBand = (score: number) => {
   if (score >= 75) {
     return {
@@ -410,7 +459,9 @@ const AdminFunnelDashboard = () => {
   const [selectedFunnel, setSelectedFunnel] = useState<string>("all");
   const [selectedSessionId, setSelectedSessionId] = useState<string>("all");
   const [sessionSearch, setSessionSearch] = useState("");
-  const [sessionDateWindow, setSessionDateWindow] = useState("all");
+  const [datePreset, setDatePreset] = useState<DashboardDatePreset>("last_7_days");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [sessionStatusFilter, setSessionStatusFilter] = useState("all");
   const [sessionLimit, setSessionLimit] = useState("5");
 
@@ -482,9 +533,38 @@ const AdminFunnelDashboard = () => {
   }, [records]);
 
   const filteredRecords = useMemo(() => {
-    if (selectedFunnel === "all") return records;
-    return records.filter((record) => record.funnel_name === selectedFunnel);
-  }, [records, selectedFunnel]);
+    const todayDubai = getDubaiDateKey(new Date());
+    const yesterdayDubai = shiftDateKey(todayDubai, -1);
+    const last7Start = shiftDateKey(todayDubai, -6);
+    const last30Start = shiftDateKey(todayDubai, -29);
+
+    return records.filter((record) => {
+      const matchesFunnel =
+        selectedFunnel === "all" || record.funnel_name === selectedFunnel;
+
+      if (!matchesFunnel) return false;
+
+      if (datePreset === "all") return true;
+
+      const recordDateKey = getDubaiDateKey(new Date(record.timestamp));
+
+      if (datePreset === "today") return recordDateKey === todayDubai;
+      if (datePreset === "yesterday") return recordDateKey === yesterdayDubai;
+      if (datePreset === "last_7_days") {
+        return recordDateKey >= last7Start && recordDateKey <= todayDubai;
+      }
+      if (datePreset === "last_30_days") {
+        return recordDateKey >= last30Start && recordDateKey <= todayDubai;
+      }
+      if (datePreset === "custom") {
+        const matchesStart = !customStartDate || recordDateKey >= customStartDate;
+        const matchesEnd = !customEndDate || recordDateKey <= customEndDate;
+        return matchesStart && matchesEnd;
+      }
+
+      return true;
+    });
+  }, [records, selectedFunnel, datePreset, customStartDate, customEndDate]);
 
   const sessionRows = useMemo(() => {
     const grouped = new Map<string, SessionAccumulator>();
@@ -628,60 +708,28 @@ const AdminFunnelDashboard = () => {
   }, [filteredRecords]);
 
   const filteredSessionRows = useMemo(() => {
-    const now = Date.now();
-    const dateWindowThreshold = (() => {
-      if (sessionDateWindow === "today") {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-        return startOfDay.getTime();
-      }
-      if (sessionDateWindow === "24h") return now - 24 * 60 * 60 * 1000;
-      if (sessionDateWindow === "7d") return now - 7 * 24 * 60 * 60 * 1000;
-      if (sessionDateWindow === "30d") return now - 30 * 24 * 60 * 60 * 1000;
-      return null;
-    })();
-
     const filtered = sessionRows.filter((row) => {
       const matchesSearch = matchesSessionSearch(row, sessionSearch);
-      const matchesDate =
-        dateWindowThreshold === null ||
-        new Date(row.endedAt).getTime() >= dateWindowThreshold;
       const statusLabel = getSessionStatus(row).label.toLowerCase().replace(/\s+/g, "_");
       const matchesStatus =
         sessionStatusFilter === "all" || statusLabel === sessionStatusFilter;
 
-      return matchesSearch && matchesDate && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
 
     return filtered.slice(0, Number(sessionLimit));
-  }, [sessionDateWindow, sessionLimit, sessionRows, sessionSearch, sessionStatusFilter]);
+  }, [sessionLimit, sessionRows, sessionSearch, sessionStatusFilter]);
 
   const matchingSessionCount = useMemo(() => {
-    const now = Date.now();
-    const dateWindowThreshold = (() => {
-      if (sessionDateWindow === "today") {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-        return startOfDay.getTime();
-      }
-      if (sessionDateWindow === "24h") return now - 24 * 60 * 60 * 1000;
-      if (sessionDateWindow === "7d") return now - 7 * 24 * 60 * 60 * 1000;
-      if (sessionDateWindow === "30d") return now - 30 * 24 * 60 * 60 * 1000;
-      return null;
-    })();
-
     return sessionRows.filter((row) => {
       const matchesSearch = matchesSessionSearch(row, sessionSearch);
-      const matchesDate =
-        dateWindowThreshold === null ||
-        new Date(row.endedAt).getTime() >= dateWindowThreshold;
       const statusLabel = getSessionStatus(row).label.toLowerCase().replace(/\s+/g, "_");
       const matchesStatus =
         sessionStatusFilter === "all" || statusLabel === sessionStatusFilter;
 
-      return matchesSearch && matchesDate && matchesStatus;
+      return matchesSearch && matchesStatus;
     }).length;
-  }, [sessionDateWindow, sessionRows, sessionSearch, sessionStatusFilter]);
+  }, [sessionRows, sessionSearch, sessionStatusFilter]);
 
   const focusedSessionId = useMemo(
     () => (selectedSessionId === "all" ? filteredSessionRows[0]?.sessionId ?? "all" : selectedSessionId),
@@ -926,6 +974,70 @@ const AdminFunnelDashboard = () => {
             </span>
           </div>
         </div>
+
+        <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Date filters</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">Scope the dashboard</h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Filter the cards, charts, sessions, and event tables by one shared date range.
+              </p>
+            </div>
+
+            <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
+              {getDateRangeLabel(datePreset, customStartDate, customEndDate)}
+            </Badge>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <Select value={datePreset} onValueChange={(value) => setDatePreset(value as DashboardDatePreset)}>
+              <SelectTrigger className="border-white/10 bg-black/20 text-white xl:col-span-2">
+                <SelectValue placeholder="Choose date range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All time</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="yesterday">Yesterday</SelectItem>
+                <SelectItem value="last_7_days">Last 7 days</SelectItem>
+                <SelectItem value="last_30_days">Last 30 days</SelectItem>
+                <SelectItem value="custom">Specific dates</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Input
+              type="date"
+              value={customStartDate}
+              onChange={(event) => {
+                setCustomStartDate(event.target.value);
+                setDatePreset("custom");
+              }}
+              className="border-white/10 bg-black/20 text-white"
+            />
+
+            <Input
+              type="date"
+              value={customEndDate}
+              onChange={(event) => {
+                setCustomEndDate(event.target.value);
+                setDatePreset("custom");
+              }}
+              className="border-white/10 bg-black/20 text-white"
+            />
+
+            <Button
+              variant="outline"
+              className="border-white/10 bg-black/20 xl:col-span-2"
+              onClick={() => {
+                setDatePreset("last_7_days");
+                setCustomStartDate("");
+                setCustomEndDate("");
+              }}
+            >
+              Reset to last 7 days
+            </Button>
+          </div>
+        </Card>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
@@ -1284,18 +1396,6 @@ const AdminFunnelDashboard = () => {
                   placeholder="Search name, phone, vehicle, session"
                   className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
                 />
-                <Select value={sessionDateWindow} onValueChange={setSessionDateWindow}>
-                  <SelectTrigger className="border-white/10 bg-black/20 text-white">
-                    <SelectValue placeholder="Date window" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All time</SelectItem>
-                    <SelectItem value="today">Today</SelectItem>
-                    <SelectItem value="24h">Last 24 hours</SelectItem>
-                    <SelectItem value="7d">Last 7 days</SelectItem>
-                    <SelectItem value="30d">Last 30 days</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Select value={sessionStatusFilter} onValueChange={setSessionStatusFilter}>
                   <SelectTrigger className="border-white/10 bg-black/20 text-white">
                     <SelectValue placeholder="Intent filter" />
