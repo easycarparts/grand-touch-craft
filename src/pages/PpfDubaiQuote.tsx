@@ -1056,21 +1056,6 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     });
   };
 
-  const trackTikTokLeadConversion = () => {
-    if (typeof window === "undefined" || !window.ttq?.track) return;
-
-    try {
-      window.ttq.track("SubmitForm", {
-        content_name: variantConfig.tikTokContentName,
-        content_type: "lead_form",
-        currency: "AED",
-        value: selection?.estimateMin ?? 1,
-      });
-    } catch (error) {
-      console.warn("Failed to send TikTok lead conversion", error);
-    }
-  };
-
   const flushSectionDuration = useCallback(
     (sectionName: string, reason: string) => {
       const startedAt = sectionVisibleSinceRef.current.get(sectionName);
@@ -1512,7 +1497,6 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         },
       });
       trackGoogleAdsLeadConversion();
-      trackTikTokLeadConversion();
     }
   };
 
