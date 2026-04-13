@@ -73,6 +73,9 @@ declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
     fbq?: (...args: unknown[]) => void;
+    ttq?: {
+      track?: (eventName: string, payload?: Record<string, unknown>) => void;
+    };
     dataLayer?: Array<Record<string, unknown>>;
   }
 }

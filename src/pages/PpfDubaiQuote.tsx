@@ -50,6 +50,7 @@ type CalculatorSelection = {
 };
 
 type QuoteModalFlow = "standard" | "calculator";
+type LandingPageVariant = "google" | "tiktok";
 type StoredLeadProfile = {
   submitted: boolean;
   name: string;
@@ -189,6 +190,53 @@ const getCalculatorPackageLabel = (calculatorSelection: CalculatorSelection) => 
 
 const buildWhatsAppUrl = (message: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+const landingPageCopy = {
+  google: {
+    funnelName: "ppf_dubai_quote",
+    landingPageVariant: "google" as const,
+    defaultSourcePlatform: "google",
+    seoKey: "ppf-dubai-quote",
+    seoTitle: "PPF Dubai Quote | Grand Touch",
+    seoDescription:
+      "Get a Grand Touch PPF quote in Dubai with a short form, visual calculator, and direct WhatsApp follow-up from Sean.",
+    seoKeywords:
+      "PPF Dubai quote, Grand Touch PPF Dubai, STEK PPF Dubai, premium PPF Dubai, full body PPF Dubai price",
+    seoOgDescription:
+      "Premium PPF quote funnel for Dubai drivers with image-led calculator, Google review trust, and fast WhatsApp handoff.",
+    seoUrl: "https://www.grandtouchauto.ae/ppf-dubai-quote",
+    tikTokContentName: "PPF Dubai Quote Funnel",
+  },
+  tiktok: {
+    funnelName: "ppf_tiktok_quote",
+    landingPageVariant: "tiktok" as const,
+    defaultSourcePlatform: "tiktok",
+    seoKey: "ppf-tiktok-quote",
+    seoTitle: "PPF TikTok Quote | Grand Touch",
+    seoDescription:
+      "See your Grand Touch PPF price range in Dubai with a faster social-first quote flow and direct WhatsApp follow-up from Sean.",
+    seoKeywords:
+      "PPF TikTok quote Dubai, Grand Touch PPF Dubai, STEK PPF Dubai, TikTok PPF lead funnel Dubai",
+    seoOgDescription:
+      "TikTok-first PPF quote funnel for Dubai drivers with quick qualification, visual proof, and fast WhatsApp handoff.",
+    seoUrl: "https://www.grandtouchauto.ae/ppf-tiktok-quote",
+    tikTokContentName: "PPF TikTok Quote Funnel",
+  },
+} satisfies Record<
+  LandingPageVariant,
+  {
+    funnelName: string;
+    landingPageVariant: LandingPageVariant;
+    defaultSourcePlatform: string;
+    seoKey: string;
+    seoTitle: string;
+    seoDescription: string;
+    seoKeywords: string;
+    seoOgDescription: string;
+    seoUrl: string;
+    tikTokContentName: string;
+  }
+>;
 
 /**
  * Primary gold CTA — same gradient family as the hero headline, with explicit hover so
@@ -664,7 +712,8 @@ const QuoteUnlockForm = ({
   );
 };
 
-const PpfDubaiQuote = () => {
+const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant }) => {
+  const variantConfig = landingPageCopy[variant];
   const [heroFormOpen, setHeroFormOpen] = useState(false);
   const [quoteModalFlow, setQuoteModalFlow] = useState<QuoteModalFlow>("standard");
   const [formStep, setFormStep] = useState<1 | 2 | 3>(1);
@@ -735,11 +784,11 @@ const PpfDubaiQuote = () => {
   const funnelContext = useMemo(
     () =>
       createFunnelTrackingContext({
-        funnelName: "ppf_dubai_quote",
-        landingPageVariant: "google",
-        defaultSourcePlatform: "google",
+        funnelName: variantConfig.funnelName,
+        landingPageVariant: variantConfig.landingPageVariant,
+        defaultSourcePlatform: variantConfig.defaultSourcePlatform,
       }),
-    []
+    [variantConfig.defaultSourcePlatform, variantConfig.funnelName, variantConfig.landingPageVariant]
   );
   const utmParams = funnelContext.attribution;
 
@@ -1005,6 +1054,21 @@ const PpfDubaiQuote = () => {
     });
   };
 
+  const trackTikTokLeadConversion = () => {
+    if (typeof window === "undefined" || !window.ttq?.track) return;
+
+    try {
+      window.ttq.track("SubmitForm", {
+        content_name: variantConfig.tikTokContentName,
+        content_type: "lead_form",
+        currency: "AED",
+        value: selection?.estimateMin ?? 1,
+      });
+    } catch (error) {
+      console.warn("Failed to send TikTok lead conversion", error);
+    }
+  };
+
   const flushSectionDuration = useCallback(
     (sectionName: string, reason: string) => {
       const startedAt = sectionVisibleSinceRef.current.get(sectionName);
@@ -1075,16 +1139,13 @@ const PpfDubaiQuote = () => {
   );
 
   useEffect(() => {
-    updatePageSEO("ppf-dubai-quote", {
-      title: "PPF Dubai Quote | Grand Touch",
-      description:
-        "Get a Grand Touch PPF quote in Dubai with a short form, visual calculator, and direct WhatsApp follow-up from Sean.",
-      keywords:
-        "PPF Dubai quote, Grand Touch PPF Dubai, STEK PPF Dubai, premium PPF Dubai, full body PPF Dubai price",
-      ogTitle: "PPF Dubai Quote | Grand Touch",
-      ogDescription:
-        "Premium PPF quote funnel for Dubai drivers with image-led calculator, Google review trust, and fast WhatsApp handoff.",
-      url: "https://www.grandtouchauto.ae/ppf-dubai-quote",
+    updatePageSEO(variantConfig.seoKey, {
+      title: variantConfig.seoTitle,
+      description: variantConfig.seoDescription,
+      keywords: variantConfig.seoKeywords,
+      ogTitle: variantConfig.seoTitle,
+      ogDescription: variantConfig.seoOgDescription,
+      url: variantConfig.seoUrl,
     });
 
     trackEvent("lp_view", {
@@ -1093,7 +1154,7 @@ const PpfDubaiQuote = () => {
     }, {
       metaStandardEvent: "PageView",
     });
-  }, [trackEvent]);
+  }, [trackEvent, variantConfig]);
 
   useEffect(() => {
     if (!heroFormOpen || quoteModalFlow !== "calculator" || formStep !== 3 || !selection) return;
@@ -1449,6 +1510,7 @@ const PpfDubaiQuote = () => {
         },
       });
       trackGoogleAdsLeadConversion();
+      trackTikTokLeadConversion();
     }
   };
 

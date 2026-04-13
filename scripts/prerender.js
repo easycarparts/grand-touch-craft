@@ -228,6 +228,32 @@ const pages = [
       "<p><strong>Enable JavaScript</strong> to use the short quote form, estimate controls, and WhatsApp handoff.</p>",
   },
   {
+    path: "/ppf-tiktok-quote",
+    title: "PPF TikTok Quote | Grand Touch",
+    description:
+      "See your Grand Touch PPF price range in Dubai with a faster social-first quote flow, visual proof, and direct WhatsApp follow-up from Sean.",
+    keywords:
+      "PPF TikTok quote Dubai, PPF Dubai quote, STEK PPF Dubai, paint protection film Dubai, Grand Touch Auto",
+    ogTitle: "PPF TikTok Quote | Grand Touch",
+    ogDescription:
+      "TikTok-first PPF quote funnel for Dubai drivers with quick qualification, visual proof, and fast WhatsApp handoff.",
+    seoBody: `
+        <h1>PPF quote for Dubai drivers</h1>
+        <p>See your likely PPF price range, compare coverage, and request a fast follow-up from Grand Touch Auto.</p>
+        <h2>What this page focuses on</h2>
+        <ul>
+          <li>Fast vehicle qualification for social traffic</li>
+          <li>Coverage guidance for front protection or full body PPF</li>
+          <li>Premium film positioning with STEK-backed trust</li>
+          <li>Direct WhatsApp handoff with your details already captured</li>
+        </ul>
+        <h2>Why it exists</h2>
+        <p>This route is designed for paid social traffic while keeping the same core quote engine and CRM tracking as the main PPF funnel.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the short quote form, estimate controls, and WhatsApp handoff.</p>",
+  },
+  {
     path: "/ppf-dubai-quote-v1",
     title: "PPF Dubai Quote V1 | Grand Touch",
     description:
