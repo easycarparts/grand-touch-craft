@@ -54,7 +54,18 @@ In practice, the flow used during setup has been:
 2. Use `/me/accounts` to retrieve the Page token for `Grand Touch Studio`
 3. Store the resulting token in Supabase
 
-That works, but it is not the most durable production setup.
+That works for testing, but it is not the right production setup.
+
+## Current Live Token Expiry
+
+The currently validated live `META_ACCESS_TOKEN` was checked on `2026-04-13` and was valid through:
+
+- `Friday, June 12, 2026 at 1:26:22 PM` Dubai time (`GMT+04:00`)
+
+Operational note:
+
+- the `/admin/leads` page now shows this expiry as a visible reminder banner
+- if the token is rotated before then, update both the banner constant and this document immediately
 
 ## Why It Expired
 
@@ -68,6 +79,39 @@ Most likely reasons:
   - the user reauth flow changes
   - the app/page authorization state changes
 
+## Why It Keeps Feeling Like A 1-2 Hour Token
+
+Because the setup has been starting from Graph API Explorer / session-style auth.
+
+That commonly gives you a short-lived user token first.
+If production is then repaired from that testing flow, the final token chain is still tied to a fragile session origin.
+
+So the real problem is not only:
+
+- "the token expired"
+
+It is:
+
+- the token was minted from a developer/testing flow instead of a stable production auth flow
+
+## What Meta Actually Expects For Lead Retrieval
+
+Meta's lead retrieval docs point to using a **long-lived Page access token** for webhook lead retrieval, not a throwaway Explorer token.
+
+Practical production flow:
+
+1. Generate a proper user token through the app's auth flow
+2. Exchange that short-lived user token for a long-lived user token
+3. Use that long-lived user token to get the Page token from `/me/accounts`
+4. Store that Page token in Supabase as `META_ACCESS_TOKEN`
+
+Relevant official docs:
+
+- Lead retrieval:
+  - [Meta Lead Ads Retrieving Guide](https://developers.facebook.com/docs/marketing-api/guides/lead-ads/retrieving/)
+- Long-lived tokens:
+  - [Meta Access Tokens - Get Long-Lived Access Tokens](https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived/)
+
 ## Does A Page Token Last Longer?
 
 Usually, yes, a real Page token derived from the correct flow is better than pasting a raw user token into production.
@@ -78,19 +122,31 @@ But the important nuance is:
 - so the issue is not just "Page token vs User token"
 - it is also about how that token was generated and what it depends on
 
+In other words:
+
+- a correctly generated long-lived Page token is the right baseline
+- but "long-lived" does not mean "immune to revocation forever"
+
 ## Best Practical Setup Direction
 
-### Short-term workable setup
+### Short-term repair that should stop the hourly breakage
 
 Use:
 
-1. a valid user token with the required permissions
-2. derive the `Grand Touch Studio` Page token from `/me/accounts`
-3. store the Page token in Supabase as `META_ACCESS_TOKEN`
+1. a proper app-authorized user token with the required permissions
+2. exchange it for a long-lived user token
+3. derive the `Grand Touch Studio` Page token from `/me/accounts`
+4. store the Page token in Supabase as `META_ACCESS_TOKEN`
 
 ### Better long-term production setup
 
-Move away from ad-hoc Graph Explorer token generation and use a more durable server-side/business-managed token flow if Meta permissions and business setup allow it.
+Move away from ad-hoc Graph Explorer token generation completely.
+
+Production should be:
+
+- webhook intake for immediate delivery
+- plus a protected direct-import / backfill path for resilience
+- with the token minted from the app auth flow, not from Explorer
 
 That is the direction to explore if token churn continues.
 
@@ -134,6 +190,7 @@ Meta lead intake writes rows here with:
 
 - `provider = meta`
 - `source_kind = webhook` or `manual_retry`
+- now also `poll` for direct-import / backfill runs
 - `status = received | processed | failed`
 - `external_id = leadgen_id`
 - `error_message`
@@ -165,7 +222,15 @@ In Graph API Explorer:
 4. Find `Grand Touch Studio`
 5. Copy the `access_token`
 
-That returned token is the one used to repair the live intake secret.
+If this recovery was started from Graph API Explorer only, treat it as a temporary repair, not the final production answer.
+
+The durable fix is:
+
+1. get a short-lived user token from the app auth flow
+2. exchange it for a long-lived user token
+3. then derive the Page token from `/me/accounts`
+
+That returned Page token is the one used to repair the live intake secret.
 
 ### 2. Update Supabase secret
 
@@ -191,6 +256,39 @@ Test:
 - manual retry against the deployed function
 
 If manual retry works but automatic delivery does not, the problem is the Page subscription layer, not the CRM insert path.
+
+## Direct Import / Backfill Option
+
+The intake function now also supports a protected form-poll mode.
+
+That means if:
+
+- a webhook was missed
+- or the token was broken for a period
+
+you can still pull recent leads directly from the Meta form after auth is fixed.
+
+Protected request shape:
+
+Headers:
+
+- `x-meta-sync-secret: <META_SYNC_SECRET>`
+
+Body:
+
+```json
+{
+  "mode": "poll_form",
+  "form_id": "<meta form id>",
+  "page_id": "<page id>",
+  "since": "2026-04-13T00:00:00.000Z",
+  "limit": 50,
+  "page_size": 25
+}
+```
+
+That is not a substitute for the correct token flow.
+It is the resilience layer that lets you recover missed imports without hand-copying leads.
 
 ## What Was Proven During Debugging
 

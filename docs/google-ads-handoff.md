@@ -126,6 +126,16 @@ The scripts live in [scripts/google-ads](C:/Users/seane/Desktop/GTA%20Web/grand-
   - updates the live RSA headlines and descriptions
   - this script **does** currently match the latest live RSA set
 
+- `npm run ads:rebuild-structure -- --env=.env.google-ads`
+  - creates the tighter ad-group structure
+  - creates or updates ad-group-specific RSAs
+  - pauses the legacy mixed ad group
+  - preserves the live CPC ceiling at `AED 18`
+
+- `npm run ads:add-assets -- --env=.env.google-ads`
+  - adds campaign sitelinks and callouts
+  - current sitelinks point to meaningful hash anchors on the live funnel, not random redirects
+
 ## 6. Files that matter for the Ads tooling
 
 Core Google Ads API wrapper:
@@ -152,6 +162,14 @@ RSA updates:
 
 - [scripts/google-ads/update-rsa-copy.mjs](C:/Users/seane/Desktop/GTA%20Web/grand-touch-craft/scripts/google-ads/update-rsa-copy.mjs)
 
+Structure rebuild:
+
+- [scripts/google-ads/rebuild-structure.mjs](C:/Users/seane/Desktop/GTA%20Web/grand-touch-craft/scripts/google-ads/rebuild-structure.mjs)
+
+Campaign assets:
+
+- [scripts/google-ads/add-assets.mjs](C:/Users/seane/Desktop/GTA%20Web/grand-touch-craft/scripts/google-ads/add-assets.mjs)
+
 ## 7. Conversion setup notes
 
 Important conversion facts already verified through the API:
@@ -175,23 +193,24 @@ Campaign:
 
 - `Leads-Search-1`
 
-As of `2026-04-12`, the main problem is **under-delivery because of rank**, not budget.
+As of `2026-04-13`, the main problem is still **under-delivery because of rank**, not budget.
 
-Pulled metrics:
+Recent pulled metrics:
 
-- impressions: `61`
-- clicks: `1`
-- CTR: `1.64%`
-- average CPC: `AED 5.94`
-- search impression share: `14.1%`
-- lost impression share (rank): `81.9%`
-- lost impression share (budget): `4.0%`
+- weekend (`2026-04-11` to `2026-04-12`): `75` impressions, `0` clicks, `0` cost
+- last 7 days: `103` impressions, `2` clicks, `AED 17.01` spend, `CTR 1.94%`
+- last 30 days search impression share: `18.7%`
+- last 30 days lost impression share (rank): `78.0%`
+- last 30 days lost impression share (budget): `3.3%`
+- last 30 days top impression share: `13.7%`
+- last 30 days absolute top impression share: `10.0%`
 
 Interpretation:
 
 - budget is **not** the main bottleneck
 - the campaign is missing auctions because ad rank is too weak
 - some phrase traffic is still matching messy competitor/detailer searches
+- the old one-ad-group structure was too weak and too mixed
 
 ## 9. Keyword and search-term findings
 
@@ -272,6 +291,46 @@ Examples from the current live set:
 The update script for this is:
 
 - [scripts/google-ads/update-rsa-copy.mjs](C:/Users/seane/Desktop/GTA%20Web/grand-touch-craft/scripts/google-ads/update-rsa-copy.mjs)
+
+### Structure rebuild
+
+Applied on `2026-04-13`:
+
+- legacy mixed ad group `Ad group 1` is now `PAUSED`
+- enabled ad groups now include:
+  - `Core Generic`
+  - `Price Quote`
+  - `Front Full Body`
+  - `STEK`
+- each new ad group has its own RSA and curated keyword set
+- additional negatives added:
+  - `modcare`
+  - `sharjah`
+  - `cars studio`
+  - `motorworks`
+
+The rebuild script for this is:
+
+- [scripts/google-ads/rebuild-structure.mjs](C:/Users/seane/Desktop/GTA%20Web/grand-touch-craft/scripts/google-ads/rebuild-structure.mjs)
+
+### Campaign assets
+
+Applied on `2026-04-13`:
+
+- sitelinks:
+  - `PPF Quote` -> `#quote-calculator`
+  - `Why Grand Touch` -> `#why-grand-touch`
+  - `Why We Use STEK` -> `#why-stek`
+  - `Real Handovers` -> `#real-handovers`
+- callouts:
+  - `Direct With Sean`
+  - `Warranty You Can Trace`
+  - `Proper Prep Before Film`
+  - `Genuine STEK Film`
+
+The asset script for this is:
+
+- [scripts/google-ads/add-assets.mjs](C:/Users/seane/Desktop/GTA%20Web/grand-touch-craft/scripts/google-ads/add-assets.mjs)
 
 ## 11. Landing-page state
 

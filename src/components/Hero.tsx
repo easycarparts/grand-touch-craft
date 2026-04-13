@@ -69,13 +69,13 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-16">
-            <Link to="/ppf-cost-calculator">
+            <Link to="/ppf-dubai-quote">
               <Button
                 size="lg"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold px-8 py-6 shadow-glow animate-glow group"
               >
                 <Calculator className="mr-2 w-5 h-5" />
-                Get a PPF estimate
+                Get PPF estimate
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

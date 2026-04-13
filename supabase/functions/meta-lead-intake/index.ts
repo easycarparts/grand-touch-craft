@@ -45,6 +45,19 @@ type MetaAdResponse = {
   };
 };
 
+type MetaCollectionResponse<T> = {
+  data?: T[];
+  paging?: {
+    cursors?: {
+      before?: string;
+      after?: string;
+    };
+    next?: string;
+  };
+};
+
+type SyncSourceKind = "webhook" | "poll" | "manual_retry";
+
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const metaAccessToken = Deno.env.get("META_ACCESS_TOKEN");
@@ -87,6 +100,25 @@ const formatTokenLabel = (value: string | null | undefined) =>
 const pickFirstValue = (fieldData: MetaLeadField[] | undefined, matcher: (name: string) => boolean) => {
   const match = fieldData?.find((item) => matcher(item.name.toLowerCase()));
   return match?.values?.[0] ?? null;
+};
+
+const clampInteger = (value: unknown, fallback: number, min: number, max: number) => {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, Math.trunc(value)));
+};
+
+const parseIsoDate = (value: unknown, label: string) => {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") {
+    throw new Error(`${label} must be an ISO date string.`);
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${label} must be a valid ISO date string.`);
+  }
+
+  return parsed;
 };
 
 const makeAppSecretProof = async (token: string, appSecret: string) => {
@@ -164,6 +196,23 @@ const fetchLeadFromMeta = async (leadgenId: string) =>
     fields: "id,created_time,form_id,ad_id,is_organic,platform,field_data",
   });
 
+const fetchFormLeadsPage = async (input: {
+  formId: string;
+  after?: string | null;
+  limit: number;
+}) => {
+  const params: Record<string, string> = {
+    fields: "id,created_time,form_id,ad_id,is_organic,platform,field_data",
+    limit: String(input.limit),
+  };
+
+  if (input.after) {
+    params.after = input.after;
+  }
+
+  return graphGet<MetaCollectionResponse<MetaLeadResponse>>(`${input.formId}/leads`, params);
+};
+
 const fetchAdContext = async (adId: string | undefined) => {
   if (!adId) return null;
 
@@ -178,6 +227,7 @@ const fetchAdContext = async (adId: string | undefined) => {
 };
 
 const logSyncRun = async (input: {
+  sourceKind?: SyncSourceKind;
   status: "received" | "processed" | "skipped" | "failed";
   externalId?: string | null;
   leadId?: string | null;
@@ -187,7 +237,7 @@ const logSyncRun = async (input: {
 }) => {
   const { error } = await supabase.from("source_sync_runs").insert({
     provider: "meta",
-    source_kind: "webhook",
+    source_kind: input.sourceKind ?? "webhook",
     status: input.status,
     external_id: input.externalId ?? null,
     lead_id: input.leadId ?? null,
@@ -371,6 +421,43 @@ const parseLeadFields = (lead: MetaLeadResponse) => {
   };
 };
 
+const processResolvedLead = async (input: {
+  lead: MetaLeadResponse;
+  adContext: MetaAdResponse | null;
+  pageId?: string | null;
+  formId?: string | null;
+  adId?: string | null;
+  webhookPayload: Record<string, unknown>;
+  sourceKind: SyncSourceKind;
+}) => {
+  const result = await upsertMetaLeadIntoCrm({
+    lead: {
+      ...input.lead,
+      form_id: input.lead.form_id ?? input.formId ?? null ?? undefined,
+      ad_id: input.lead.ad_id ?? input.adId ?? null ?? undefined,
+    },
+    adContext: input.adContext,
+    pageId: input.pageId,
+    webhookPayload: input.webhookPayload,
+  });
+
+  await logSyncRun({
+    sourceKind: input.sourceKind,
+    status: "processed",
+    externalId: input.lead.id,
+    leadId: result.leadId,
+    requestPayload: input.webhookPayload,
+    responsePayload: {
+      operation: result.operation,
+      meta_lead_id: input.lead.id,
+      meta_form_id: input.lead.form_id ?? input.formId ?? null,
+      meta_ad_id: input.lead.ad_id ?? input.adId ?? null,
+    },
+  });
+
+  return result;
+};
+
 const upsertMetaLeadIntoCrm = async (input: {
   lead: MetaLeadResponse;
   adContext: MetaAdResponse | null;
@@ -402,6 +489,7 @@ const upsertMetaLeadIntoCrm = async (input: {
     landing_page_variant: "meta_lead_form",
     funnel_name: "meta_lead_ads",
     lead_source_type: "meta_lead_form",
+    utm_campaign: input.adContext?.name ?? null,
     notes_summary: parsed.notesSummary,
     external_lead_id: input.lead.id,
     external_form_id: input.lead.form_id ?? null,
@@ -465,8 +553,10 @@ const processLeadgenEvent = async (input: {
   formId?: string | null;
   adId?: string | null;
   webhookPayload: Record<string, unknown>;
+  sourceKind: SyncSourceKind;
 }) => {
   await logSyncRun({
+    sourceKind: input.sourceKind,
     status: "received",
     externalId: input.leadgenId,
     requestPayload: input.webhookPayload,
@@ -474,27 +564,156 @@ const processLeadgenEvent = async (input: {
 
   const lead = await fetchLeadFromMeta(input.leadgenId);
   const adContext = await fetchAdContext(input.adId ?? lead.ad_id);
-  const result = await upsertMetaLeadIntoCrm({
+  return await processResolvedLead({
     lead,
     adContext,
     pageId: input.pageId,
+    formId: input.formId,
+    adId: input.adId,
     webhookPayload: input.webhookPayload,
+    sourceKind: input.sourceKind,
   });
+};
+
+const pollFormLeads = async (input: {
+  formId: string;
+  pageId?: string | null;
+  since?: string | null;
+  limit?: number;
+  pageSize?: number;
+  requestPayload: Record<string, unknown>;
+}) => {
+  const sinceDate = parseIsoDate(input.since, "since");
+  const maxLeads = clampInteger(input.limit, 50, 1, 500);
+  const pageSize = clampInteger(input.pageSize, 25, 1, 100);
+  const adContextCache = new Map<string, MetaAdResponse | null>();
 
   await logSyncRun({
-    status: "processed",
-    externalId: input.leadgenId,
-    leadId: result.leadId,
-    requestPayload: input.webhookPayload,
-    responsePayload: {
-      operation: result.operation,
-      meta_lead_id: lead.id,
-      meta_form_id: lead.form_id ?? input.formId ?? null,
-      meta_ad_id: lead.ad_id ?? input.adId ?? null,
+    sourceKind: "poll",
+    status: "received",
+    externalId: input.formId,
+    requestPayload: {
+      ...input.requestPayload,
+      form_id: input.formId,
+      since: sinceDate?.toISOString() ?? null,
+      limit: maxLeads,
+      page_size: pageSize,
     },
   });
 
-  return result;
+  let imported = 0;
+  let updated = 0;
+  let failed = 0;
+  let scanned = 0;
+  let afterCursor: string | null = null;
+  let reachedSinceBoundary = false;
+
+  const processed: Array<Record<string, unknown>> = [];
+
+  while (scanned < maxLeads) {
+    const page = await fetchFormLeadsPage({
+      formId: input.formId,
+      after: afterCursor,
+      limit: Math.min(pageSize, maxLeads - scanned),
+    });
+
+    const leads = page.data ?? [];
+    if (!leads.length) {
+      break;
+    }
+
+    for (const lead of leads) {
+      scanned += 1;
+
+      const createdTime = lead.created_time ? new Date(lead.created_time) : null;
+      if (sinceDate && createdTime && createdTime < sinceDate) {
+        reachedSinceBoundary = true;
+        continue;
+      }
+
+      try {
+        const cacheKey = lead.ad_id ?? "__no_ad__";
+        let adContext = adContextCache.get(cacheKey);
+
+        if (adContext === undefined) {
+          adContext = await fetchAdContext(lead.ad_id);
+          adContextCache.set(cacheKey, adContext);
+        }
+
+        const result = await processResolvedLead({
+          lead,
+          adContext,
+          pageId: input.pageId,
+          formId: input.formId,
+          webhookPayload: {
+            ...input.requestPayload,
+            mode: "poll_form",
+            form_id: input.formId,
+            leadgen_id: lead.id,
+            lead_created_time: lead.created_time ?? null,
+          },
+          sourceKind: "poll",
+        });
+
+        if (result.operation === "inserted") {
+          imported += 1;
+        } else {
+          updated += 1;
+        }
+
+        processed.push({
+          leadgen_id: lead.id,
+          operation: result.operation,
+        });
+      } catch (error) {
+        failed += 1;
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+        await logSyncRun({
+          sourceKind: "poll",
+          status: "failed",
+          externalId: lead.id,
+          requestPayload: {
+            ...input.requestPayload,
+            mode: "poll_form",
+            form_id: input.formId,
+            leadgen_id: lead.id,
+          },
+          errorMessage,
+        });
+
+        if (isMetaTokenExpiryError(errorMessage)) {
+          await sendTelegramTokenExpiryAlert(errorMessage);
+        }
+
+        processed.push({
+          leadgen_id: lead.id,
+          error: errorMessage,
+        });
+      }
+
+      if (scanned >= maxLeads) {
+        break;
+      }
+    }
+
+    afterCursor = page.paging?.cursors?.after ?? null;
+    if (!afterCursor || reachedSinceBoundary) {
+      break;
+    }
+  }
+
+  return {
+    form_id: input.formId,
+    since: sinceDate?.toISOString() ?? null,
+    scanned_leads: scanned,
+    imported_leads: imported,
+    updated_leads: updated,
+    failed_leads: failed,
+    reached_since_boundary: reachedSinceBoundary,
+    next_cursor: afterCursor,
+    processed,
+  };
 };
 
 Deno.serve(async (request) => {
@@ -524,17 +743,40 @@ Deno.serve(async (request) => {
     const body = rawBody ? (JSON.parse(rawBody) as Record<string, unknown>) : {};
 
     if (internalSecret && metaSyncSecret && internalSecret === metaSyncSecret) {
+      const mode = typeof body.mode === "string" ? body.mode : null;
       const leadgenId = typeof body.leadgen_id === "string" ? body.leadgen_id : null;
+      const formId = typeof body.form_id === "string" ? body.form_id : null;
+      const pageId = typeof body.page_id === "string" ? body.page_id : null;
+      const adId = typeof body.ad_id === "string" ? body.ad_id : null;
+
+      if (mode === "poll_form") {
+        if (!formId) {
+          return json({ error: "Missing form_id" }, 400);
+        }
+
+        const result = await pollFormLeads({
+          formId,
+          pageId,
+          since: typeof body.since === "string" ? body.since : null,
+          limit: typeof body.limit === "number" ? body.limit : undefined,
+          pageSize: typeof body.page_size === "number" ? body.page_size : undefined,
+          requestPayload: body,
+        });
+
+        return json({ ok: true, mode: "poll_form", ...result });
+      }
+
       if (!leadgenId) {
         return json({ error: "Missing leadgen_id" }, 400);
       }
 
       const result = await processLeadgenEvent({
         leadgenId,
-        pageId: typeof body.page_id === "string" ? body.page_id : null,
-        formId: typeof body.form_id === "string" ? body.form_id : null,
-        adId: typeof body.ad_id === "string" ? body.ad_id : null,
+        pageId,
+        formId,
+        adId,
         webhookPayload: body,
+        sourceKind: "manual_retry",
       });
 
       return json({ ok: true, mode: "manual_retry", ...result });
@@ -566,6 +808,7 @@ Deno.serve(async (request) => {
               field: change.field,
               value: change.value,
             },
+            sourceKind: "webhook",
           });
 
           processed.push({
@@ -576,6 +819,7 @@ Deno.serve(async (request) => {
           const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
           await logSyncRun({
+            sourceKind: "webhook",
             status: "failed",
             externalId: change.value.leadgen_id,
             requestPayload: {

@@ -16,6 +16,8 @@ export type FunnelTrackingContext = {
   landingPageVariant: string;
   sourcePlatform: string;
   pathname: string;
+  hash: string;
+  entrySection: string;
   sessionId: string;
   visitorId: string;
   attribution: AttributionParams;
@@ -29,6 +31,8 @@ export type FunnelEventRecord = {
   landing_page_variant: string;
   source_platform: string;
   pathname: string;
+  hash: string;
+  entry_section: string;
   session_id: string;
   visitor_id: string;
   attribution: AttributionParams;
@@ -83,6 +87,8 @@ const emptyAttribution = (): AttributionParams => ({
   fbclid: "",
   ttclid: "",
 });
+
+const normalizeHash = (value: string) => value.replace(/^#/, "").trim();
 
 const sanitizePayload = (payload: Record<string, unknown> = {}) =>
   Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
@@ -187,12 +193,15 @@ export const createFunnelTrackingContext = ({
   const attribution = parseAttributionParams();
   const localStorageRef = getLocalStorageRef();
   const sessionStorageRef = getSessionStorageRef();
+  const hash = typeof window !== "undefined" ? window.location.hash || "" : "";
 
   return {
     funnelName,
     landingPageVariant,
     sourcePlatform: inferSourcePlatform(attribution, defaultSourcePlatform),
     pathname: typeof window !== "undefined" ? window.location.pathname : "",
+    hash,
+    entrySection: normalizeHash(hash) || "default",
     sessionId: getOrCreateId(sessionStorageRef, FUNNEL_SESSION_ID_STORAGE_KEY, "sess"),
     visitorId: getOrCreateId(localStorageRef, FUNNEL_VISITOR_ID_STORAGE_KEY, "visitor"),
     attribution,
@@ -308,7 +317,11 @@ export const captureLeadSnapshot = async ({
     landing_page_variant: context.landingPageVariant,
     funnel_name: context.funnelName,
     attribution: context.attribution,
-    payload: sanitizePayload(payload),
+    payload: sanitizePayload({
+      entry_section: context.entrySection,
+      hash: context.hash,
+      ...payload,
+    }),
     captured_at: capturedAt,
   });
 
@@ -335,10 +348,14 @@ export const trackFunnelEvent = ({
     landing_page_variant: context.landingPageVariant,
     source_platform: context.sourcePlatform,
     pathname: context.pathname,
+    hash: context.hash,
+    entry_section: context.entrySection,
     session_id: context.sessionId,
     visitor_id: context.visitorId,
     attribution: context.attribution,
     payload: sanitizePayload({
+      entry_section: context.entrySection,
+      hash: context.hash,
       ...cleanPayload,
       ...cleanPrivatePayload,
     }),
@@ -360,6 +377,8 @@ export const trackFunnelEvent = ({
       landing_page_variant: context.landingPageVariant,
       source_platform: context.sourcePlatform,
       pathname: context.pathname,
+      hash: context.hash,
+      entry_section: context.entrySection,
       session_id: context.sessionId,
       visitor_id: context.visitorId,
       ...context.attribution,
@@ -390,6 +409,8 @@ export const trackFunnelEvent = ({
         landing_page_variant: context.landingPageVariant,
         source_platform: context.sourcePlatform,
         pathname: context.pathname,
+        hash: context.hash,
+        entry_section: context.entrySection,
         ...context.attribution,
         ...cleanPayload,
         ...metaPayload,

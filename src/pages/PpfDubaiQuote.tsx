@@ -690,10 +690,10 @@ const PpfDubaiQuote = () => {
   const lastTrackedVehicleSignature = useRef<string | null>(null);
   const calculatorRef = useRef<HTMLElement | null>(null);
   /**
-   * Local lead testing should behave like the real funnel by default.
-   * Only bypass outbound EmailJS sends when we explicitly opt in via env.
+   * Lead notifications go through Telegram/backend now; EmailJS is opt-in for debugging.
+   * Set VITE_SEND_FUNNEL_EMAILS=true to re-enable outbound template emails.
    */
-  const isLeadEmailBypassEnabled = import.meta.env.VITE_BYPASS_FUNNEL_EMAILS === "true";
+  const funnelEmailsEnabled = import.meta.env.VITE_SEND_FUNNEL_EMAILS === "true";
 
   /** Mobile Safari often ignores smooth scroll or runs before overlay unmount; use measured top + delayed retries. */
   const scrollToCalculatorSection = useCallback(() => {
@@ -1294,8 +1294,10 @@ const PpfDubaiQuote = () => {
 
   const sendLeadEmail = useCallback(
     async (payload: Record<string, string | number>, debugLabel: string) => {
-      if (isLeadEmailBypassEnabled) {
-        console.info(`[dev bypass] ${debugLabel}`, payload);
+      if (!funnelEmailsEnabled) {
+        if (import.meta.env.DEV) {
+          console.info(`[funnel email skipped] ${debugLabel}`, payload);
+        }
         return;
       }
 
@@ -1306,7 +1308,7 @@ const PpfDubaiQuote = () => {
         EMAILJS_PUBLIC_KEY
       );
     },
-    [isLeadEmailBypassEnabled]
+    [funnelEmailsEnabled]
   );
 
   const sendCalculatorRevealEmail = useCallback(
@@ -1496,7 +1498,9 @@ const PpfDubaiQuote = () => {
           `The starting price showed ${estimateLabel} plus VAT. Could you help me with the right package?`,
         ].join(" ");
 
-    setIsSendingCalculatorLead(true);
+    if (funnelEmailsEnabled) {
+      setIsSendingCalculatorLead(true);
+    }
     try {
       await sendLeadEmail(
         {
@@ -1524,7 +1528,9 @@ const PpfDubaiQuote = () => {
     } catch (error) {
       console.error("Failed to send calculator WhatsApp lead email:", error);
     } finally {
-      setIsSendingCalculatorLead(false);
+      if (funnelEmailsEnabled) {
+        setIsSendingCalculatorLead(false);
+      }
       trackEvent("whatsapp_click", {
         cta_location: "calculator_quote",
         whatsapp_state: "calculator_quote",
@@ -2188,6 +2194,7 @@ const PpfDubaiQuote = () => {
         </section>
 
         <section
+          id="why-grand-touch"
           ref={trustSectionRef}
           data-funnel-section="risk_reduction"
           className="border-y border-border/50 bg-[radial-gradient(circle_at_18%_20%,rgba(245,181,43,0.07),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14"
@@ -2294,6 +2301,7 @@ const PpfDubaiQuote = () => {
         </section>
 
         <section
+          id="why-stek"
           ref={whyStekSectionRef}
           data-funnel-section="why_stek"
           className="border-b border-border/50 bg-[radial-gradient(circle_at_75%_20%,rgba(245,181,43,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14"
@@ -2413,8 +2421,8 @@ const PpfDubaiQuote = () => {
                           icon: Sparkles,
                         },
                         {
-                          label: "Online Waranty",
-                          sub: "Matched to the car and traceabl.",
+                          label: "Registered warranty",
+                          sub: "Matched to the car and traceable.",
                           icon: ScanSearch,
                         },
                       ] as const
@@ -2448,6 +2456,7 @@ const PpfDubaiQuote = () => {
         </section>
 
         <section
+          id="real-handovers"
           data-funnel-section="real_handovers"
           className="border-y border-border/50 bg-card/30 px-0 py-12"
         >
@@ -2744,6 +2753,7 @@ const PpfDubaiQuote = () => {
         </section>
 
         <section
+          id="quote-calculator"
           ref={calculatorRef}
           data-funnel-section="calculator"
           className="scroll-mt-6 border-t border-border/50 bg-[radial-gradient(circle_at_50%_0%,rgba(245,181,43,0.04),transparent_42%)] px-0 pb-16 pt-16 [overflow-anchor:none] sm:scroll-mt-8 sm:pb-20 sm:pt-20"

@@ -26,6 +26,8 @@ type LeadAlertRow = {
   created_at: string | null;
   last_activity_at: string | null;
   utm_campaign: string | null;
+  external_ad_name: string | null;
+  external_campaign_name: string | null;
 };
 
 type FollowupAlertRow = {
@@ -117,8 +119,31 @@ const formatCurrency = (value: number | null) =>
 
 const normalizePhone = (value: string | null) => (value ?? "").replace(/\D/g, "");
 
+const toWhatsAppPhone = (value: string | null) => {
+  let digits = normalizePhone(value);
+  if (!digits) return null;
+
+  if (digits.startsWith("00")) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.startsWith("05") && digits.length === 10) {
+    return `971${digits.slice(1)}`;
+  }
+
+  if (digits.startsWith("5") && digits.length === 9) {
+    return `971${digits}`;
+  }
+
+  if (digits.startsWith("9710")) {
+    digits = `971${digits.slice(4)}`;
+  }
+
+  return digits || null;
+};
+
 const getWhatsAppLink = (phone: string | null) => {
-  const normalized = normalizePhone(phone);
+  const normalized = toWhatsAppPhone(phone);
   if (!normalized) return null;
   return `https://wa.me/${normalized}`;
 };
@@ -130,6 +155,9 @@ const formatSourceLabel = (sourcePlatform: string | null, leadSourceType?: strin
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 };
+
+const getCampaignLabel = (lead: Pick<LeadAlertRow, "external_ad_name" | "utm_campaign" | "external_campaign_name">) =>
+  lead.external_ad_name || lead.utm_campaign || lead.external_campaign_name || "No campaign captured";
 
 const openLeadStatuses = ["new", "contacted", "qualified", "quoted"];
 
@@ -198,7 +226,7 @@ const fetchLeadAlertDetails = async (leadId: string) => {
   const { data, error } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign",
+      "id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign, external_ad_name, external_campaign_name",
     )
     .eq("id", leadId)
     .maybeSingle();
@@ -211,7 +239,7 @@ const fetchFollowupAlertDetails = async (followupId: string) => {
   const { data, error } = await supabase
     .from("lead_followups")
     .select(
-      "id, due_at, channel, notes, leads:lead_id(id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign)",
+      "id, due_at, channel, notes, leads:lead_id(id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign, external_ad_name, external_campaign_name)",
     )
     .eq("id", followupId)
     .maybeSingle();
@@ -232,7 +260,7 @@ const buildNewLeadMessage = (lead: LeadAlertRow, titleFallback: string) => {
   const vehicle = escapeHtml(lead.vehicle_label || "Vehicle not captured yet");
   const source = escapeHtml(formatSourceLabel(lead.source_platform, lead.lead_source_type));
   const estimate = escapeHtml(formatCurrency(lead.latest_quote_estimate));
-  const campaign = escapeHtml(lead.utm_campaign || "No campaign captured");
+  const campaign = escapeHtml(getCampaignLabel(lead));
   const leadState = lead.submitted_at ? "✅ Submitted lead" : "📝 Partial / manual lead";
   const whatsappState = lead.whatsapp_clicked_at ? "💬 WhatsApp clicked" : "💬 No WhatsApp click yet";
 

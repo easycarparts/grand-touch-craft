@@ -1,6 +1,6 @@
 # Meta Lead Intake
 
-Last updated: `2026-04-12` (Asia/Dubai)
+Last updated: `2026-04-13` (Asia/Dubai)
 
 This is the server-side intake path for Meta instant-form leads into the CRM.
 
@@ -13,6 +13,7 @@ This is the server-side intake path for Meta instant-form leads into the CRM.
 - preserves Meta source metadata for CRM filtering and later feedback
 - logs each sync attempt in `public.source_sync_runs`
 - sends a Telegram warning if the Meta access token expires during live webhook processing
+- supports a protected direct-import / backfill mode for pulling leads from a Meta form when webhooks miss data
 
 ## Files
 
@@ -48,13 +49,15 @@ For this project:
 6. Subscribe the Page to the `leadgen` field.
 7. Store a valid `META_ACCESS_TOKEN` and `META_APP_SECRET` in Supabase secrets.
 
-## Manual retry / test path
+## Protected internal sync modes
 
-The function also supports a protected manual sync mode.
+The function also supports protected non-webhook sync modes using:
 
 Headers:
 
 - `x-meta-sync-secret: <META_SYNC_SECRET>`
+
+### 1. Manual retry by lead id
 
 Body:
 
@@ -66,6 +69,28 @@ Body:
   "ad_id": "<ad id>"
 }
 ```
+
+### 2. Direct import / backfill by form id
+
+Body:
+
+```json
+{
+  "mode": "poll_form",
+  "form_id": "<meta lead form id>",
+  "page_id": "<page id>",
+  "since": "2026-04-13T00:00:00.000Z",
+  "limit": 50,
+  "page_size": 25
+}
+```
+
+Behavior:
+
+- pulls recent leads from `/<form_id>/leads`
+- upserts them into `public.leads`
+- logs runs with `source_kind = poll`
+- is safe to re-run because CRM dedupes on `(lead_source_type, external_lead_id)`
 
 ## What lands in the CRM
 
@@ -86,6 +111,8 @@ Body:
 
 - Lead Ads retrieval:
   - [Meta Lead Ads Retrieving Guide](https://developers.facebook.com/docs/marketing-api/guides/lead-ads/retrieving/)
+- Long-lived access tokens:
+  - [Meta Access Tokens - Get Long-Lived Access Tokens](https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived/)
 - Graph Webhooks:
   - [Meta Graph API Webhooks Getting Started](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/)
 

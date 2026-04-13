@@ -19,6 +19,8 @@
     "ads:apply-expansion": "node scripts/google-ads/apply-expansion.mjs",
     "ads:update-rsa-copy": "node scripts/google-ads/update-rsa-copy.mjs",
     "ads:review": "node scripts/google-ads/review.mjs",
+    "ads:rebuild-structure": "node scripts/google-ads/rebuild-structure.mjs",
+    "ads:add-assets": "node scripts/google-ads/add-assets.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "prerender": "node scripts/prerender.js"

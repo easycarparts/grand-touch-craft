@@ -23,9 +23,13 @@ dist-ssr
 *.sln
 *.sw?
 
-# Local Google Ads workflow secrets
+# Environment and local secrets (never commit)
+.env
+.env.*
+!.env.example
 .env.google-ads
 secrets/
 
 # Google OAuth client JSON (contains secrets; never commit)
 client_secret*.json
+.vercel

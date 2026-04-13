@@ -76,6 +76,9 @@ type LeadRow = {
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
+  external_campaign_name: string | null;
+  external_adset_name: string | null;
+  external_ad_name: string | null;
   utm_content: string | null;
   utm_term: string | null;
   gclid: string | null;
@@ -83,6 +86,7 @@ type LeadRow = {
   ttclid: string | null;
   notes_summary: string | null;
   import_metadata: Record<string, unknown> | null;
+  expected_delivery_at: string | null;
   assigned_to: string | null;
   first_captured_at: string | null;
   last_activity_at: string | null;
@@ -215,6 +219,20 @@ type ManualLeadDraft = {
   followupChannel: FollowupChannel;
 };
 
+type LeadDetailsDraft = {
+  fullName: string;
+  phone: string;
+  email: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: string;
+  vehicleLabel: string;
+};
+
+type LeadScheduleDraft = {
+  expectedDeliveryAt: string;
+};
+
 type DisplayLeadRow = LeadRow & {
   assignedAdmin: AdminUserOption | null;
   displayIntentScore: number;
@@ -258,6 +276,25 @@ const formatTimestamp = (value: string | null) =>
       }).format(new Date(value))
     : "Not yet";
 
+const formatDubaiTimestamp = (value: string | Date) =>
+  new Intl.DateTimeFormat("en-AE", {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: BUSINESS_TIMEZONE,
+  }).format(new Date(value));
+
+const toDatetimeLocalValue = (value: string | null) => {
+  if (!value) return "";
+
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 const formatDurationMs = (value: number | null) => {
   if (!value || value <= 0) return "0s";
 
@@ -283,6 +320,16 @@ const readImportMetadataValue = (metadata: Record<string, unknown> | null | unde
   return typeof value === "string" ? value : null;
 };
 
+const getLeadCampaignLabel = (
+  lead: Pick<LeadRow, "external_ad_name" | "utm_campaign" | "external_campaign_name" | "import_metadata">,
+) =>
+  lead.external_ad_name ||
+  lead.utm_campaign ||
+  lead.external_campaign_name ||
+  readImportMetadataValue(lead.import_metadata, "ad_name") ||
+  readImportMetadataValue(lead.import_metadata, "campaign_name") ||
+  null;
+
 const formatMetaLeadChoice = (value: string | null | undefined) =>
   (value ?? "")
     .replace(/[()]/g, " ")
@@ -296,9 +343,33 @@ const formatMetaLeadChoice = (value: string | null | undefined) =>
     .join(" ");
 
 const normalizePhone = (value: string | null) => (value ? value.replace(/[^0-9+]/g, "") : "");
+
+const toWhatsAppPhone = (value: string | null) => {
+  let digits = (value ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+
+  if (digits.startsWith("00")) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.startsWith("05") && digits.length === 10) {
+    return `971${digits.slice(1)}`;
+  }
+
+  if (digits.startsWith("5") && digits.length === 9) {
+    return `971${digits}`;
+  }
+
+  if (digits.startsWith("9710")) {
+    digits = `971${digits.slice(4)}`;
+  }
+
+  return digits || null;
+};
+
 const buildWhatsAppUrl = (value: string | null) => {
-  const digitsOnly = (value ?? "").replace(/\D/g, "");
-  return digitsOnly ? `https://wa.me/${digitsOnly}` : null;
+  const whatsappPhone = toWhatsAppPhone(value);
+  return whatsappPhone ? `https://wa.me/${whatsappPhone}` : null;
 };
 
 const readMetaFeedbackError = (payload: Record<string, unknown> | null | undefined) => {
@@ -318,6 +389,15 @@ const readMetaFeedbackError = (payload: Record<string, unknown> | null | undefin
 };
 
 const BUSINESS_TIMEZONE = "Asia/Dubai";
+
+const formatDubaiMetaTokenShort = (value: string | Date) =>
+  new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: BUSINESS_TIMEZONE,
+  }).format(new Date(value));
+
 const BUSINESS_START_HOUR = 9;
 const BUSINESS_START_MINUTE = 30;
 const BUSINESS_OPEN_DAYS = new Set([1, 2, 3, 4, 5, 6]);
@@ -696,8 +776,29 @@ const makeDefaultManualLeadDraft = (currentAdminId?: string): ManualLeadDraft =>
   followupChannel: "call",
 });
 
+const makeLeadDetailsDraft = (
+  lead: Pick<
+    LeadRow,
+    "full_name" | "phone" | "email" | "vehicle_make" | "vehicle_model" | "vehicle_year" | "vehicle_label"
+  >,
+): LeadDetailsDraft => ({
+  fullName: lead.full_name || "",
+  phone: lead.phone || "",
+  email: lead.email || "",
+  vehicleMake: lead.vehicle_make || "",
+  vehicleModel: lead.vehicle_model || "",
+  vehicleYear: lead.vehicle_year || "",
+  vehicleLabel: lead.vehicle_label || "",
+});
+
+const makeLeadScheduleDraft = (lead: Pick<LeadRow, "expected_delivery_at">): LeadScheduleDraft => ({
+  expectedDeliveryAt: toDatetimeLocalValue(lead.expected_delivery_at),
+});
+
+const META_ACCESS_TOKEN_EXPIRES_AT = "2026-06-12T09:26:22.000Z";
+
 const baseLeadSelect =
-  "id, primary_session_id, visitor_id, full_name, phone, email, vehicle_make, vehicle_model, vehicle_year, vehicle_label, source_platform, landing_page_variant, funnel_name, lead_source_type, status, quality_label, intent_score, latest_quote_estimate, utm_source, utm_medium, utm_campaign, utm_content, utm_term, gclid, fbclid, ttclid, notes_summary, import_metadata, assigned_to, first_captured_at, last_activity_at, submitted_at, whatsapp_clicked_at, source_received_at, created_at";
+  "id, primary_session_id, visitor_id, full_name, phone, email, vehicle_make, vehicle_model, vehicle_year, vehicle_label, source_platform, landing_page_variant, funnel_name, lead_source_type, status, quality_label, intent_score, latest_quote_estimate, utm_source, utm_medium, utm_campaign, external_campaign_name, external_adset_name, external_ad_name, utm_content, utm_term, gclid, fbclid, ttclid, notes_summary, import_metadata, expected_delivery_at, assigned_to, first_captured_at, last_activity_at, submitted_at, whatsapp_clicked_at, source_received_at, created_at";
 
 const responseTrackingLeadSelect =
   `${baseLeadSelect}, first_whatsapp_contacted_at, first_whatsapp_contacted_by, first_called_at, first_called_by`;
@@ -725,6 +826,8 @@ const AdminLeads = () => {
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [followupDrafts, setFollowupDrafts] = useState<Record<string, FollowupDraft>>({});
   const [estimateDrafts, setEstimateDrafts] = useState<Record<string, string>>({});
+  const [leadDetailsDrafts, setLeadDetailsDrafts] = useState<Record<string, LeadDetailsDraft>>({});
+  const [leadScheduleDrafts, setLeadScheduleDrafts] = useState<Record<string, LeadScheduleDraft>>({});
   const [manualLeadDraft, setManualLeadDraft] = useState<ManualLeadDraft>(() =>
     makeDefaultManualLeadDraft(adminProfile?.id),
   );
@@ -734,6 +837,8 @@ const AdminLeads = () => {
   const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [metaTokenWatchPinned, setMetaTokenWatchPinned] = useState(false);
+  const [metaTokenWatchHover, setMetaTokenWatchHover] = useState(false);
 
   const setSaving = (key: string, value: boolean) => {
     setSavingKeys((current) => {
@@ -1227,7 +1332,7 @@ const AdminLeads = () => {
         vehicle,
         lead.source_platform,
         lead.landing_page_variant,
-        lead.utm_campaign,
+        getLeadCampaignLabel(lead),
         lead.status,
         lead.quality_label,
         lead.assignedAdmin?.full_name,
@@ -1327,6 +1432,35 @@ const AdminLeads = () => {
       ...current,
       [leadId]: {
         ...(current[leadId] ?? makeDefaultFollowupDraft(assignedTo, adminProfile?.id)),
+        ...patch,
+      },
+    }));
+  };
+
+  const updateLeadDetailsDraft = (
+    lead: Pick<
+      LeadRow,
+      "id" | "full_name" | "phone" | "email" | "vehicle_make" | "vehicle_model" | "vehicle_year" | "vehicle_label"
+    >,
+    patch: Partial<LeadDetailsDraft>,
+  ) => {
+    setLeadDetailsDrafts((current) => ({
+      ...current,
+      [lead.id]: {
+        ...(current[lead.id] ?? makeLeadDetailsDraft(lead)),
+        ...patch,
+      },
+    }));
+  };
+
+  const updateLeadScheduleDraft = (
+    lead: Pick<LeadRow, "id" | "expected_delivery_at">,
+    patch: Partial<LeadScheduleDraft>,
+  ) => {
+    setLeadScheduleDrafts((current) => ({
+      ...current,
+      [lead.id]: {
+        ...(current[lead.id] ?? makeLeadScheduleDraft(lead)),
         ...patch,
       },
     }));
@@ -1464,6 +1598,104 @@ const AdminLeads = () => {
         nextEstimate === null
           ? "The quoted amount was cleared."
           : `Estimate saved as AED ${Math.round(nextEstimate).toLocaleString("en-AE")}.`,
+    });
+
+    void loadLeadDesk({ refresh: true });
+  };
+
+  const handleLeadDetailsSave = async (lead: DisplayLeadRow) => {
+    if (!supabase) return;
+
+    const draft = leadDetailsDrafts[lead.id] ?? makeLeadDetailsDraft(lead);
+    const fullName = draft.fullName.trim() || null;
+    const phone = draft.phone.trim() ? normalizePhone(draft.phone.trim()) : null;
+    const email = draft.email.trim() || null;
+    const vehicleMake = draft.vehicleMake.trim() || null;
+    const vehicleModel = draft.vehicleModel.trim() || null;
+    const vehicleYear = draft.vehicleYear.trim() || null;
+    const manualVehicleLabel = draft.vehicleLabel.trim();
+    const derivedVehicleLabel = [vehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(" ");
+    const vehicleLabel = manualVehicleLabel || derivedVehicleLabel || null;
+
+    const saveKey = `details:${lead.id}`;
+    setSaving(saveKey, true);
+
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        full_name: fullName,
+        phone,
+        email,
+        vehicle_make: vehicleMake,
+        vehicle_model: vehicleModel,
+        vehicle_year: vehicleYear,
+        vehicle_label: vehicleLabel,
+      })
+      .eq("id", lead.id);
+
+    setSaving(saveKey, false);
+
+    if (error) {
+      toast({
+        title: "Customer details update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Customer details updated",
+      description: "The lead name, contact details, and vehicle info were saved.",
+    });
+
+    setLeadDetailsDrafts((current) => {
+      const next = { ...current };
+      delete next[lead.id];
+      return next;
+    });
+
+    void loadLeadDesk({ refresh: true });
+  };
+
+  const handleExpectedDeliverySave = async (lead: DisplayLeadRow) => {
+    if (!supabase) return;
+
+    const draft = leadScheduleDrafts[lead.id] ?? makeLeadScheduleDraft(lead);
+    const expectedDeliveryAt = draft.expectedDeliveryAt ? new Date(draft.expectedDeliveryAt).toISOString() : null;
+
+    const saveKey = `delivery:${lead.id}`;
+    setSaving(saveKey, true);
+
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        expected_delivery_at: expectedDeliveryAt,
+      })
+      .eq("id", lead.id);
+
+    setSaving(saveKey, false);
+
+    if (error) {
+      toast({
+        title: "Expected delivery update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Expected delivery updated",
+      description: expectedDeliveryAt
+        ? `Expected delivery saved for ${formatTimestamp(expectedDeliveryAt)}.`
+        : "Expected delivery was cleared.",
+    });
+
+    setLeadScheduleDrafts((current) => {
+      const next = { ...current };
+      delete next[lead.id];
+      return next;
     });
 
     void loadLeadDesk({ refresh: true });
@@ -1824,6 +2056,8 @@ const AdminLeads = () => {
     void loadLeadDesk({ refresh: true });
   };
 
+  const metaTokenWatchExpanded = metaTokenWatchPinned || metaTokenWatchHover;
+
   return (
     <AdminShell
       title="Lead Desk"
@@ -2094,6 +2328,51 @@ const AdminLeads = () => {
       </Card>
 
       <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
+        <div
+          className="mb-4"
+          onMouseEnter={() => setMetaTokenWatchHover(true)}
+          onMouseLeave={() => setMetaTokenWatchHover(false)}
+        >
+          <button
+            type="button"
+            aria-expanded={metaTokenWatchExpanded}
+            className="flex w-full max-w-md items-center gap-2 rounded-full border border-amber-400/25 bg-[linear-gradient(135deg,rgba(245,158,11,0.1),rgba(120,53,15,0.05))] px-3 py-1.5 text-left transition hover:border-amber-400/40 hover:bg-[linear-gradient(135deg,rgba(245,158,11,0.16),rgba(120,53,15,0.09))] sm:max-w-lg"
+            onClick={() => setMetaTokenWatchPinned((current) => !current)}
+          >
+            <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-amber-200/90">
+              Meta token
+            </span>
+            <span className="text-sm text-white">
+              Expires {formatDubaiMetaTokenShort(META_ACCESS_TOKEN_EXPIRES_AT)}
+            </span>
+            <ChevronDown
+              className={`ml-auto h-4 w-4 shrink-0 text-amber-200/80 transition-transform ${metaTokenWatchExpanded ? "rotate-180" : ""}`}
+              aria-hidden
+            />
+          </button>
+          {metaTokenWatchExpanded ? (
+            <div className="mt-2 rounded-2xl border border-amber-400/20 bg-[linear-gradient(135deg,rgba(245,158,11,0.14),rgba(120,53,15,0.08))] p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-amber-200">Meta token watch</p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    Current validated long-lived Meta Page token expires on{" "}
+                    {formatDubaiTimestamp(META_ACCESS_TOKEN_EXPIRES_AT)}.
+                  </p>
+                  <p className="mt-2 text-sm text-slate-300">
+                    If you rotate the token earlier, update this banner and{" "}
+                    <code className="text-white">docs/meta-token-lifecycle-and-alerts.md</code> so the team
+                    can see the next expiry at a glance.
+                  </p>
+                </div>
+                <Badge variant="outline" className="w-fit border-amber-300/30 bg-black/20 text-amber-100">
+                  Expires {formatDubaiTimestamp(META_ACCESS_TOKEN_EXPIRES_AT)}
+                </Badge>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-slate-400">CRM inbox</p>
@@ -2401,6 +2680,8 @@ const AdminLeads = () => {
                   const whatsappUrl = buildWhatsAppUrl(lead.phone);
                   const latestNote = lead.notes[0] ?? null;
                   const isExpanded = expandedLeadId === lead.id;
+                  const leadDetailsDraft = leadDetailsDrafts[lead.id] ?? makeLeadDetailsDraft(lead);
+                  const leadScheduleDraft = leadScheduleDrafts[lead.id] ?? makeLeadScheduleDraft(lead);
                   const pendingMetaFeedback = lead.feedback.filter(
                     (entry) => entry.platform === "meta" && entry.feedback_status === "pending",
                   );
@@ -2706,6 +2987,14 @@ const AdminLeads = () => {
                                           </span>
                                         </p>
                                         <p>
+                                          <span className="text-slate-500">Expected delivery:</span>{" "}
+                                          <span className="text-white">
+                                            {lead.expected_delivery_at
+                                              ? formatTimestamp(lead.expected_delivery_at)
+                                              : "Not scheduled"}
+                                          </span>
+                                        </p>
+                                        <p>
                                           <span className="text-slate-500">WhatsApp:</span>{" "}
                                           <span className="text-white">
                                             {lead.whatsapp_clicked_at ? "Clicked" : "No click recorded"}
@@ -2743,9 +3032,7 @@ const AdminLeads = () => {
                                         <p>
                                           <span className="text-slate-500">Campaign:</span>{" "}
                                           <span className="text-white">
-                                            {lead.utm_campaign ||
-                                              readImportMetadataValue(lead.import_metadata, "campaign_name") ||
-                                              "Not captured"}
+                                            {getLeadCampaignLabel(lead) || "Not captured"}
                                           </span>
                                         </p>
                                         <p>
@@ -2875,6 +3162,122 @@ const AdminLeads = () => {
                                       </div>
                                     </Card>
                                   </div>
+
+                                  <Card className="border-white/10 bg-black/20 p-4">
+                                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                      <div>
+                                        <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                                          Customer details
+                                        </p>
+                                        <p className="mt-2 text-sm text-slate-300">
+                                          Edit the customer identity and vehicle information directly from the CRM.
+                                        </p>
+                                      </div>
+                                      <div className="flex flex-wrap gap-2">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+                                          onClick={() =>
+                                            setLeadDetailsDrafts((current) => {
+                                              const next = { ...current };
+                                              delete next[lead.id];
+                                              return next;
+                                            })
+                                          }
+                                        >
+                                          Reset
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          onClick={() => void handleLeadDetailsSave(lead)}
+                                          disabled={Boolean(savingKeys[`details:${lead.id}`])}
+                                        >
+                                          Save customer details
+                                        </Button>
+                                      </div>
+                                    </div>
+
+                                    <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                                      <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Full name</p>
+                                        <Input
+                                          value={leadDetailsDraft.fullName}
+                                          onChange={(event) =>
+                                            updateLeadDetailsDraft(lead, { fullName: event.target.value })
+                                          }
+                                          placeholder="Customer name"
+                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Phone</p>
+                                        <Input
+                                          value={leadDetailsDraft.phone}
+                                          onChange={(event) =>
+                                            updateLeadDetailsDraft(lead, { phone: event.target.value })
+                                          }
+                                          placeholder="+971..."
+                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                        />
+                                      </div>
+                                      <div className="space-y-2 sm:col-span-2">
+                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Email</p>
+                                        <Input
+                                          value={leadDetailsDraft.email}
+                                          onChange={(event) =>
+                                            updateLeadDetailsDraft(lead, { email: event.target.value })
+                                          }
+                                          placeholder="name@example.com"
+                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Vehicle make</p>
+                                        <Input
+                                          value={leadDetailsDraft.vehicleMake}
+                                          onChange={(event) =>
+                                            updateLeadDetailsDraft(lead, { vehicleMake: event.target.value })
+                                          }
+                                          placeholder="Mercedes"
+                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Vehicle model</p>
+                                        <Input
+                                          value={leadDetailsDraft.vehicleModel}
+                                          onChange={(event) =>
+                                            updateLeadDetailsDraft(lead, { vehicleModel: event.target.value })
+                                          }
+                                          placeholder="G700"
+                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Vehicle year</p>
+                                        <Input
+                                          value={leadDetailsDraft.vehicleYear}
+                                          onChange={(event) =>
+                                            updateLeadDetailsDraft(lead, { vehicleYear: event.target.value })
+                                          }
+                                          placeholder="2026"
+                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Vehicle label</p>
+                                        <Input
+                                          value={leadDetailsDraft.vehicleLabel}
+                                          onChange={(event) =>
+                                            updateLeadDetailsDraft(lead, { vehicleLabel: event.target.value })
+                                          }
+                                          placeholder="2026 Mercedes G700"
+                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                        />
+                                      </div>
+                                    </div>
+                                  </Card>
                                 </TabsContent>
 
                                 <TabsContent value="actions" className="space-y-4">
@@ -3184,6 +3587,77 @@ const AdminLeads = () => {
                                     </Card>
 
                                     <div className="space-y-4">
+                                      <Card className="border-white/10 bg-black/20 p-4">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                          <div>
+                                            <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                                              Delivery Planning
+                                            </p>
+                                            <p className="mt-2 text-sm text-slate-300">
+                                              Save when the customer expects the car so the team can time follow-up properly.
+                                            </p>
+                                          </div>
+                                          {deliveryStatus ? (
+                                            <Badge variant="outline" className="border-sky-400/20 bg-sky-500/10 text-sky-200">
+                                              Meta timing: {formatMetaLeadChoice(deliveryStatus)}
+                                            </Badge>
+                                          ) : null}
+                                        </div>
+
+                                        <div className="mt-4">
+                                          <p className="mb-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+                                            Expected delivery
+                                          </p>
+                                          <Input
+                                            type="datetime-local"
+                                            value={leadScheduleDraft.expectedDeliveryAt}
+                                            onChange={(event) =>
+                                              updateLeadScheduleDraft(lead, {
+                                                expectedDeliveryAt: event.target.value,
+                                              })
+                                            }
+                                            className="border-white/10 bg-black/20 text-white"
+                                          />
+                                          <p className="mt-2 text-xs text-slate-500">
+                                            Current:{" "}
+                                            <span className="text-slate-300">
+                                              {lead.expected_delivery_at
+                                                ? formatTimestamp(lead.expected_delivery_at)
+                                                : "Not scheduled"}
+                                            </span>
+                                          </p>
+                                        </div>
+
+                                        <div className="mt-3 flex items-center justify-between gap-3">
+                                          <p className="text-xs text-slate-500">
+                                            Keep this updated whenever the customer gives a clearer handover date.
+                                          </p>
+                                          <div className="flex flex-wrap gap-2">
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+                                              onClick={() =>
+                                                setLeadScheduleDrafts((current) => {
+                                                  const next = { ...current };
+                                                  delete next[lead.id];
+                                                  return next;
+                                                })
+                                              }
+                                            >
+                                              Reset
+                                            </Button>
+                                            <Button
+                                              type="button"
+                                              onClick={() => void handleExpectedDeliverySave(lead)}
+                                              disabled={Boolean(savingKeys[`delivery:${lead.id}`])}
+                                            >
+                                              Save delivery
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      </Card>
+
                                       <Card className="border-white/10 bg-black/20 p-4">
                                         <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
                                           Add Internal Note
