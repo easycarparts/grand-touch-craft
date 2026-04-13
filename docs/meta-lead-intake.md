@@ -12,6 +12,7 @@ This is the server-side intake path for Meta instant-form leads into the CRM.
 - writes the lead into `public.leads`
 - preserves Meta source metadata for CRM filtering and later feedback
 - logs each sync attempt in `public.source_sync_runs`
+- sends a Telegram warning if the Meta access token expires during live webhook processing
 
 ## Files
 
@@ -87,3 +88,9 @@ Body:
   - [Meta Lead Ads Retrieving Guide](https://developers.facebook.com/docs/marketing-api/guides/lead-ads/retrieving/)
 - Graph Webhooks:
   - [Meta Graph API Webhooks Getting Started](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/)
+
+## Token lifecycle and recovery
+
+See:
+
+- [meta-token-lifecycle-and-alerts.md](C:/Users/seane/Desktop/GTA%20Website/grand-touch-craft/docs/meta-token-lifecycle-and-alerts.md)

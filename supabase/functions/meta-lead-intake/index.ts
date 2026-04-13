@@ -51,6 +51,9 @@ const metaAccessToken = Deno.env.get("META_ACCESS_TOKEN");
 const metaAppSecret = Deno.env.get("META_APP_SECRET");
 const metaVerifyToken = Deno.env.get("META_VERIFY_TOKEN");
 const metaSyncSecret = Deno.env.get("META_SYNC_SECRET");
+const telegramBotToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+const telegramChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+const telegramThreadId = Deno.env.get("TELEGRAM_THREAD_ID");
 
 if (!supabaseUrl || !serviceRoleKey) {
   throw new Error("Missing Supabase environment variables.");
@@ -195,6 +198,80 @@ const logSyncRun = async (input: {
 
   if (error) {
     console.warn("Failed to log Meta sync run", error);
+  }
+};
+
+const escapeHtml = (value: string | null | undefined) =>
+  (value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
+const isMetaTokenExpiryError = (message: string) =>
+  message.includes("Error validating access token") ||
+  message.includes("\"code\":190") ||
+  message.includes("\"error_subcode\":463") ||
+  message.includes("Session has expired");
+
+const wasRecentTokenExpiryAlertSent = async () => {
+  const since = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from("source_sync_runs")
+    .select("id")
+    .eq("provider", "meta")
+    .eq("status", "failed")
+    .gte("created_at", since)
+    .ilike("error_message", "%Session has expired%")
+    .limit(1);
+
+  if (error) {
+    console.warn("Failed checking recent token expiry alerts", error);
+    return false;
+  }
+
+  return Boolean(data?.length);
+};
+
+const sendTelegramTokenExpiryAlert = async (errorMessage: string) => {
+  if (!telegramBotToken || !telegramChatId) {
+    console.warn("Skipping Meta token expiry alert because Telegram secrets are missing.");
+    return;
+  }
+
+  if (await wasRecentTokenExpiryAlertSent()) {
+    return;
+  }
+
+  const text =
+    `⚠️ <b>Meta lead intake token expired</b>\n` +
+    `New Meta leads will not import into the CRM until <code>META_ACCESS_TOKEN</code> is refreshed.\n\n` +
+    `<b>Problem:</b> ${escapeHtml(errorMessage)}\n\n` +
+    `Action: generate a fresh Page access token for <b>Grand Touch Studio</b> and update the Supabase secret.`;
+
+  const payload: Record<string, unknown> = {
+    chat_id: telegramChatId,
+    text,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+  };
+
+  if (telegramThreadId) {
+    payload.message_thread_id = Number(telegramThreadId);
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    console.warn("Failed to send Meta token expiry alert to Telegram", responseText);
   }
 };
 
@@ -496,6 +573,8 @@ Deno.serve(async (request) => {
             ...result,
           });
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
           await logSyncRun({
             status: "failed",
             externalId: change.value.leadgen_id,
@@ -504,12 +583,16 @@ Deno.serve(async (request) => {
               field: change.field,
               value: change.value,
             },
-            errorMessage: error instanceof Error ? error.message : "Unknown error",
+            errorMessage,
           });
+
+          if (isMetaTokenExpiryError(errorMessage)) {
+            await sendTelegramTokenExpiryAlert(errorMessage);
+          }
 
           processed.push({
             leadgen_id: change.value.leadgen_id,
-            error: error instanceof Error ? error.message : "Unknown error",
+            error: errorMessage,
           });
         }
       }
