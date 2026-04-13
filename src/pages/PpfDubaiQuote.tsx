@@ -64,7 +64,7 @@ type StoredLeadProfile = {
   savedAt: string;
 };
 
-const LEAD_PROFILE_STORAGE_KEY = "ppf-dubai-quote-lead-v1";
+const LEAD_PROFILE_STORAGE_KEY_BASE = "ppf-quote-lead-v1";
 const WHATSAPP_NUMBER = "971567191045";
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
 
@@ -714,6 +714,7 @@ const QuoteUnlockForm = ({
 
 const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant }) => {
   const variantConfig = landingPageCopy[variant];
+  const leadProfileStorageKey = `${LEAD_PROFILE_STORAGE_KEY_BASE}-${variantConfig.landingPageVariant}`;
   const [heroFormOpen, setHeroFormOpen] = useState(false);
   const [quoteModalFlow, setQuoteModalFlow] = useState<QuoteModalFlow>("standard");
   const [formStep, setFormStep] = useState<1 | 2 | 3>(1);
@@ -824,7 +825,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(LEAD_PROFILE_STORAGE_KEY);
+    const stored = window.localStorage.getItem(leadProfileStorageKey);
     if (!stored) return;
 
     try {
@@ -856,7 +857,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     } catch (error) {
       console.warn("Failed to restore stored PPF lead profile", error);
     }
-  }, []);
+  }, [leadProfileStorageKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -872,13 +873,14 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       lastCompletedStep: formSubmitted ? 3 : hasValidVehicleDetails ? 2 : hasValidContactDetails ? 1 : undefined,
       savedAt: new Date().toISOString(),
     };
-    window.localStorage.setItem(LEAD_PROFILE_STORAGE_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(leadProfileStorageKey, JSON.stringify(payload));
   }, [
     formSubmitted,
     funnelContext.sessionId,
     funnelContext.visitorId,
     hasValidContactDetails,
     hasValidVehicleDetails,
+    leadProfileStorageKey,
     mobile,
     name,
     vehicleMake,
