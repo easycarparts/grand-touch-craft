@@ -337,6 +337,36 @@ const getLeadVehicleText = (
       [lead.vehicle_year, lead.vehicle_make, lead.vehicle_model].filter(Boolean).join(" "),
   );
 
+const compactSelectTriggerClass =
+  "h-9 border-white/10 bg-black/20 px-3 text-sm text-white";
+const compactInputClass =
+  "h-9 border-white/10 bg-black/20 px-3 text-sm text-white placeholder:text-slate-500";
+const compactTextareaClass =
+  "min-h-[96px] border-white/10 bg-black/20 text-sm text-white placeholder:text-slate-500";
+const compactButtonClass =
+  "h-9 border-white/10 bg-black/20 px-3 text-sm text-white hover:bg-white/10";
+
+const getLeadIntentPresentation = (lead: DisplayLeadRow) => {
+  if (lead.isMetaOriginated && !lead.latestRollup) {
+    return {
+      tableLabel: "Meta lead",
+      tableClass: "border-sky-400/20 bg-sky-500/10 text-sky-200",
+      valueLabel: "Meta form only",
+      helper:
+        "This lead came from Meta directly, so website behaviour scoring is not available yet.",
+    };
+  }
+
+  return {
+    tableLabel: `${lead.displayIntentScore}/100`,
+    tableClass: "border-white/10 bg-white/5 text-slate-200",
+    valueLabel: `${lead.displayIntentScore}/100`,
+    helper: lead.latestRollup
+      ? "Based on tracked website behaviour."
+      : "Using the current CRM fallback score.",
+  };
+};
+
 const formatSectionName = (value: string) =>
   value
     .split("_")
@@ -2719,6 +2749,7 @@ const AdminLeads = () => {
                   const savingDelete = Boolean(savingKeys[`delete:${lead.id}`]);
                   const whatsappSla = getResponseSlaState(lead, "whatsapp");
                   const callSla = getResponseSlaState(lead, "call");
+                  const intentPresentation = getLeadIntentPresentation(lead);
                   const rowAccentClass = getLeadRowAccentClass(lead);
                   const followupLabel =
                     lead.followupState === "overdue"
@@ -2817,7 +2848,11 @@ const AdminLeads = () => {
                             <p className="text-xs text-slate-400">{formatDueLabel(lead.nextOpenFollowup)}</p>
                           </div>
                         </TableCell>
-                        <TableCell className={rowAccentClass}>{lead.displayIntentScore}/100</TableCell>
+                        <TableCell className={rowAccentClass}>
+                          <Badge variant="outline" className={intentPresentation.tableClass}>
+                            {intentPresentation.tableLabel}
+                          </Badge>
+                        </TableCell>
                         <TableCell className={rowAccentClass}>{formatCurrency(lead.latest_quote_estimate)}</TableCell>
                         <TableCell className={rowAccentClass}>
                           <div className="flex items-center justify-between gap-3">
@@ -2841,17 +2876,238 @@ const AdminLeads = () => {
                           <TableCell colSpan={8} className="bg-black/15">
                             <div className="py-2">
                               <Tabs defaultValue="overview" className="space-y-4">
-                                <TabsList className="border border-white/10 bg-black/20">
-                                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                                  <TabsTrigger value="actions">Update CRM</TabsTrigger>
-                                  <TabsTrigger value="history">Activity</TabsTrigger>
+                                <TabsList className="h-10 border border-white/10 bg-black/20 p-1">
+                                  <TabsTrigger value="overview" className="text-sm">
+                                    Overview
+                                  </TabsTrigger>
+                                  <TabsTrigger value="actions" className="text-sm">
+                                    Update CRM
+                                  </TabsTrigger>
+                                  <TabsTrigger value="history" className="text-sm">
+                                    Activity
+                                  </TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="overview" className="space-y-4">
-                                  <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr_1fr]">
+                                  <Card className="border-white/10 bg-black/20 p-4">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                      <div>
+                                        <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                                          Quick Update
+                                        </p>
+                                        <p className="mt-2 text-sm text-slate-300">
+                                          Keep the sales workflow, ownership, outreach, and next move visible first.
+                                        </p>
+                                      </div>
+                                      <div className="flex flex-wrap gap-2">
+                                        <Badge variant="outline" className={getStatusBadgeClass(lead.status)}>
+                                          {formatTokenLabel(lead.status)}
+                                        </Badge>
+                                        <Badge variant="outline" className={getQualityBadgeClass(lead.quality_label)}>
+                                          {formatTokenLabel(lead.quality_label)}
+                                        </Badge>
+                                        <Badge variant="outline" className={getFollowupBadgeClass(lead.followupState)}>
+                                          {followupLabel}
+                                        </Badge>
+                                      </div>
+                                    </div>
+
+                                    <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                                      <div className="space-y-1.5">
+                                        <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Status</p>
+                                        <Select value={lead.status} onValueChange={(value) => void handleStatusChange(lead, value as LeadStatus)}>
+                                          <SelectTrigger className={compactSelectTriggerClass}>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {leadStatusOptions.map((status) => (
+                                              <SelectItem key={status} value={status}>
+                                                {formatTokenLabel(status)}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      <div className="space-y-1.5">
+                                        <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Quality</p>
+                                        <Select value={lead.quality_label} onValueChange={(value) => void handleQualityChange(lead, value as LeadQuality)}>
+                                          <SelectTrigger className={compactSelectTriggerClass}>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {leadQualityOptions.map((quality) => (
+                                              <SelectItem key={quality} value={quality}>
+                                                {formatTokenLabel(quality)}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      <div className="space-y-1.5">
+                                        <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Owner</p>
+                                        <Select value={lead.assigned_to || "unassigned"} onValueChange={(value) => void handleLeadAssignment(lead, value)}>
+                                          <SelectTrigger className={compactSelectTriggerClass}>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                                            {adminUsers.map((user) => (
+                                              <SelectItem key={user.id} value={user.id}>
+                                                {user.full_name || user.email}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+
+                                    <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto]">
+                                      <div className="space-y-1.5">
+                                        <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Quoted amount (AED)</p>
+                                        <Input
+                                          inputMode="decimal"
+                                          value={
+                                            estimateDrafts[lead.id] ??
+                                            (lead.latest_quote_estimate !== null
+                                              ? String(Math.round(lead.latest_quote_estimate))
+                                              : "")
+                                          }
+                                          onChange={(event) =>
+                                            setEstimateDrafts((current) => ({
+                                              ...current,
+                                              [lead.id]: event.target.value,
+                                            }))
+                                          }
+                                          placeholder="12600"
+                                          className={compactInputClass}
+                                        />
+                                      </div>
+                                      <div className="flex items-end">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          className={compactButtonClass}
+                                          onClick={() => void handleEstimateSave(lead)}
+                                          disabled={Boolean(savingKeys[`estimate:${lead.id}`])}
+                                        >
+                                          Save
+                                        </Button>
+                                      </div>
+
+                                      <div className="space-y-1.5">
+                                        <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Expected delivery</p>
+                                        <Input
+                                          type="datetime-local"
+                                          value={leadScheduleDraft.expectedDeliveryAt}
+                                          onChange={(event) =>
+                                            updateLeadScheduleDraft(lead, {
+                                              expectedDeliveryAt: event.target.value,
+                                            })
+                                          }
+                                          className={compactInputClass}
+                                        />
+                                      </div>
+                                      <div className="flex items-end">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          className={compactButtonClass}
+                                          onClick={() => void handleExpectedDeliverySave(lead)}
+                                          disabled={Boolean(savingKeys[`delivery:${lead.id}`])}
+                                        >
+                                          Save
+                                        </Button>
+                                      </div>
+                                    </div>
+
+                                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                      <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                                        <Checkbox
+                                          checked={Boolean(lead.first_whatsapp_contacted_at)}
+                                          disabled={
+                                            Boolean(lead.first_whatsapp_contacted_at) ||
+                                            Boolean(savingKeys[`whatsapp:${lead.id}`])
+                                          }
+                                          onCheckedChange={(checked) => {
+                                            if (checked && !lead.first_whatsapp_contacted_at) {
+                                              void handleLogOutreach(lead, "whatsapp");
+                                            }
+                                          }}
+                                          className="mt-0.5"
+                                        />
+                                        <div className="min-w-0">
+                                          <p className="text-sm font-medium text-white">WhatsApp sent</p>
+                                          <div className="mt-2 flex flex-wrap gap-2">
+                                            <Badge variant="outline" className={whatsappSla.badgeClass}>
+                                              {whatsappSla.elapsedLabel}
+                                            </Badge>
+                                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-300">
+                                              {whatsappSla.dueLabel}
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      </label>
+
+                                      <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                                        <Checkbox
+                                          checked={Boolean(lead.first_called_at)}
+                                          disabled={Boolean(lead.first_called_at) || Boolean(savingKeys[`call:${lead.id}`])}
+                                          onCheckedChange={(checked) => {
+                                            if (checked && !lead.first_called_at) {
+                                              void handleLogOutreach(lead, "call");
+                                            }
+                                          }}
+                                          className="mt-0.5"
+                                        />
+                                        <div className="min-w-0">
+                                          <p className="text-sm font-medium text-white">Customer called</p>
+                                          <div className="mt-2 flex flex-wrap gap-2">
+                                            <Badge variant="outline" className={callSla.badgeClass}>
+                                              {callSla.elapsedLabel}
+                                            </Badge>
+                                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-300">
+                                              {callSla.dueLabel}
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      </label>
+                                    </div>
+
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                      {lead.status !== "contacted" ? (
+                                        <Button type="button" size="sm" variant="outline" className={compactButtonClass} onClick={() => void handleStatusChange(lead, "contacted", "Marked contacted from overview")}>
+                                          Mark contacted
+                                        </Button>
+                                      ) : null}
+                                      {lead.status !== "qualified" ? (
+                                        <Button type="button" size="sm" variant="outline" className={compactButtonClass} onClick={() => void handleStatusChange(lead, "qualified", "Qualified from overview")}>
+                                          Mark qualified
+                                        </Button>
+                                      ) : null}
+                                      {lead.status !== "quoted" ? (
+                                        <Button type="button" size="sm" variant="outline" className={compactButtonClass} onClick={() => void handleStatusChange(lead, "quoted", "Quote sent or prepared")}>
+                                          Mark quoted
+                                        </Button>
+                                      ) : null}
+                                      {lead.status !== "won" ? (
+                                        <Button type="button" size="sm" variant="outline" className="h-9 border-emerald-400/20 bg-emerald-500/10 px-3 text-sm text-emerald-200 hover:bg-emerald-500/20" onClick={() => void handleStatusChange(lead, "won", "Won from overview")}>
+                                          Mark won
+                                        </Button>
+                                      ) : null}
+                                      {lead.status !== "lost" ? (
+                                        <Button type="button" size="sm" variant="outline" className="h-9 border-rose-400/20 bg-rose-500/10 px-3 text-sm text-rose-200 hover:bg-rose-500/20" onClick={() => void handleStatusChange(lead, "lost", "Lost from overview")}>
+                                          Mark lost
+                                        </Button>
+                                      ) : null}
+                                    </div>
+                                  </Card>
+
+                                  <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
                                     <Card className="border-white/10 bg-black/20 p-4">
                                       <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
-                                        Sales Snapshot
+                                        Decision Snapshot
                                       </p>
                                       <div className="mt-4 flex flex-wrap gap-2">
                                         <Badge variant="outline" className={getStatusBadgeClass(lead.status)}>
@@ -2896,8 +3152,8 @@ const AdminLeads = () => {
                                           <span className="text-white">{formatDueLabel(lead.nextOpenFollowup)}</span>
                                         </p>
                                         <p>
-                                          <span className="text-slate-500">Intent score:</span>{" "}
-                                          <span className="text-white">{lead.displayIntentScore}/100</span>
+                                          <span className="text-slate-500">Intent:</span>{" "}
+                                          <span className="text-white">{intentPresentation.valueLabel}</span>
                                         </p>
                                         <p>
                                           <span className="text-slate-500">Estimate:</span>{" "}
@@ -2921,6 +3177,7 @@ const AdminLeads = () => {
                                             {callSla.elapsedLabel}
                                           </span>
                                         </p>
+                                        <p className="text-xs text-slate-500">{intentPresentation.helper}</p>
                                       </div>
                                       {pendingMetaFeedback.length ? (
                                         <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3">
@@ -2990,7 +3247,11 @@ const AdminLeads = () => {
                                         </p>
                                         <p>
                                           <span className="text-slate-500">Matching sessions:</span>{" "}
-                                          <span className="text-white">{lead.matchingSessions}</span>
+                                          <span className="text-white">
+                                            {lead.isMetaOriginated && !lead.latestRollup
+                                              ? "Meta-only lead"
+                                              : lead.matchingSessions}
+                                          </span>
                                         </p>
                                         <p>
                                           <span className="text-slate-500">Lead state:</span>{" "}
@@ -3028,94 +3289,9 @@ const AdminLeads = () => {
                                         </p>
                                       </div>
                                     </Card>
-
-                                    <Card className="border-white/10 bg-black/20 p-4">
-                                      <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
-                                        Source & Feedback Readiness
-                                      </p>
-                                      <div className="mt-4 flex flex-wrap gap-2">
-                                        <Badge variant="outline" className={getSourceBadgeClass(lead.sourceGroup)}>
-                                          {formatTokenLabel(lead.sourceGroup)}
-                                        </Badge>
-                                        <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                                          {formatTokenLabel(lead.lead_source_type)}
-                                        </Badge>
-                                        {lead.isMetaOriginated ? (
-                                          <Badge variant="outline" className="border-sky-400/20 bg-sky-500/10 text-sky-200">
-                                            Meta-originated
-                                          </Badge>
-                                        ) : null}
-                                      </div>
-                                      <div className="mt-4 space-y-2 text-sm text-slate-300">
-                                        <p>
-                                          <span className="text-slate-500">Source platform:</span>{" "}
-                                          <span className="text-white">{lead.source_platform || "direct / website"}</span>
-                                        </p>
-                                        <p>
-                                          <span className="text-slate-500">Variant:</span>{" "}
-                                          <span className="text-white">{lead.landing_page_variant || "default"}</span>
-                                        </p>
-                                        <p>
-                                          <span className="text-slate-500">Campaign:</span>{" "}
-                                          <span className="text-white">
-                                            {getLeadCampaignLabel(lead) || "Not captured"}
-                                          </span>
-                                        </p>
-                                        <p>
-                                          <span className="text-slate-500">UTM source:</span>{" "}
-                                          <span className="text-white">{lead.utm_source || "Not captured"}</span>
-                                        </p>
-                                        <p>
-                                          <span className="text-slate-500">fbclid:</span>{" "}
-                                          <span className="text-white">{lead.fbclid || "Not captured"}</span>
-                                        </p>
-                                      </div>
-                                      <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                                          Meta feedback queue
-                                        </p>
-                                        {lead.feedback.length ? (
-                                          <div className="mt-3 space-y-3">
-                                            <div className="flex flex-wrap gap-2">
-                                              {lead.feedback
-                                                .filter((entry) => entry.platform === "meta")
-                                                .slice(0, 4)
-                                                .map((entry) => (
-                                                  <Badge
-                                                    key={entry.id}
-                                                    variant="outline"
-                                                    className={getFeedbackBadgeClass(entry.feedback_status)}
-                                                  >
-                                                    {formatTokenLabel(entry.feedback_type)}:{" "}
-                                                    {formatTokenLabel(entry.feedback_status)}
-                                                  </Badge>
-                                                ))}
-                                            </div>
-                                            {lead.feedback
-                                              .filter(
-                                                (entry) =>
-                                                  entry.platform === "meta" &&
-                                                  entry.feedback_status === "failed" &&
-                                                  readMetaFeedbackError(entry.response_payload),
-                                              )
-                                              .slice(0, 1)
-                                              .map((entry) => (
-                                                <p key={`${entry.id}-error`} className="text-xs text-rose-200">
-                                                  Meta error: {readMetaFeedbackError(entry.response_payload)}
-                                                </p>
-                                              ))}
-                                          </div>
-                                        ) : (
-                                          <p className="mt-2 text-sm text-slate-300">
-                                            No Meta feedback row yet. Qualifying, losing, junking, or winning a
-                                            Meta lead will queue the recommended feedback state here.
-                                          </p>
-                                        )}
-                                      </div>
-                                    </Card>
                                   </div>
 
-                                  <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+                                  <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
                                     <Card className="border-white/10 bg-black/20 p-4">
                                       <div className="flex items-center justify-between gap-3">
                                         <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
@@ -3152,158 +3328,39 @@ const AdminLeads = () => {
 
                                     <Card className="border-white/10 bg-black/20 p-4">
                                       <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
-                                        Engagement Snapshot
+                                        Next Action
                                       </p>
-                                      <div className="mt-4 grid gap-3 text-sm text-slate-300 sm:grid-cols-2">
+                                      <div className="mt-4 space-y-3 text-sm text-slate-300">
                                         <p>
-                                          <span className="text-slate-500">Time on page:</span>{" "}
+                                          <span className="text-slate-500">Best next move:</span>{" "}
                                           <span className="text-white">
-                                            {formatDurationMs(lead.latestRollup?.duration_ms ?? null)}
+                                            {lead.nextOpenFollowup
+                                              ? `${formatTokenLabel(lead.nextOpenFollowup.channel)} by ${formatDueLabel(lead.nextOpenFollowup)}`
+                                              : "No follow-up set yet"}
                                           </span>
                                         </p>
                                         <p>
-                                          <span className="text-slate-500">Scroll depth:</span>{" "}
+                                          <span className="text-slate-500">Meta signal:</span>{" "}
                                           <span className="text-white">
-                                            {lead.latestRollup?.max_scroll_percent ?? 0}%
+                                            {pendingMetaFeedback.length
+                                              ? pendingMetaFeedback
+                                                  .map((entry) => formatTokenLabel(entry.feedback_type))
+                                                  .join(", ")
+                                              : "Nothing queued"}
                                           </span>
                                         </p>
                                         <p>
-                                          <span className="text-slate-500">Video:</span>{" "}
+                                          <span className="text-slate-500">Latest note:</span>{" "}
                                           <span className="text-white">
-                                            {lead.latestRollup
-                                              ? lead.latestRollup.video_max_progress_percent
-                                                ? `${lead.latestRollup.video_max_progress_percent}% watched`
-                                                : "No milestone hit yet"
-                                              : "No video activity yet"}
+                                            {latestNote?.body || lead.notes_summary || "No note saved yet"}
                                           </span>
                                         </p>
-                                        <p>
-                                          <span className="text-slate-500">Sections viewed:</span>{" "}
-                                          <span className="text-white">
-                                            {lead.latestRollup?.sections_viewed?.length
-                                              ? lead.latestRollup.sections_viewed.map(formatSectionName).join(", ")
-                                              : "No tracked sections yet"}
-                                          </span>
+                                        <p className="text-xs text-slate-500">
+                                          Source details, browsing behaviour, and technical attribution now live in Activity.
                                         </p>
                                       </div>
                                     </Card>
                                   </div>
-
-                                  <Card className="border-white/10 bg-black/20 p-4">
-                                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                                      <div>
-                                        <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
-                                          Customer details
-                                        </p>
-                                        <p className="mt-2 text-sm text-slate-300">
-                                          Edit the customer identity and vehicle information directly from the CRM.
-                                        </p>
-                                      </div>
-                                      <div className="flex flex-wrap gap-2">
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          className="border-white/10 bg-black/20 text-white hover:bg-white/10"
-                                          onClick={() =>
-                                            setLeadDetailsDrafts((current) => {
-                                              const next = { ...current };
-                                              delete next[lead.id];
-                                              return next;
-                                            })
-                                          }
-                                        >
-                                          Reset
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          onClick={() => void handleLeadDetailsSave(lead)}
-                                          disabled={Boolean(savingKeys[`details:${lead.id}`])}
-                                        >
-                                          Save customer details
-                                        </Button>
-                                      </div>
-                                    </div>
-
-                                    <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                                      <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Full name</p>
-                                        <Input
-                                          value={leadDetailsDraft.fullName}
-                                          onChange={(event) =>
-                                            updateLeadDetailsDraft(lead, { fullName: event.target.value })
-                                          }
-                                          placeholder="Customer name"
-                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-                                        />
-                                      </div>
-                                      <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Phone</p>
-                                        <Input
-                                          value={leadDetailsDraft.phone}
-                                          onChange={(event) =>
-                                            updateLeadDetailsDraft(lead, { phone: event.target.value })
-                                          }
-                                          placeholder="+971..."
-                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-                                        />
-                                      </div>
-                                      <div className="space-y-2 sm:col-span-2">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Email</p>
-                                        <Input
-                                          value={leadDetailsDraft.email}
-                                          onChange={(event) =>
-                                            updateLeadDetailsDraft(lead, { email: event.target.value })
-                                          }
-                                          placeholder="name@example.com"
-                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-                                        />
-                                      </div>
-                                      <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Vehicle make</p>
-                                        <Input
-                                          value={leadDetailsDraft.vehicleMake}
-                                          onChange={(event) =>
-                                            updateLeadDetailsDraft(lead, { vehicleMake: event.target.value })
-                                          }
-                                          placeholder="Mercedes"
-                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-                                        />
-                                      </div>
-                                      <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Vehicle model</p>
-                                        <Input
-                                          value={leadDetailsDraft.vehicleModel}
-                                          onChange={(event) =>
-                                            updateLeadDetailsDraft(lead, { vehicleModel: event.target.value })
-                                          }
-                                          placeholder="G700"
-                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-                                        />
-                                      </div>
-                                      <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Vehicle year</p>
-                                        <Input
-                                          value={leadDetailsDraft.vehicleYear}
-                                          onChange={(event) =>
-                                            updateLeadDetailsDraft(lead, { vehicleYear: event.target.value })
-                                          }
-                                          placeholder="2026"
-                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-                                        />
-                                      </div>
-                                      <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Vehicle label</p>
-                                        <Input
-                                          value={leadDetailsDraft.vehicleLabel}
-                                          onChange={(event) =>
-                                            updateLeadDetailsDraft(lead, { vehicleLabel: event.target.value })
-                                          }
-                                          placeholder="2026 Mercedes G700"
-                                          className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
-                                        />
-                                      </div>
-                                    </div>
-                                  </Card>
                                 </TabsContent>
 
                                 <TabsContent value="actions" className="space-y-4">
@@ -3323,7 +3380,7 @@ const AdminLeads = () => {
                                               void handleStatusChange(lead, value as LeadStatus)
                                             }
                                           >
-                                            <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                                            <SelectTrigger className={compactSelectTriggerClass}>
                                               <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -3346,7 +3403,7 @@ const AdminLeads = () => {
                                               void handleQualityChange(lead, value as LeadQuality)
                                             }
                                           >
-                                            <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                                            <SelectTrigger className={compactSelectTriggerClass}>
                                               <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -3367,7 +3424,7 @@ const AdminLeads = () => {
                                             value={lead.assigned_to || "unassigned"}
                                             onValueChange={(value) => void handleLeadAssignment(lead, value)}
                                           >
-                                            <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                                            <SelectTrigger className={compactSelectTriggerClass}>
                                               <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -3401,12 +3458,12 @@ const AdminLeads = () => {
                                                 }))
                                               }
                                               placeholder="12600"
-                                              className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                              className={compactInputClass}
                                             />
                                             <Button
                                               type="button"
                                               variant="outline"
-                                              className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+                                              className={compactButtonClass}
                                               onClick={() => void handleEstimateSave(lead)}
                                               disabled={Boolean(savingKeys[`estimate:${lead.id}`])}
                                             >
@@ -3437,7 +3494,7 @@ const AdminLeads = () => {
                                             />
                                             <div className="min-w-0">
                                               <p className="text-sm font-medium text-white">WhatsApp sent</p>
-                                              <p className="mt-1 text-sm text-slate-400">
+                                              <p className="mt-1 text-xs text-slate-400">
                                                 Target: within 30 minutes during business hours.
                                               </p>
                                               <div className="mt-2 flex flex-wrap gap-2">
@@ -3478,7 +3535,7 @@ const AdminLeads = () => {
                                             />
                                             <div className="min-w-0">
                                               <p className="text-sm font-medium text-white">Customer called</p>
-                                              <p className="mt-1 text-sm text-slate-400">
+                                              <p className="mt-1 text-xs text-slate-400">
                                                 Target: within 1 hour during business hours.
                                               </p>
                                               <div className="mt-2 flex flex-wrap gap-2">
@@ -3515,7 +3572,7 @@ const AdminLeads = () => {
                                               type="button"
                                               size="sm"
                                               variant="outline"
-                                              className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+                                              className={compactButtonClass}
                                               onClick={() =>
                                                 void handleStatusChange(lead, "contacted", "Marked contacted from lead desk")
                                               }
@@ -3528,7 +3585,7 @@ const AdminLeads = () => {
                                               type="button"
                                               size="sm"
                                               variant="outline"
-                                              className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+                                              className={compactButtonClass}
                                               onClick={() =>
                                                 void handleStatusChange(lead, "qualified", "Qualified from lead desk")
                                               }
@@ -3541,7 +3598,7 @@ const AdminLeads = () => {
                                               type="button"
                                               size="sm"
                                               variant="outline"
-                                              className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+                                              className={compactButtonClass}
                                               onClick={() =>
                                                 void handleStatusChange(lead, "quoted", "Quote sent or prepared")
                                               }
@@ -3554,7 +3611,7 @@ const AdminLeads = () => {
                                               type="button"
                                               size="sm"
                                               variant="outline"
-                                              className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                                              className="h-8 border-emerald-400/20 bg-emerald-500/10 px-3 text-xs text-emerald-200 hover:bg-emerald-500/20"
                                               onClick={() =>
                                                 void handleStatusChange(lead, "won", "Won from lead desk")
                                               }
@@ -3567,7 +3624,7 @@ const AdminLeads = () => {
                                               type="button"
                                               size="sm"
                                               variant="outline"
-                                              className="border-rose-400/20 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                                              className="h-8 border-rose-400/20 bg-rose-500/10 px-3 text-xs text-rose-200 hover:bg-rose-500/20"
                                               onClick={() =>
                                                 void handleStatusChange(lead, "lost", "Lost from lead desk")
                                               }
@@ -3580,7 +3637,7 @@ const AdminLeads = () => {
                                               type="button"
                                               size="sm"
                                               variant="outline"
-                                              className="border-slate-400/20 bg-slate-500/10 text-slate-300 hover:bg-slate-500/20"
+                                              className="h-8 border-slate-400/20 bg-slate-500/10 px-3 text-xs text-slate-300 hover:bg-slate-500/20"
                                               onClick={() =>
                                                 void handleStatusChange(lead, "junk", "Marked junk from lead desk")
                                               }
@@ -3592,7 +3649,7 @@ const AdminLeads = () => {
                                             type="button"
                                             size="sm"
                                             variant="outline"
-                                            className="border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                                            className="h-8 border-rose-500/30 bg-rose-500/10 px-3 text-xs text-rose-200 hover:bg-rose-500/20"
                                             onClick={() => setLeadPendingDelete(lead)}
                                             disabled={savingDelete}
                                           >
@@ -3642,7 +3699,7 @@ const AdminLeads = () => {
                                                 expectedDeliveryAt: event.target.value,
                                               })
                                             }
-                                            className="border-white/10 bg-black/20 text-white"
+                                            className={compactInputClass}
                                           />
                                           <p className="mt-2 text-xs text-slate-500">
                                             Current:{" "}
@@ -3662,7 +3719,7 @@ const AdminLeads = () => {
                                             <Button
                                               type="button"
                                               variant="outline"
-                                              className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+                                              className={compactButtonClass}
                                               onClick={() =>
                                                 setLeadScheduleDrafts((current) => {
                                                   const next = { ...current };
@@ -3697,7 +3754,7 @@ const AdminLeads = () => {
                                             }))
                                           }
                                           placeholder="Call result, objections, vehicle details, budget notes..."
-                                          className="mt-4 border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                          className={`mt-4 ${compactTextareaClass}`}
                                         />
                                         <div className="mt-3 flex items-center justify-between gap-3">
                                           <p className="text-xs text-slate-500">
@@ -3705,6 +3762,8 @@ const AdminLeads = () => {
                                           </p>
                                           <Button
                                             type="button"
+                                            variant="outline"
+                                            className={compactButtonClass}
                                             onClick={() => void handleAddNote(lead)}
                                             disabled={Boolean(savingKeys[`note:${lead.id}`])}
                                           >
@@ -3737,7 +3796,7 @@ const AdminLeads = () => {
                                                 )
                                               }
                                             >
-                                              <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                                              <SelectTrigger className={compactSelectTriggerClass}>
                                                 <SelectValue />
                                               </SelectTrigger>
                                               <SelectContent>
@@ -3765,7 +3824,7 @@ const AdminLeads = () => {
                                                 updateFollowupDraft(lead.id, { assignedTo: value }, lead.assigned_to)
                                               }
                                             >
-                                              <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                                              <SelectTrigger className={compactSelectTriggerClass}>
                                                 <SelectValue />
                                               </SelectTrigger>
                                               <SelectContent>
@@ -3794,7 +3853,7 @@ const AdminLeads = () => {
                                               onChange={(event) =>
                                                 updateFollowupDraft(lead.id, { dueAt: event.target.value }, lead.assigned_to)
                                               }
-                                              className="border-white/10 bg-black/20 text-white"
+                                              className={compactInputClass}
                                             />
                                           </div>
                                         </div>
@@ -3810,12 +3869,14 @@ const AdminLeads = () => {
                                             updateFollowupDraft(lead.id, { notes: event.target.value }, lead.assigned_to)
                                           }
                                           placeholder="What should happen on this follow-up?"
-                                          className="mt-4 border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                                          className={`mt-4 ${compactTextareaClass}`}
                                         />
 
                                         <div className="mt-3 flex justify-end">
                                           <Button
                                             type="button"
+                                            variant="outline"
+                                            className={compactButtonClass}
                                             onClick={() => void handleCreateFollowup(lead)}
                                             disabled={Boolean(savingKeys[`followup-create:${lead.id}`])}
                                           >
@@ -3948,6 +4009,255 @@ const AdminLeads = () => {
                                 </TabsContent>
 
                                 <TabsContent value="history" className="space-y-4">
+                                  <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr_1.1fr]">
+                                    <Card className="border-white/10 bg-black/20 p-4">
+                                      <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                                        Source & Feedback Readiness
+                                      </p>
+                                      <div className="mt-4 flex flex-wrap gap-2">
+                                        <Badge variant="outline" className={getSourceBadgeClass(lead.sourceGroup)}>
+                                          {formatTokenLabel(lead.sourceGroup)}
+                                        </Badge>
+                                        <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
+                                          {formatTokenLabel(lead.lead_source_type)}
+                                        </Badge>
+                                        {lead.isMetaOriginated ? (
+                                          <Badge
+                                            variant="outline"
+                                            className="border-sky-400/20 bg-sky-500/10 text-sky-200"
+                                          >
+                                            Meta-originated
+                                          </Badge>
+                                        ) : null}
+                                      </div>
+                                      <div className="mt-4 space-y-2 text-sm text-slate-300">
+                                        <p>
+                                          <span className="text-slate-500">Source platform:</span>{" "}
+                                          <span className="text-white">{lead.source_platform || "direct / website"}</span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">Variant:</span>{" "}
+                                          <span className="text-white">{lead.landing_page_variant || "default"}</span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">Campaign:</span>{" "}
+                                          <span className="text-white">{getLeadCampaignLabel(lead) || "Not captured"}</span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">UTM source:</span>{" "}
+                                          <span className="text-white">{lead.utm_source || "Not captured"}</span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">fbclid:</span>{" "}
+                                          <span className="text-white">{lead.fbclid || "Not captured"}</span>
+                                        </p>
+                                      </div>
+                                      <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3">
+                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                                          Meta feedback queue
+                                        </p>
+                                        {lead.feedback.length ? (
+                                          <div className="mt-3 space-y-3">
+                                            <div className="flex flex-wrap gap-2">
+                                              {lead.feedback
+                                                .filter((entry) => entry.platform === "meta")
+                                                .slice(0, 4)
+                                                .map((entry) => (
+                                                  <Badge
+                                                    key={entry.id}
+                                                    variant="outline"
+                                                    className={getFeedbackBadgeClass(entry.feedback_status)}
+                                                  >
+                                                    {formatTokenLabel(entry.feedback_type)}:{" "}
+                                                    {formatTokenLabel(entry.feedback_status)}
+                                                  </Badge>
+                                                ))}
+                                            </div>
+                                            {lead.feedback
+                                              .filter(
+                                                (entry) =>
+                                                  entry.platform === "meta" &&
+                                                  entry.feedback_status === "failed" &&
+                                                  readMetaFeedbackError(entry.response_payload),
+                                              )
+                                              .slice(0, 1)
+                                              .map((entry) => (
+                                                <p key={`${entry.id}-error`} className="text-xs text-rose-200">
+                                                  Meta error: {readMetaFeedbackError(entry.response_payload)}
+                                                </p>
+                                              ))}
+                                          </div>
+                                        ) : (
+                                          <p className="mt-2 text-sm text-slate-300">
+                                            No Meta feedback row yet. Qualifying, losing, junking, or winning a Meta
+                                            lead will queue the recommended feedback state here.
+                                          </p>
+                                        )}
+                                      </div>
+                                    </Card>
+
+                                    <Card className="border-white/10 bg-black/20 p-4">
+                                      <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                                        Engagement Snapshot
+                                      </p>
+                                      <div className="mt-4 grid gap-3 text-sm text-slate-300">
+                                        <p>
+                                          <span className="text-slate-500">Intent:</span>{" "}
+                                          <span className="text-white">{intentPresentation.valueLabel}</span>
+                                        </p>
+                                        <p className="text-xs text-slate-500">{intentPresentation.helper}</p>
+                                        <p>
+                                          <span className="text-slate-500">Time on page:</span>{" "}
+                                          <span className="text-white">
+                                            {formatDurationMs(lead.latestRollup?.duration_ms ?? null)}
+                                          </span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">Scroll depth:</span>{" "}
+                                          <span className="text-white">
+                                            {lead.latestRollup?.max_scroll_percent ?? 0}%
+                                          </span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">Video:</span>{" "}
+                                          <span className="text-white">
+                                            {lead.latestRollup
+                                              ? lead.latestRollup.video_max_progress_percent
+                                                ? `${lead.latestRollup.video_max_progress_percent}% watched`
+                                                : "No milestone hit yet"
+                                              : "No video activity yet"}
+                                          </span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">Sections viewed:</span>{" "}
+                                          <span className="text-white">
+                                            {lead.latestRollup?.sections_viewed?.length
+                                              ? lead.latestRollup.sections_viewed.map(formatSectionName).join(", ")
+                                              : "No tracked sections yet"}
+                                          </span>
+                                        </p>
+                                      </div>
+                                    </Card>
+
+                                    <Card className="border-white/10 bg-black/20 p-4">
+                                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                          <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                                            Customer details
+                                          </p>
+                                          <p className="mt-2 text-sm text-slate-300">
+                                            Deeper contact and vehicle edits live here, away from the sales triage view.
+                                          </p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            className={compactButtonClass}
+                                            onClick={() =>
+                                              setLeadDetailsDrafts((current) => {
+                                                const next = { ...current };
+                                                delete next[lead.id];
+                                                return next;
+                                              })
+                                            }
+                                          >
+                                            Reset
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            className={compactButtonClass}
+                                            onClick={() => void handleLeadDetailsSave(lead)}
+                                            disabled={Boolean(savingKeys[`details:${lead.id}`])}
+                                          >
+                                            Save details
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                        <div className="space-y-1.5">
+                                          <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Full name</p>
+                                          <Input
+                                            value={leadDetailsDraft.fullName}
+                                            onChange={(event) =>
+                                              updateLeadDetailsDraft(lead, { fullName: event.target.value })
+                                            }
+                                            placeholder="Customer name"
+                                            className={compactInputClass}
+                                          />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                          <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Phone</p>
+                                          <Input
+                                            value={leadDetailsDraft.phone}
+                                            onChange={(event) =>
+                                              updateLeadDetailsDraft(lead, { phone: event.target.value })
+                                            }
+                                            placeholder="+971..."
+                                            className={compactInputClass}
+                                          />
+                                        </div>
+                                        <div className="space-y-1.5 sm:col-span-2">
+                                          <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Email</p>
+                                          <Input
+                                            value={leadDetailsDraft.email}
+                                            onChange={(event) =>
+                                              updateLeadDetailsDraft(lead, { email: event.target.value })
+                                            }
+                                            placeholder="name@example.com"
+                                            className={compactInputClass}
+                                          />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                          <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Vehicle make</p>
+                                          <Input
+                                            value={leadDetailsDraft.vehicleMake}
+                                            onChange={(event) =>
+                                              updateLeadDetailsDraft(lead, { vehicleMake: event.target.value })
+                                            }
+                                            placeholder="Mercedes"
+                                            className={compactInputClass}
+                                          />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                          <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Vehicle model</p>
+                                          <Input
+                                            value={leadDetailsDraft.vehicleModel}
+                                            onChange={(event) =>
+                                              updateLeadDetailsDraft(lead, { vehicleModel: event.target.value })
+                                            }
+                                            placeholder="G700"
+                                            className={compactInputClass}
+                                          />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                          <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Vehicle year</p>
+                                          <Input
+                                            value={leadDetailsDraft.vehicleYear}
+                                            onChange={(event) =>
+                                              updateLeadDetailsDraft(lead, { vehicleYear: event.target.value })
+                                            }
+                                            placeholder="2026"
+                                            className={compactInputClass}
+                                          />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                          <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Vehicle label</p>
+                                          <Input
+                                            value={leadDetailsDraft.vehicleLabel}
+                                            onChange={(event) =>
+                                              updateLeadDetailsDraft(lead, { vehicleLabel: event.target.value })
+                                            }
+                                            placeholder="2026 Mercedes G700"
+                                            className={compactInputClass}
+                                          />
+                                        </div>
+                                      </div>
+                                    </Card>
+                                  </div>
+
                                   <div className="grid gap-4 xl:grid-cols-[1fr_1fr_0.9fr]">
                                     <Card className="border-white/10 bg-black/20 p-4">
                                       <p className="text-sm uppercase tracking-[0.18em] text-slate-400">Notes Archive</p>

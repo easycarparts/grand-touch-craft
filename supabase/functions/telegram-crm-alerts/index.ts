@@ -104,6 +104,26 @@ const escapeHtml = (value: string | null | undefined) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
+const collapseRepeatedPhrase = (value: string | null | undefined) => {
+  const trimmed = value?.trim() || "";
+  if (!trimmed) return "";
+
+  const normalized = trimmed.replace(/\s+/g, " ");
+  const words = normalized.split(" ").filter(Boolean);
+
+  if (words.length >= 2 && words.length % 2 === 0) {
+    const half = words.length / 2;
+    const left = words.slice(0, half).join(" ");
+    const right = words.slice(half).join(" ");
+
+    if (left.toLowerCase() === right.toLowerCase()) {
+      return left;
+    }
+  }
+
+  return normalized;
+};
+
 const formatTimestamp = (value: string | null) => {
   if (!value) return "Not set";
 
@@ -257,7 +277,7 @@ const buildNewLeadMessage = (lead: LeadAlertRow, titleFallback: string) => {
   const leadName = escapeHtml(lead.full_name || "Unnamed lead");
   const phone = escapeHtml(lead.phone || "No phone captured");
   const email = escapeHtml(lead.email || "No email captured");
-  const vehicle = escapeHtml(lead.vehicle_label || "Vehicle not captured yet");
+  const vehicle = escapeHtml(collapseRepeatedPhrase(lead.vehicle_label) || "Vehicle not captured yet");
   const source = escapeHtml(formatSourceLabel(lead.source_platform, lead.lead_source_type));
   const estimate = escapeHtml(formatCurrency(lead.latest_quote_estimate));
   const campaign = escapeHtml(getCampaignLabel(lead));
@@ -291,7 +311,7 @@ const buildFollowupCreatedMessage = (followup: FollowupAlertRow, titleFallback: 
   const lead = followup.leads;
   const leadName = escapeHtml(lead?.full_name || lead?.phone || "Unnamed lead");
   const phone = escapeHtml(lead?.phone || "No phone captured");
-  const vehicle = escapeHtml(lead?.vehicle_label || "Vehicle not captured yet");
+  const vehicle = escapeHtml(collapseRepeatedPhrase(lead?.vehicle_label) || "Vehicle not captured yet");
   const source = escapeHtml(formatSourceLabel(lead?.source_platform || null, lead?.lead_source_type || null));
   const notes = escapeHtml(followup.notes || "No follow-up notes");
 
@@ -392,7 +412,7 @@ const fetchFollowupWindow = async (window: "overdue" | "today" | "tomorrow") => 
 const renderLeadLine = (lead: LeadSummaryRow, index: number) => {
   const name = escapeHtml(lead.full_name || lead.phone || "Unnamed lead");
   const phone = escapeHtml(lead.phone || "No phone");
-  const vehicle = escapeHtml(lead.vehicle_label || "No vehicle");
+  const vehicle = escapeHtml(collapseRepeatedPhrase(lead.vehicle_label) || "No vehicle");
   const source = escapeHtml(formatSourceLabel(lead.source_platform, null));
   const estimate = escapeHtml(formatCurrency(lead.latest_quote_estimate));
   const whatsapp = getWhatsAppLink(lead.phone);
@@ -411,7 +431,7 @@ const renderLeadLine = (lead: LeadSummaryRow, index: number) => {
 const renderFollowupLine = (followup: DigestFollowupRow, index: number, emoji: string) => {
   const lead = followup.leads;
   const name = escapeHtml(lead?.full_name || lead?.phone || "Unnamed lead");
-  const vehicle = escapeHtml(lead?.vehicle_label || "No vehicle");
+  const vehicle = escapeHtml(collapseRepeatedPhrase(lead?.vehicle_label) || "No vehicle");
   const source = escapeHtml(formatSourceLabel(lead?.source_platform || null, null));
   const notes = escapeHtml(followup.notes || "No notes");
   const whatsapp = getWhatsAppLink(lead?.phone || null);
