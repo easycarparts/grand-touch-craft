@@ -384,20 +384,10 @@ const parseLeadFields = (lead: MetaLeadResponse) => {
     ) ?? null;
 
   const combinedVehicleTrimmed = combinedVehicle?.trim() || null;
-  const extractedYear =
-    vehicleYear ||
-    combinedVehicleTrimmed?.match(/\b(19|20)\d{2}\b/)?.[0] ||
-    null;
-  const combinedVehicleWithoutYear =
-    combinedVehicleTrimmed && extractedYear
-      ? combinedVehicleTrimmed
-          .replace(new RegExp(`\\b${extractedYear}\\b`, "g"), " ")
-          .replace(/[-,/]+/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-      : combinedVehicleTrimmed;
-  const fallbackVehicleModel =
-    combinedVehicleWithoutYear && !vehicleModel ? combinedVehicleWithoutYear : vehicleModel;
+  const hasStructuredVehicleFields = Boolean(vehicleMake || vehicleModel || vehicleYear);
+  const safeVehicleMake = vehicleMake || null;
+  const safeVehicleModel = vehicleModel || null;
+  const safeVehicleYear = vehicleYear || null;
 
   const summaryParts = [
     protectionLevel ? `Package: ${formatTokenLabel(protectionLevel)}` : null,
@@ -408,10 +398,16 @@ const parseLeadFields = (lead: MetaLeadResponse) => {
     fullName,
     email,
     phone,
-    vehicleMake,
-    vehicleModel: fallbackVehicleModel,
-    vehicleYear: extractedYear,
+    vehicleMake: safeVehicleMake,
+    vehicleModel: safeVehicleModel,
+    vehicleYear: safeVehicleYear,
     combinedVehicle: combinedVehicleTrimmed,
+    structuredVehicleLabel: [safeVehicleYear, safeVehicleMake, safeVehicleModel].filter(Boolean).join(" ").trim() || null,
+    preferredVehicleLabel:
+      combinedVehicleTrimmed ||
+      [safeVehicleYear, safeVehicleMake, safeVehicleModel].filter(Boolean).join(" ").trim() ||
+      null,
+    hasStructuredVehicleFields,
     deliveryStatus,
     protectionLevel,
     notesSummary: summaryParts.length ? summaryParts.join(" | ") : null,
@@ -484,7 +480,7 @@ const upsertMetaLeadIntoCrm = async (input: {
     vehicle_make: parsed.vehicleMake,
     vehicle_model: parsed.vehicleModel,
     vehicle_year: parsed.vehicleYear,
-    vehicle_label: parsed.combinedVehicle,
+    vehicle_label: parsed.preferredVehicleLabel,
     source_platform: "meta",
     landing_page_variant: "meta_lead_form",
     funnel_name: "meta_lead_ads",
@@ -510,6 +506,8 @@ const upsertMetaLeadIntoCrm = async (input: {
       delivery_status: parsed.deliveryStatus,
       protection_level: parsed.protectionLevel,
       combined_vehicle: parsed.combinedVehicle,
+      structured_vehicle_label: parsed.structuredVehicleLabel,
+      preferred_vehicle_label: parsed.preferredVehicleLabel,
       field_data: parsed.rawFields,
       webhook_payload: input.webhookPayload,
     },

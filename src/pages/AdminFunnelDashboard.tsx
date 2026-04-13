@@ -41,6 +41,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import {
   FUNNEL_EVENTS_UPDATED_EVENT,
   readStoredFunnelEvents,
+  resetFunnelBrowserState,
   type FunnelEventRecord,
 } from "@/lib/funnel-analytics";
 import {
@@ -162,6 +163,7 @@ const normalizePhone = (value: string) => value.replace(/[\s-]/g, "");
 
 const DUBAI_LOCALE = "en-CA";
 const DUBAI_TIMEZONE = "Asia/Dubai";
+const DASHBOARD_BASELINES_STORAGE_KEY = "grand-touch-funnel-dashboard-baselines-v1";
 
 type DashboardDatePreset =
   | "all"
@@ -207,6 +209,14 @@ const getDateRangeLabel = (
     default:
       return "All time";
   }
+};
+
+type DashboardBaseline = {
+  id: string;
+  startedAt: string;
+  endedAt: string | null;
+  label: string;
+  funnelKey: string;
 };
 
 const getIntentBand = (score: number) => {
@@ -464,6 +474,10 @@ const AdminFunnelDashboard = () => {
   const [customEndDate, setCustomEndDate] = useState("");
   const [sessionStatusFilter, setSessionStatusFilter] = useState("all");
   const [sessionLimit, setSessionLimit] = useState("5");
+  const [baselineLabelInput, setBaselineLabelInput] = useState("");
+  const [baselineStartInput, setBaselineStartInput] = useState("");
+  const [savedBaselines, setSavedBaselines] = useState<DashboardBaseline[]>([]);
+  const [activeBaselineId, setActiveBaselineId] = useState<string>("all");
 
   const refreshRecords = async () => {
     if (!supabase) {
@@ -527,10 +541,70 @@ const AdminFunnelDashboard = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const raw = window.localStorage.getItem(DASHBOARD_BASELINES_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as DashboardBaseline[];
+      if (!Array.isArray(parsed)) return;
+      setSavedBaselines(
+        parsed
+          .filter(
+            (baseline) =>
+              baseline &&
+              typeof baseline.id === "string" &&
+              typeof baseline.startedAt === "string" &&
+              typeof baseline.label === "string",
+          )
+          .map((baseline) => ({
+            ...baseline,
+            endedAt:
+              typeof baseline.endedAt === "string" || baseline.endedAt === null
+                ? baseline.endedAt
+                : null,
+            funnelKey:
+              typeof baseline.funnelKey === "string" && baseline.funnelKey
+                ? baseline.funnelKey
+                : "all",
+          })),
+      );
+    } catch {
+      // Ignore malformed storage.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(
+        DASHBOARD_BASELINES_STORAGE_KEY,
+        JSON.stringify(savedBaselines),
+      );
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [savedBaselines]);
+
   const funnelOptions = useMemo(() => {
     const unique = Array.from(new Set(records.map((record) => record.funnel_name))).filter(Boolean);
     return ["all", ...unique];
   }, [records]);
+
+  const allSavedBaselines = useMemo(
+    () =>
+      savedBaselines
+        .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()),
+    [savedBaselines],
+  );
+
+  const activeBaseline = useMemo(
+    () => allSavedBaselines.find((baseline) => baseline.id === activeBaselineId) ?? null,
+    [activeBaselineId, allSavedBaselines],
+  );
+  const dashboardBaseline = activeBaseline;
 
   const filteredRecords = useMemo(() => {
     const todayDubai = getDubaiDateKey(new Date());
@@ -543,6 +617,20 @@ const AdminFunnelDashboard = () => {
         selectedFunnel === "all" || record.funnel_name === selectedFunnel;
 
       if (!matchesFunnel) return false;
+
+      if (
+        activeBaseline &&
+        new Date(record.timestamp).getTime() < new Date(activeBaseline.startedAt).getTime()
+      ) {
+        return false;
+      }
+
+      if (
+        activeBaseline?.endedAt &&
+        new Date(record.timestamp).getTime() > new Date(activeBaseline.endedAt).getTime()
+      ) {
+        return false;
+      }
 
       if (datePreset === "all") return true;
 
@@ -564,7 +652,7 @@ const AdminFunnelDashboard = () => {
 
       return true;
     });
-  }, [records, selectedFunnel, datePreset, customStartDate, customEndDate]);
+  }, [records, selectedFunnel, datePreset, customStartDate, customEndDate, activeBaseline]);
 
   const sessionRows = useMemo(() => {
     const grouped = new Map<string, SessionAccumulator>();
@@ -919,6 +1007,91 @@ const AdminFunnelDashboard = () => {
 
   const topSectionDurationMs = sectionTimingRows[0]?.durationMs ?? 0;
 
+  const startFreshDashboardView = () => {
+    const parsedStart =
+      baselineStartInput.trim().length > 0
+        ? new Date(baselineStartInput)
+        : new Date();
+
+    const startedAt = Number.isNaN(parsedStart.getTime())
+      ? new Date().toISOString()
+      : parsedStart.toISOString();
+
+    const baseline: DashboardBaseline = {
+      id:
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `baseline_${Date.now().toString(36)}`,
+      startedAt,
+      endedAt: null,
+      label: baselineLabelInput.trim() || "Fresh view",
+      funnelKey: selectedFunnel,
+    };
+
+    setSavedBaselines((current) => [baseline, ...current]);
+    setActiveBaselineId(baseline.id);
+    setBaselineLabelInput("");
+    setBaselineStartInput("");
+    setSelectedSessionId("all");
+  };
+
+  const clearDashboardBaseline = () => {
+    setActiveBaselineId("all");
+  };
+
+  const deleteActiveBaseline = () => {
+    if (activeBaselineId === "all") return;
+
+    setSavedBaselines((current) =>
+      current.filter((baseline) => baseline.id !== activeBaselineId),
+    );
+    setActiveBaselineId("all");
+  };
+
+  const closeBaseline = (baselineId: string) => {
+    const closedAt = new Date().toISOString();
+
+    setSavedBaselines((current) =>
+      current.map((baseline) =>
+        baseline.id === baselineId && !baseline.endedAt
+          ? { ...baseline, endedAt: closedAt }
+          : baseline,
+      ),
+    );
+  };
+
+  const openBaseline = (baselineId: string) => {
+    const baseline = savedBaselines.find((item) => item.id === baselineId);
+    if (!baseline) return;
+
+    setSelectedFunnel(baseline.funnelKey);
+    setActiveBaselineId(baseline.id);
+    setSelectedSessionId("all");
+  };
+
+  const resetBrowserTrackingOnly = () => {
+    resetFunnelBrowserState();
+    setSelectedSessionId("all");
+    void refreshRecords();
+  };
+
+  const exportVisibleEvents = () => {
+    if (typeof window === "undefined") return;
+
+    const blob = new Blob([JSON.stringify(filteredRecords, null, 2)], {
+      type: "application/json",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `funnel-events-${dateStamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <AdminShell
       title="Paid Funnel Dashboard"
@@ -1036,6 +1209,200 @@ const AdminFunnelDashboard = () => {
             >
               Reset to last 7 days
             </Button>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Fresh campaign view</p>
+                <h3 className="mt-2 text-xl font-semibold text-white">Saved views for each funnel</h3>
+                <p className="mt-2 text-sm text-slate-400">
+                  Create named fresh views for the selected funnel, switch between them later, or jump back to all tracked data whenever you want.
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                  Current funnel: {selectedFunnel === "all" ? "All funnels" : selectedFunnel}
+                </p>
+              </div>
+
+              {activeBaseline ? (
+                <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">
+                  Active: {dashboardBaseline.label} · {formatTimestamp(dashboardBaseline.startedAt)}
+                  {dashboardBaseline.endedAt ? ` to ${formatTimestamp(dashboardBaseline.endedAt)}` : " · Open"}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-300">
+                  Viewing all tracked data
+                </Badge>
+              )}
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+              <Input
+                value={baselineLabelInput}
+                onChange={(event) => setBaselineLabelInput(event.target.value)}
+                placeholder={`Name this ${selectedFunnel === "all" ? "all-funnel" : selectedFunnel} view`}
+                className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+              />
+              <Input
+                type="datetime-local"
+                value={baselineStartInput}
+                onChange={(event) => setBaselineStartInput(event.target.value)}
+                className="border-white/10 bg-black/20 text-white xl:col-span-2"
+              />
+              <Select
+                value={activeBaselineId}
+                onValueChange={(value) => {
+                  if (value === "all") {
+                    setActiveBaselineId("all");
+                    return;
+                  }
+                  openBaseline(value);
+                }}
+              >
+                <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                  <SelectValue placeholder="Choose saved view" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {selectedFunnel === "all" ? "All funnels · All data" : `${selectedFunnel} · All data`}
+                  </SelectItem>
+                  {allSavedBaselines.map((baseline) => (
+                    <SelectItem key={baseline.id} value={baseline.id}>
+                      {baseline.label} · {baseline.funnelKey === "all" ? "All funnels" : baseline.funnelKey} · {formatTimestamp(baseline.startedAt)}
+                      {baseline.endedAt ? ` to ${formatTimestamp(baseline.endedAt)}` : " · Open"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" className="border-white/10 bg-black/20" onClick={startFreshDashboardView}>
+                Start new view
+              </Button>
+              <Button variant="outline" className="border-white/10 bg-black/20" onClick={clearDashboardBaseline}>
+                View all data
+              </Button>
+              <Button
+                variant="outline"
+                className="border-white/10 bg-black/20"
+                onClick={() => activeBaseline && closeBaseline(activeBaseline.id)}
+                disabled={!activeBaseline || Boolean(activeBaseline.endedAt)}
+              >
+                End view now
+              </Button>
+              <Button
+                variant="outline"
+                className="border-white/10 bg-black/20"
+                onClick={deleteActiveBaseline}
+                disabled={activeBaselineId === "all"}
+              >
+                Delete view
+              </Button>
+              <Button variant="outline" className="border-white/10 bg-black/20" onClick={exportVisibleEvents}>
+                Export visible events
+              </Button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button variant="outline" className="border-white/10 bg-black/20" onClick={resetBrowserTrackingOnly}>
+                Reset browser test data
+              </Button>
+              <p className="text-sm text-slate-400">
+                {allSavedBaselines.length === 0
+                  ? "No saved views yet."
+                  : `${allSavedBaselines.length} saved view${allSavedBaselines.length === 1 ? "" : "s"} across all funnels.`}
+              </p>
+              <p className="text-sm text-slate-400">
+                Browser reset clears local visitor/session IDs and local fallback events only. It does not delete Supabase history.
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {allSavedBaselines.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-slate-400">
+                  Pick a funnel above, then click `Start new view` to save a named reporting window for that funnel.
+                </div>
+              ) : (
+                allSavedBaselines.map((baseline) => {
+                  const isActive = baseline.id === activeBaselineId;
+
+                  return (
+                    <div
+                      key={baseline.id}
+                      className={`rounded-2xl border p-4 transition-colors ${
+                        isActive
+                          ? "border-primary/25 bg-primary/10"
+                          : "border-white/10 bg-black/20"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-white">{baseline.label}</span>
+                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-300">
+                              {baseline.funnelKey === "all" ? "All funnels" : baseline.funnelKey}
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className={
+                                baseline.endedAt
+                                  ? "border-white/10 bg-white/5 text-slate-300"
+                                  : "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+                              }
+                            >
+                              {baseline.endedAt ? "Closed" : "Open"}
+                            </Badge>
+                            {isActive ? (
+                              <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">
+                                Selected
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <p className="text-sm text-slate-300">
+                            Started: {formatTimestamp(baseline.startedAt)}
+                          </p>
+                          <p className="text-sm text-slate-400">
+                            {baseline.endedAt
+                              ? `Ended: ${formatTimestamp(baseline.endedAt)}`
+                              : "Still open - data keeps accumulating until you end this view."}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            className="border-white/10 bg-black/20"
+                            onClick={() => openBaseline(baseline.id)}
+                          >
+                            View
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="border-white/10 bg-black/20"
+                            onClick={() => closeBaseline(baseline.id)}
+                            disabled={Boolean(baseline.endedAt)}
+                          >
+                            End now
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="border-white/10 bg-black/20"
+                            onClick={() => {
+                              setSavedBaselines((current) =>
+                                current.filter((item) => item.id !== baseline.id),
+                              );
+                              if (activeBaselineId === baseline.id) {
+                                setActiveBaselineId("all");
+                              }
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </Card>
 
@@ -1445,163 +1812,110 @@ const AdminFunnelDashboard = () => {
 
             <div className="mt-6">
               {filteredSessionRows.length ? (
-                <div className="space-y-4">
-                  {filteredSessionRows.map((row) => {
-                    const milestones = buildSessionMilestones(row);
-                    const completedMilestones = milestones.filter((milestone) => milestone.complete).length;
-                    const sessionStatus = getSessionStatus(row);
-                    const intentBand = getIntentBand(row.intentScore);
-                    const vehicleIdentity = getVehicleIdentityLabel(row);
-                    const isActive = row.sessionId === focusedSessionId;
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-white/10 hover:bg-transparent">
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Session</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Status</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Intent</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Started</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Last seen</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Vehicle</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Package</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">WA / Lead</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Duration</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Estimate</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Drop-off</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSessionRows.map((row) => {
+                        const milestones = buildSessionMilestones(row);
+                        const completedMilestones = milestones.filter((milestone) => milestone.complete).length;
+                        const sessionStatus = getSessionStatus(row);
+                        const intentBand = getIntentBand(row.intentScore);
+                        const vehicleIdentity = getVehicleIdentityLabel(row);
+                        const isActive = row.sessionId === focusedSessionId;
 
-                    return (
-                      <button
-                        key={row.sessionId}
-                        type="button"
-                        onClick={() => setSelectedSessionId(row.sessionId)}
-                        className={`w-full rounded-[26px] border p-5 text-left transition-all hover:border-primary/30 hover:bg-white/[0.04] ${
-                          isActive
-                            ? "border-primary/35 bg-primary/5 shadow-[0_20px_60px_rgba(245,181,43,0.08)]"
-                            : "border-white/10 bg-black/15"
-                        }`}
-                      >
-                        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                          <div className="space-y-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="outline" className="border-white/10 bg-black/20 font-mono text-white">
-                                {formatCompactId(row.sessionId)}
-                              </Badge>
-                              <Badge variant="outline" className={sessionStatus.className}>
-                                {sessionStatus.label}
-                              </Badge>
-                              <Badge variant="outline" className={intentBand.className}>
-                                {intentBand.label}
-                              </Badge>
-                              <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-300">
-                                Intent {row.intentScore}/100
-                              </Badge>
-                              <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-300">
-                                {completedMilestones}/4 steps hit
-                              </Badge>
-                            </div>
-
-                            <div>
-                              <h3 className="text-2xl font-semibold text-white">
-                                {getSessionPrimaryLabel(row)}
-                              </h3>
-                              <p className="mt-1 text-sm text-slate-400">
-                                {getSessionSecondaryLabel(row)}
-                              </p>
-                            </div>
-
-                            <div className="grid gap-2 text-sm text-slate-300 sm:grid-cols-2 xl:grid-cols-4">
-                              <p>
-                                <span className="text-slate-500">Started:</span>{" "}
-                                <span className="text-white">{formatTimestamp(row.startedAt)}</span>
-                              </p>
-                              <p>
-                                <span className="text-slate-500">Last seen:</span>{" "}
-                                <span className="text-white">{formatTimestamp(row.endedAt)}</span>
-                              </p>
-                              <p>
-                                <span className="text-slate-500">Vehicle:</span>{" "}
-                                <span className="text-white">{vehicleIdentity || "Not captured yet"}</span>
-                              </p>
-                              <p>
-                                <span className="text-slate-500">Drop-off read:</span>{" "}
-                                <span className="text-white">{getDropOffHint(row)}</span>
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <Card className="border-white/10 bg-black/20 p-4">
-                              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Duration</p>
-                              <p className="mt-2 text-lg font-semibold text-white">
-                                {formatDurationMs(row.durationMs)}
-                              </p>
-                            </Card>
-                            <Card className="border-white/10 bg-black/20 p-4">
-                              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Scroll</p>
-                              <p className="mt-2 text-lg font-semibold text-white">{row.maxScrollPercent}%</p>
-                            </Card>
-                            <Card className="border-white/10 bg-black/20 p-4">
-                              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Video</p>
-                              <p className="mt-2 text-lg font-semibold text-white">
-                                {formatVideoEngagement(row)}
-                              </p>
-                            </Card>
-                            <Card className="border-white/10 bg-black/20 p-4">
-                              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Estimate</p>
-                              <p className="mt-2 text-lg font-semibold text-white">
-                                {row.quoteEstimate !== null ? `AED ${row.quoteEstimate.toLocaleString("en-AE")}` : "Locked"}
-                              </p>
-                            </Card>
-                          </div>
-                        </div>
-
-                        <div className="mt-5">
-                          <div className="mb-2 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.16em] text-slate-500">
-                            <span>Intent score</span>
-                            <span>{row.intentScore}/100</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                            <div
-                              className="h-full rounded-full bg-[linear-gradient(90deg,#f7b52b,#25D366)]"
-                              style={{ width: `${Math.max(6, row.intentScore)}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="mt-5">
-                          <StepMilestoneGrid milestones={milestones} compact />
-                        </div>
-
-                        <div className="mt-5 flex flex-wrap gap-2 text-xs text-slate-300">
-                          {row.leadPhone ? (
-                            <Badge variant="outline" className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200">
-                              {row.leadPhone}
-                            </Badge>
-                          ) : null}
-                          {vehicleIdentity ? (
-                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                              {vehicleIdentity}
-                            </Badge>
-                          ) : null}
-                          {row.packageName ? (
-                            <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
-                              {row.packageName}
-                            </Badge>
-                          ) : null}
-                          {row.vehicleSize ? (
-                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                              Size: {row.vehicleSize}
-                            </Badge>
-                          ) : null}
-                          {row.finish ? (
-                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                              Finish: {row.finish}
-                            </Badge>
-                          ) : null}
-                          {row.coverage ? (
-                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                              Coverage: {row.coverage}
-                            </Badge>
-                          ) : null}
-                          {row.sectionsViewed.length ? (
-                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                              {row.sectionsViewed.length} sections viewed
-                            </Badge>
-                          ) : null}
-                          {row.faqOpenCount ? (
-                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                              {row.faqOpenCount} FAQ opens
-                            </Badge>
-                          ) : null}
-                        </div>
-                      </button>
-                    );
-                  })}
+                        return (
+                          <TableRow
+                            key={row.sessionId}
+                            className={`cursor-pointer border-white/10 text-xs transition-colors ${
+                              isActive
+                                ? "bg-primary/10 hover:bg-primary/15"
+                                : "hover:bg-white/[0.04]"
+                            }`}
+                            onClick={() => setSelectedSessionId(row.sessionId)}
+                          >
+                            <TableCell className="py-3 align-top">
+                              <div className="space-y-1">
+                                <div className="font-medium text-white">{getSessionPrimaryLabel(row)}</div>
+                                <div className="font-mono text-[11px] text-slate-400">
+                                  {formatCompactId(row.sessionId)}
+                                </div>
+                                <div className="text-[11px] text-slate-500">
+                                  {getSessionSecondaryLabel(row)}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3 align-top">
+                              <div className="flex flex-wrap gap-1.5">
+                                <Badge variant="outline" className={`${sessionStatus.className} text-[10px]`}>
+                                  {sessionStatus.label}
+                                </Badge>
+                                <Badge variant="outline" className="border-white/10 bg-white/5 text-[10px] text-slate-300">
+                                  {completedMilestones}/4
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3 align-top">
+                              <div className="space-y-1">
+                                <Badge variant="outline" className={`${intentBand.className} text-[10px]`}>
+                                  {row.intentScore}/100
+                                </Badge>
+                                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
+                                  <div
+                                    className="h-full rounded-full bg-[linear-gradient(90deg,#f7b52b,#25D366)]"
+                                    style={{ width: `${Math.max(6, row.intentScore)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3 align-top text-[11px] text-slate-300">
+                              {formatTimestamp(row.startedAt)}
+                            </TableCell>
+                            <TableCell className="py-3 align-top text-[11px] text-slate-300">
+                              {formatTimestamp(row.endedAt)}
+                            </TableCell>
+                            <TableCell className="py-3 align-top text-[11px] text-slate-300">
+                              {vehicleIdentity || "Not captured"}
+                            </TableCell>
+                            <TableCell className="py-3 align-top text-[11px] text-slate-300">
+                              {row.packageName || "—"}
+                            </TableCell>
+                            <TableCell className="py-3 align-top">
+                              <div className="space-y-1 text-[11px] text-slate-300">
+                                <div>{row.whatsappClicked ? "WA clicked" : "No WA"}</div>
+                                <div>{row.leadSubmitted ? "Lead submitted" : "No lead"}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3 align-top text-[11px] text-slate-300">
+                              {formatDurationMs(row.durationMs)}
+                            </TableCell>
+                            <TableCell className="py-3 align-top text-[11px] text-slate-300">
+                              {row.quoteEstimate !== null
+                                ? `AED ${row.quoteEstimate.toLocaleString("en-AE")}`
+                                : "Locked"}
+                            </TableCell>
+                            <TableCell className="max-w-[240px] py-3 align-top text-[11px] leading-5 text-slate-400">
+                              {getDropOffHint(row)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-400">

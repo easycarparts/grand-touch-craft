@@ -294,6 +294,25 @@ export const clearStoredFunnelEvents = () => {
   }
 };
 
+export const resetFunnelBrowserState = () => {
+  const localStorageRef = getLocalStorageRef();
+  const sessionStorageRef = getSessionStorageRef();
+
+  clearStoredFunnelEvents();
+
+  try {
+    localStorageRef?.removeItem(FUNNEL_VISITOR_ID_STORAGE_KEY);
+  } catch {
+    // Ignore.
+  }
+
+  try {
+    sessionStorageRef?.removeItem(FUNNEL_SESSION_ID_STORAGE_KEY);
+  } catch {
+    // Ignore.
+  }
+};
+
 export const captureLeadSnapshot = async ({
   snapshotType,
   context,
