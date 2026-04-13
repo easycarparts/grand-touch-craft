@@ -21,6 +21,7 @@ import {
   createFunnelTrackingContext,
   trackFunnelEvent,
 } from "@/lib/funnel-analytics";
+import { initTikTokPixel, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
 import { updatePageSEO } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
@@ -1056,6 +1057,17 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     });
   };
 
+  const trackTikTokLeadConversion = () => {
+    if (variant !== "tiktok") return;
+
+    trackTikTokSubmitForm({
+      content_name: variantConfig.tikTokContentName,
+      content_type: "lead_form",
+      currency: "AED",
+      value: 1,
+    });
+  };
+
   const flushSectionDuration = useCallback(
     (sectionName: string, reason: string) => {
       const startedAt = sectionVisibleSinceRef.current.get(sectionName);
@@ -1124,6 +1136,11 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     },
     [flushSectionDuration, trackEvent]
   );
+
+  useEffect(() => {
+    if (variant !== "tiktok") return;
+    initTikTokPixel();
+  }, [variant]);
 
   useEffect(() => {
     updatePageSEO(variantConfig.seoKey, {
@@ -1497,6 +1514,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         },
       });
       trackGoogleAdsLeadConversion();
+      trackTikTokLeadConversion();
     }
   };
 
