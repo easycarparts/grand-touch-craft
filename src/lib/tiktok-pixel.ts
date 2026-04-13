@@ -1,4 +1,4 @@
-const DEFAULT_TIKTOK_PIXEL_ID = "D7EDTI3C77UF89IGHIHG";
+const DEFAULT_TIKTOK_PIXEL_IDS = ["D7EDTI3C77UF89IGHIHG", "D7EFCR3C77UF89IGHL5G"];
 
 type TikTokStub = Array<unknown> & {
   methods?: string[];
@@ -20,7 +20,15 @@ declare global {
   }
 }
 
-const getPixelId = () => import.meta.env.VITE_TIKTOK_PIXEL_ID || DEFAULT_TIKTOK_PIXEL_ID;
+const getPixelIds = () => {
+  const configured = import.meta.env.VITE_TIKTOK_PIXEL_ID;
+  if (!configured) return DEFAULT_TIKTOK_PIXEL_IDS;
+
+  return configured
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+};
 
 const ensureTikTokStub = () => {
   if (typeof window === "undefined") return null;
@@ -94,13 +102,17 @@ export const initTikTokPixel = () => {
   const ttq = ensureTikTokStub();
   if (!ttq) return;
 
-  const pixelId = getPixelId();
-  if (!ttq._t?.[pixelId]) {
-    ttq.load?.(pixelId);
+  const pixelIds = getPixelIds();
+  for (const pixelId of pixelIds) {
+    if (!ttq._t?.[pixelId]) {
+      ttq.load?.(pixelId);
+    }
   }
 
   if (!window.__grandTouchTikTokPageTracked) {
-    ttq.page?.();
+    for (const pixelId of pixelIds) {
+      ttq.instance?.(pixelId).page?.();
+    }
     window.__grandTouchTikTokPageTracked = true;
   }
 };
@@ -109,10 +121,14 @@ export const trackTikTokSubmitForm = (payload: Record<string, unknown>) => {
   const ttq = ensureTikTokStub();
   if (!ttq) return;
 
-  const pixelId = getPixelId();
-  if (!ttq._t?.[pixelId]) {
-    ttq.load?.(pixelId);
+  const pixelIds = getPixelIds();
+  for (const pixelId of pixelIds) {
+    if (!ttq._t?.[pixelId]) {
+      ttq.load?.(pixelId);
+    }
   }
 
-  ttq.track?.("SubmitForm", payload);
+  for (const pixelId of pixelIds) {
+    ttq.instance?.(pixelId).track?.("SubmitForm", payload);
+  }
 };
