@@ -97,6 +97,26 @@ const formatTokenLabel = (value: string | null | undefined) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
+const collapseRepeatedPhrase = (value: string | null | undefined) => {
+  const trimmed = value?.trim() || "";
+  if (!trimmed) return null;
+
+  const normalized = trimmed.replace(/\s+/g, " ");
+  const words = normalized.split(" ").filter(Boolean);
+
+  if (words.length >= 2 && words.length % 2 === 0) {
+    const half = words.length / 2;
+    const left = words.slice(0, half).join(" ");
+    const right = words.slice(half).join(" ");
+
+    if (left.toLowerCase() === right.toLowerCase()) {
+      return left;
+    }
+  }
+
+  return normalized;
+};
+
 const pickFirstValue = (fieldData: MetaLeadField[] | undefined, matcher: (name: string) => boolean) => {
   const match = fieldData?.find((item) => matcher(item.name.toLowerCase()));
   return match?.values?.[0] ?? null;
@@ -383,7 +403,7 @@ const parseLeadFields = (lead: MetaLeadResponse) => {
         name.includes("protection"),
     ) ?? null;
 
-  const combinedVehicleTrimmed = combinedVehicle?.trim() || null;
+  const combinedVehicleTrimmed = collapseRepeatedPhrase(combinedVehicle);
   const hasStructuredVehicleFields = Boolean(vehicleMake || vehicleModel || vehicleYear);
   const safeVehicleMake = vehicleMake || null;
   const safeVehicleModel = vehicleModel || null;

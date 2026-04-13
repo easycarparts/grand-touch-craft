@@ -309,6 +309,34 @@ const formatDurationMs = (value: number | null) => {
 const formatCurrency = (value: number | null) =>
   value === null ? "Not unlocked" : `AED ${Math.round(value).toLocaleString("en-AE")}`;
 
+const collapseRepeatedPhrase = (value: string | null | undefined) => {
+  const trimmed = value?.trim() || "";
+  if (!trimmed) return "";
+
+  const normalized = trimmed.replace(/\s+/g, " ");
+  const words = normalized.split(" ").filter(Boolean);
+
+  if (words.length >= 2 && words.length % 2 === 0) {
+    const half = words.length / 2;
+    const left = words.slice(0, half).join(" ");
+    const right = words.slice(half).join(" ");
+
+    if (left.toLowerCase() === right.toLowerCase()) {
+      return left;
+    }
+  }
+
+  return normalized;
+};
+
+const getLeadVehicleText = (
+  lead: Pick<LeadRow, "vehicle_label" | "vehicle_year" | "vehicle_make" | "vehicle_model">,
+) =>
+  collapseRepeatedPhrase(
+    lead.vehicle_label ||
+      [lead.vehicle_year, lead.vehicle_make, lead.vehicle_model].filter(Boolean).join(" "),
+  );
+
 const formatSectionName = (value: string) =>
   value
     .split("_")
@@ -1324,7 +1352,7 @@ const AdminLeads = () => {
 
   const filteredLeads = useMemo(() => {
     return leadsWithIntent.filter((lead) => {
-      const vehicle = [lead.vehicle_year, lead.vehicle_make, lead.vehicle_model].filter(Boolean).join(" ");
+      const vehicle = getLeadVehicleText(lead);
       const haystack = [
         lead.full_name,
         lead.phone,
@@ -2668,9 +2696,7 @@ const AdminLeads = () => {
                 </TableRow>
               ) : filteredLeads.length ? (
                 filteredLeads.map((lead) => {
-                  const vehicle = [lead.vehicle_year, lead.vehicle_make, lead.vehicle_model]
-                    .filter(Boolean)
-                    .join(" ");
+                  const vehicle = getLeadVehicleText(lead);
                   const requestedProtection =
                     readImportMetadataValue(lead.import_metadata, "protection_level") ||
                     null;
