@@ -4,18 +4,26 @@ import { Menu, X, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.svg";
 
-const Navbar = () => {
+type NavbarProps = {
+  sticky?: boolean;
+};
+
+const Navbar = ({ sticky = true }: NavbarProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
+    if (!sticky) {
+      setIsScrolled(false);
+      return;
+    }
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [sticky]);
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -26,10 +34,12 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? "bg-background/95 backdrop-blur-md shadow-elegant"
-          : "bg-transparent"
+      className={`${sticky ? "fixed top-0 left-0 right-0 z-50" : "relative z-40"} transition-all duration-300 ${
+        sticky
+          ? isScrolled
+            ? "bg-background/95 backdrop-blur-md shadow-elegant"
+            : "bg-transparent"
+          : "bg-background/95 backdrop-blur-md shadow-elegant"
       }`}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

@@ -641,8 +641,16 @@ const handleTelegramCommand = async (update: TelegramUpdate) => {
     return json({ ok: true, command });
   }
 
+  if (command === "/health") {
+    await sendTelegramMessage(
+      "✅ <b>Grand Touch Lead Agent health</b>\n\nTelegram webhooks and CRM alerts are reachable.",
+      { chatId },
+    );
+    return json({ ok: true, command });
+  }
+
   await sendTelegramMessage(
-    "🤖 I know <b>/start</b>, <b>/help</b>, and <b>/today</b>.",
+    "🤖 I know <b>/start</b>, <b>/help</b>, <b>/today</b>, and <b>/health</b>.",
     { chatId },
   );
 

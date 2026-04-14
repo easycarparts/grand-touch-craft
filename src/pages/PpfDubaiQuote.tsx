@@ -14,6 +14,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import PpfCostCalculatorWidget from "@/components/PpfCostCalculatorWidget";
 import PpfQuoteSummary from "@/components/PpfQuoteSummary";
 import {
@@ -65,9 +72,24 @@ type StoredLeadProfile = {
   savedAt: string;
 };
 
+type PhoneCountryOption = {
+  dialCode: string;
+  label: string;
+  shortLabel: string;
+};
+
 const LEAD_PROFILE_STORAGE_KEY_BASE = "ppf-quote-lead-v1";
 const WHATSAPP_NUMBER = "971567191045";
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
+const DEFAULT_PHONE_COUNTRY_CODE = "971";
+const PHONE_COUNTRY_OPTIONS: PhoneCountryOption[] = [
+  { dialCode: "971", label: "UAE (+971)", shortLabel: "UAE" },
+  { dialCode: "44", label: "UK (+44)", shortLabel: "UK" },
+  { dialCode: "91", label: "India (+91)", shortLabel: "India" },
+  { dialCode: "92", label: "Pakistan (+92)", shortLabel: "Pakistan" },
+  { dialCode: "966", label: "Saudi Arabia (+966)", shortLabel: "Saudi" },
+  { dialCode: "974", label: "Qatar (+974)", shortLabel: "Qatar" },
+];
 
 const EMAILJS_SERVICE_ID = "service_f2na96a";
 const EMAILJS_TEMPLATE_ID = "template_bs1inle";
@@ -172,6 +194,28 @@ const isValidPhoneNumber = (value: string) => {
   const cleaned = value.replace(/[\s-]/g, "");
   return /^\+[0-9]{9,}$/.test(cleaned) && cleaned.length >= 10;
 };
+const normalizePhoneLocalNumber = (value: string) => value.replace(/\D/g, "").replace(/^0+/, "");
+const buildIntlPhoneNumber = (countryCode: string, localNumber: string) => {
+  const cleanedCountryCode = countryCode.replace(/\D/g, "") || DEFAULT_PHONE_COUNTRY_CODE;
+  const cleanedLocalNumber = normalizePhoneLocalNumber(localNumber);
+  return cleanedLocalNumber ? `+${cleanedCountryCode}${cleanedLocalNumber}` : `+${cleanedCountryCode}`;
+};
+const parseIntlPhoneNumber = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  const matchedCountry =
+    [...PHONE_COUNTRY_OPTIONS]
+      .sort((a, b) => b.dialCode.length - a.dialCode.length)
+      .find((option) => digits.startsWith(option.dialCode))?.dialCode ?? DEFAULT_PHONE_COUNTRY_CODE;
+
+  const localDigits = digits.startsWith(matchedCountry)
+    ? digits.slice(matchedCountry.length)
+    : digits.replace(/^0+/, "");
+
+  return {
+    countryCode: matchedCountry,
+    localNumber: localDigits,
+  };
+};
 
 const buildVehicleLabel = ({
   vehicleMake,
@@ -244,15 +288,15 @@ const landingPageCopy = {
  * `Button`’s default `hover:bg-primary/90` does not flatten it to a duller solid.
  */
 const primaryPpfCtaButtonClass =
-  "h-12 rounded-2xl border-0 !bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_52%,#e79a13_100%)] px-6 !text-neutral-950 shadow-[0_14px_44px_rgba(247,181,43,0.28)] transition-all duration-200 ease-out hover:!bg-[linear-gradient(180deg,#ffd47a_0%,#f8bd3d_52%,#f2a318_100%)] hover:!text-neutral-950 hover:shadow-[0_20px_54px_rgba(247,181,43,0.36)] focus-visible:ring-2 focus-visible:ring-[#f7b52b]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.99] disabled:!opacity-60 disabled:active:scale-100";
+  "h-11 rounded-2xl border-0 !bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_52%,#e79a13_100%)] px-5 text-[0.98rem] !text-neutral-950 shadow-[0_14px_44px_rgba(247,181,43,0.28)] transition-all duration-200 ease-out hover:!bg-[linear-gradient(180deg,#ffd47a_0%,#f8bd3d_52%,#f2a318_100%)] hover:!text-neutral-950 hover:shadow-[0_20px_54px_rgba(247,181,43,0.36)] focus-visible:ring-2 focus-visible:ring-[#f7b52b]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.99] disabled:!opacity-60 disabled:active:scale-100 sm:h-12 sm:px-6";
 
 /** Muted WhatsApp-adjacent green (less neon than official #25D366). */
 const whatsappCtaButtonClass =
-  "w-full h-12 rounded-2xl border-0 bg-[#25D366] px-6 text-white shadow-[0_18px_46px_rgba(37,211,102,0.28)] transition-all duration-200 ease-out hover:bg-[#1ebe5d] hover:text-white hover:shadow-[0_22px_56px_rgba(37,211,102,0.4)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#25D366]/50 active:scale-[0.99] active:text-white";
+  "w-full h-11 rounded-2xl border-0 bg-[#25D366] px-5 text-[0.98rem] text-white shadow-[0_18px_46px_rgba(37,211,102,0.28)] transition-all duration-200 ease-out hover:bg-[#1ebe5d] hover:text-white hover:shadow-[0_22px_56px_rgba(37,211,102,0.4)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#25D366]/50 active:scale-[0.99] active:text-white sm:h-12 sm:px-6";
 
 /** Stronger hover so the hero WhatsApp CTA is obvious on rollover (still softer base green). */
 const heroWhatsAppButtonClass =
-  "w-full h-12 rounded-2xl border-0 bg-[#25D366] px-6 text-white shadow-[0_18px_46px_rgba(37,211,102,0.28)] transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-[#1ebe5d] hover:text-white hover:shadow-[0_22px_56px_rgba(37,211,102,0.4)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#25D366]/55 active:scale-[0.99] active:text-white";
+  "w-full h-11 rounded-2xl border-0 bg-[#25D366] px-5 text-[0.98rem] text-white shadow-[0_18px_46px_rgba(37,211,102,0.28)] transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-[#1ebe5d] hover:text-white hover:shadow-[0_22px_56px_rgba(37,211,102,0.4)] focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[#25D366]/55 active:scale-[0.99] active:text-white sm:h-12 sm:px-6";
 
 const smokeGlassPanelClass =
   "relative isolate overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045)_18%,rgba(18,18,18,0.62)_42%,rgba(8,8,8,0.84)_100%)] shadow-[0_36px_120px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[22px]";
@@ -345,7 +389,8 @@ const QuoteUnlockForm = ({
   formStep,
   formSubmitted,
   name,
-  mobile,
+  phoneCountryCode,
+  phoneLocalNumber,
   vehicleMake,
   vehicleModel,
   vehicleYear,
@@ -354,7 +399,8 @@ const QuoteUnlockForm = ({
   isSubmitting,
   vehicleSummary,
   onNameChange,
-  onMobileChange,
+  onPhoneCountryCodeChange,
+  onPhoneLocalNumberChange,
   onVehicleMakeChange,
   onVehicleModelChange,
   onVehicleYearChange,
@@ -372,7 +418,8 @@ const QuoteUnlockForm = ({
   formStep: 1 | 2 | 3;
   formSubmitted: boolean;
   name: string;
-  mobile: string;
+  phoneCountryCode: string;
+  phoneLocalNumber: string;
   vehicleMake: string;
   vehicleModel: string;
   vehicleYear: string;
@@ -381,7 +428,8 @@ const QuoteUnlockForm = ({
   isSubmitting: boolean;
   vehicleSummary: string;
   onNameChange: (value: string) => void;
-  onMobileChange: (value: string) => void;
+  onPhoneCountryCodeChange: (value: string) => void;
+  onPhoneLocalNumberChange: (value: string) => void;
   onVehicleMakeChange: (value: string) => void;
   onVehicleModelChange: (value: string) => void;
   onVehicleYearChange: (value: string) => void;
@@ -463,7 +511,7 @@ const QuoteUnlockForm = ({
         <div className="absolute right-0 top-16 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
       </div>
 
-      <div className="relative border-b border-white/10 px-5 pb-4 pt-5 sm:px-7">
+      <div className="relative border-b border-white/10 px-4 pb-3.5 pt-4 sm:px-7 sm:pb-4 sm:pt-5">
         {isModal ? (
           <DialogClose
             type="button"
@@ -483,7 +531,7 @@ const QuoteUnlockForm = ({
             </span>
           </div>
         ) : (
-          <div className={cn("flex flex-wrap items-center gap-3", isModal && "pr-11 sm:pr-12")}>
+          <div className={cn("flex flex-wrap items-center gap-2.5", isModal && "pr-11 sm:pr-12")}>
             {flowSteps.map((item) => {
               const isActive = formStep === item.step;
               const isComplete = formSubmitted || formStep > item.step;
@@ -492,7 +540,7 @@ const QuoteUnlockForm = ({
                 <div key={item.step} className="flex items-center gap-2">
                   <div
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
+                      "flex h-7.5 w-7.5 items-center justify-center rounded-full border text-[11px] font-semibold sm:h-8 sm:w-8 sm:text-xs",
                       isActive
                         ? "border-white/15 bg-white/16 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
                         : isComplete
@@ -504,7 +552,7 @@ const QuoteUnlockForm = ({
                   </div>
                   <span
                     className={cn(
-                      "text-[11px] uppercase tracking-[0.24em]",
+                      "text-[10px] uppercase tracking-[0.22em] sm:text-[11px] sm:tracking-[0.24em]",
                       isActive || isComplete ? "text-white/72" : "text-white/32"
                     )}
                   >
@@ -517,14 +565,14 @@ const QuoteUnlockForm = ({
         )}
       </div>
 
-      <div className="relative px-5 pb-5 pt-5 sm:px-7 sm:pb-7">
+      <div className="relative px-4 pb-4 pt-4 sm:px-7 sm:pb-7 sm:pt-5">
         {formStep === 1 ? (
-          <div className="space-y-5 max-sm:pb-[min(42vh,260px)]">
+          <div className="space-y-4 max-sm:pb-[min(34vh,210px)]">
             <div>
-              <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              <p className="text-[2rem] font-semibold tracking-tight text-white sm:text-4xl">
                 Get My PPF Estimate
               </p>
-              <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+              <p className="mt-1.5 max-w-xl text-[0.95rem] leading-6 text-slate-300 sm:mt-2 sm:text-base sm:leading-7">
                 {isCalculatorFlow
                   ? "Name and number first. Keep this quick, then we reveal your personalised quote."
                   : "Name and number first. We keep this part short so the quote unlock feels fast."}
@@ -540,21 +588,38 @@ const QuoteUnlockForm = ({
                   onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
                   placeholder="Your name"
                   autoComplete="name"
-                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
+                  className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
                 />
               </div>
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-white/78">Mobile number</label>
-                <Input
-                  value={mobile}
-                  onChange={(event) => onMobileChange(event.target.value)}
-                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
-                  placeholder="+971 50 123 4567"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
-                />
+                <div className="grid grid-cols-[122px_minmax(0,1fr)] gap-2.5">
+                  <Select value={phoneCountryCode} onValueChange={onPhoneCountryCodeChange}>
+                    <SelectTrigger className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] px-3 text-[0.95rem] text-white focus:ring-primary/40 focus:ring-offset-0 sm:h-12">
+                      <SelectValue placeholder="+971" />
+                    </SelectTrigger>
+                    <SelectContent className="border-white/10 bg-[#121212] text-white">
+                      {PHONE_COUNTRY_OPTIONS.map((option) => (
+                        <SelectItem key={option.dialCode} value={option.dialCode} className="text-white focus:bg-white/10 focus:text-white">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={phoneLocalNumber}
+                    onChange={(event) => onPhoneLocalNumberChange(event.target.value)}
+                    onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
+                    placeholder="50 123 4567"
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
+                  />
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-400">
+                  Country code stays included for the CRM. Enter the number without the leading 0.
+                </p>
                 {phoneError ? <p className="mt-2 text-sm text-red-400">{phoneError}</p> : null}
               </div>
             </div>
@@ -569,17 +634,17 @@ const QuoteUnlockForm = ({
         ) : null}
 
         {formStep === 2 ? (
-          <div className="space-y-5 max-sm:pb-[min(42vh,260px)]">
+          <div className="space-y-4 max-sm:pb-[min(34vh,210px)]">
             <div>
-              <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              <p className="text-[2rem] font-semibold tracking-tight text-white sm:text-4xl">
                 Tell us about your car
               </p>
-              <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+              <p className="mt-1.5 max-w-xl text-[0.95rem] leading-6 text-slate-300 sm:mt-2 sm:text-base sm:leading-7">
                 Add the make, model, and year so Sean gets something useful, not a vague lead.
               </p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-[1fr_1fr_120px]">
+            <div className="grid gap-3.5 sm:grid-cols-[1fr_1fr_120px] sm:gap-4">
               <div>
                 <label className="mb-2 block text-sm font-medium text-white/78">Make</label>
                 <Input
@@ -588,7 +653,7 @@ const QuoteUnlockForm = ({
                   onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
                   placeholder="Porsche"
                   autoComplete="off"
-                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
+                  className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
                 />
               </div>
 
@@ -600,7 +665,7 @@ const QuoteUnlockForm = ({
                   onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
                   placeholder="911 Turbo S"
                   autoComplete="off"
-                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
+                  className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
                 />
               </div>
 
@@ -613,7 +678,7 @@ const QuoteUnlockForm = ({
                   placeholder="2024"
                   inputMode="numeric"
                   autoComplete="off"
-                  className="h-12 border-white/10 bg-[rgba(255,255,255,0.06)] text-white placeholder:text-white/35"
+                  className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
                 />
               </div>
             </div>
@@ -625,7 +690,7 @@ const QuoteUnlockForm = ({
                 type="button"
                 variant="outline"
                 size="lg"
-                className="w-full border-white/10 bg-[rgba(255,255,255,0.04)] text-white hover:bg-[rgba(255,255,255,0.07)] sm:w-auto"
+                className="w-full rounded-xl border-white/10 bg-[rgba(255,255,255,0.04)] text-white hover:bg-[rgba(255,255,255,0.07)] sm:w-auto"
                 onClick={onBack}
               >
                 Back
@@ -652,7 +717,7 @@ const QuoteUnlockForm = ({
           isCalculatorFlow && calculatorSelection ? (
             <div className="space-y-4">
               <div>
-                <p className="text-[2rem] font-semibold tracking-tight text-white sm:text-[2.4rem]">
+                <p className="text-[1.85rem] font-semibold tracking-tight text-white sm:text-[2.4rem]">
                   Your personalised quote
                 </p>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
@@ -669,17 +734,17 @@ const QuoteUnlockForm = ({
           ) : (
             <div className="space-y-5">
               <div>
-                <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                <p className="text-[2rem] font-semibold tracking-tight text-white sm:text-4xl">
                   Your enquiry is in
                 </p>
-                <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                <p className="mt-1.5 max-w-xl text-[0.95rem] leading-6 text-slate-300 sm:mt-2 sm:text-base sm:leading-7">
                   {isModal
                     ? "Thanks. Your details have been sent. Would you like to open the calculator and compare the options?"
                     : "We have your details and the calculator is now ready. You can compare finish, coverage, and warranty without leaving this section."}
                 </p>
               </div>
 
-              <div className="rounded-[26px] border border-white/10 bg-[rgba(255,255,255,0.05)] p-5">
+              <div className="rounded-[24px] border border-white/10 bg-[rgba(255,255,255,0.05)] p-4 sm:p-5">
                 <p className="text-[11px] uppercase tracking-[0.24em] text-white/48">Lead captured</p>
                 <p className="mt-3 text-lg font-medium text-white">{vehicleSummary}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
@@ -720,7 +785,8 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const [quoteModalFlow, setQuoteModalFlow] = useState<QuoteModalFlow>("standard");
   const [formStep, setFormStep] = useState<1 | 2 | 3>(1);
   const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("+971");
+  const [phoneCountryCode, setPhoneCountryCode] = useState(DEFAULT_PHONE_COUNTRY_CODE);
+  const [phoneLocalNumber, setPhoneLocalNumber] = useState("");
   const [vehicleMake, setVehicleMake] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
   const [vehicleYear, setVehicleYear] = useState("");
@@ -733,6 +799,8 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const [selection, setSelection] = useState<CalculatorSelection | null>(null);
   const [calculatorPriceUnlocked, setCalculatorPriceUnlocked] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [showMobileStickyCta, setShowMobileStickyCta] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   const hasTrackedFormStart = useRef(false);
   const hasTrackedConfiguratorStart = useRef(false);
@@ -768,6 +836,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       });
     });
   }, []);
+  const heroSectionRef = useRef<HTMLElement | null>(null);
   const trustSectionRef = useRef<HTMLElement | null>(null);
   const trustVideoRef = useRef<HTMLVideoElement | null>(null);
   const whyStekSectionRef = useRef<HTMLElement | null>(null);
@@ -793,6 +862,10 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     [variantConfig.defaultSourcePlatform, variantConfig.funnelName, variantConfig.landingPageVariant]
   );
   const utmParams = funnelContext.attribution;
+  const mobile = useMemo(
+    () => buildIntlPhoneNumber(phoneCountryCode, phoneLocalNumber),
+    [phoneCountryCode, phoneLocalNumber]
+  );
 
   const vehicleSummary = useMemo(
     () => [vehicleYear.trim(), vehicleMake.trim(), vehicleModel.trim()].filter(Boolean).join(" "),
@@ -831,8 +904,10 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
     try {
       const parsed = JSON.parse(stored) as StoredLeadProfile;
+      const parsedPhone = parseIntlPhoneNumber(parsed.mobile || `+${DEFAULT_PHONE_COUNTRY_CODE}`);
       setName(parsed.name || "");
-      setMobile(parsed.mobile || "+971");
+      setPhoneCountryCode(parsedPhone.countryCode);
+      setPhoneLocalNumber(parsedPhone.localNumber);
       setVehicleMake(parsed.vehicleMake || "");
       setVehicleModel(parsed.vehicleModel || "");
       setVehicleYear(parsed.vehicleYear || "");
@@ -1161,6 +1236,36 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   }, [trackEvent, variantConfig]);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const viewport = window.visualViewport;
+    const updateKeyboardState = () => {
+      setIsKeyboardOpen(viewport.height < window.innerHeight * 0.82);
+    };
+
+    updateKeyboardState();
+    viewport.addEventListener("resize", updateKeyboardState);
+    return () => viewport.removeEventListener("resize", updateKeyboardState);
+  }, []);
+
+  useEffect(() => {
+    const heroSection = heroSectionRef.current;
+    if (!heroSection || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowMobileStickyCta(!(entry?.isIntersecting && entry.intersectionRatio > 0.28));
+      },
+      {
+        threshold: [0, 0.12, 0.28, 0.5],
+      }
+    );
+
+    observer.observe(heroSection);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     if (!heroFormOpen || quoteModalFlow !== "calculator" || formStep !== 3 || !selection) return;
     const signature = JSON.stringify([
       selection.brand,
@@ -1414,7 +1519,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     if (!name.trim()) return;
 
     if (!mobile.trim() || !isValidPhoneNumber(mobile)) {
-      setPhoneError("Use a valid international number, for example +971 50 123 4567.");
+      setPhoneError("Choose the right country code and enter the mobile number without the leading 0.");
       return;
     }
 
@@ -1912,8 +2017,9 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     <div className="min-h-screen bg-background pb-32 text-foreground md:pb-0">
       <main>
         <section
+          ref={heroSectionRef}
           data-funnel-section="hero"
-          className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.09),_transparent_42%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.04),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.05),transparent_22%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-0 pb-8 pt-10 sm:bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)]"
+          className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.09),_transparent_42%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.04),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.05),transparent_22%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-0 pb-7 pt-8 sm:bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] sm:pb-8 sm:pt-10"
         >
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-24 top-16 h-56 w-56 rounded-full bg-primary/8 blur-3xl sm:bg-primary/12" />
@@ -1930,7 +2036,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                 >
                   <img src={logo} alt="Grand Touch" className="h-10 w-auto" />
                 </Link>
-                <div className="mt-6 flex flex-wrap gap-2">
+                <div className="mt-5 flex flex-wrap gap-2">
                   <Badge
                     variant="secondary"
                     className="gap-2 border border-white/10 bg-white/8 px-3 py-1.5 shadow-sm backdrop-blur-sm"
@@ -1945,16 +2051,15 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     Warranty-registered STEK film
                   </Badge>
                 </div>
-                <h1 className="mt-6 flex max-w-3xl flex-col gap-1.5 text-4xl font-bold leading-snug tracking-tight sm:gap-1.5 sm:text-5xl sm:leading-tight md:gap-2 md:text-6xl">
+                <h1 className="mt-5 flex max-w-3xl flex-col gap-1 text-[2.35rem] font-bold leading-[1.04] tracking-tight sm:gap-1.5 sm:text-5xl sm:leading-tight md:gap-2 md:text-6xl">
                   <span className="text-white">PPF in Dubai</span>
                   <span className="text-white">you can trust.</span>
                   <span className="bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent drop-shadow-[0_8px_30px_rgba(247,181,43,0.15)]">
                     Direct with Sean. Installed properly.
                   </span>
                 </h1>
-                <p className="mt-4 max-w-2xl text-lg text-slate-300">
-                  Get a clear PPF quote, avoid vague handoffs, and deal directly with Sean from first
-                  message to final handover.
+                <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+                  Get a clear PPF quote and deal directly with Sean from first message to final handover.
                 </p>
 
                 <div className="hidden mt-5 grid gap-2 sm:grid-cols-2">
@@ -1973,7 +2078,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                   ))}
                 </div>
 
-                <div className="mt-6 flex flex-col gap-3">
+                <div className="mt-5 flex flex-col gap-3">
                   <Dialog open={heroFormOpen} onOpenChange={handleModalOpenChange}>
                     <DialogTrigger asChild>
                       <Button
@@ -1988,7 +2093,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     </DialogTrigger>
                     <DialogContent
                       className={cn(
-                        "flex max-h-[min(90dvh,920px)] min-h-0 w-[calc(100vw-1.25rem)] flex-col overflow-hidden overflow-x-hidden border-0 bg-transparent p-0 shadow-none outline-none focus-visible:outline-none sm:w-full [&>button]:hidden",
+                        "flex max-h-[min(92dvh,820px)] min-h-0 w-[calc(100vw-1rem)] flex-col overflow-hidden overflow-x-hidden border-0 bg-transparent p-0 shadow-none outline-none focus-visible:outline-none sm:w-full [&>button]:hidden",
                         quoteModalFlow === "calculator" && formStep === 3 ? "max-w-4xl" : "max-w-2xl"
                       )}
                       onCloseAutoFocus={(event) => {
@@ -2002,7 +2107,8 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         formStep={formStep}
                         formSubmitted={formSubmitted}
                         name={name}
-                        mobile={mobile}
+                        phoneCountryCode={phoneCountryCode}
+                        phoneLocalNumber={phoneLocalNumber}
                         vehicleMake={vehicleMake}
                         vehicleModel={vehicleModel}
                         vehicleYear={vehicleYear}
@@ -2014,9 +2120,14 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                           trackFormStartIfNeeded();
                           setName(value);
                         }}
-                        onMobileChange={(value) => {
+                        onPhoneCountryCodeChange={(value) => {
                           trackFormStartIfNeeded();
-                          setMobile(value);
+                          setPhoneCountryCode(value);
+                          if (phoneError) setPhoneError("");
+                        }}
+                        onPhoneLocalNumberChange={(value) => {
+                          trackFormStartIfNeeded();
+                          setPhoneLocalNumber(normalizePhoneLocalNumber(value));
                           if (phoneError) setPhoneError("");
                         }}
                         onVehicleMakeChange={(value) => {
@@ -2051,7 +2162,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     </DialogContent>
                   </Dialog>
 
-                  <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full">
+                  <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="hidden w-full sm:block">
                     <Button
                       type="button"
                       variant="default"
@@ -2202,11 +2313,11 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                   <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
                     What serious buyers are trying to avoid
                   </p>
-                  <h2 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
+                  <h2 className="mt-2 text-[2rem] font-bold leading-tight sm:text-4xl">
                     The risk is the install.
                     <span className="block text-[#f6c76d]">Not the film.</span>
                   </h2>
-                  <p className="mt-3 max-w-[34rem] text-sm leading-7 text-slate-300 sm:text-base">
+                  <p className="mt-3 max-w-[34rem] text-[0.97rem] leading-7 text-slate-300 sm:text-base">
                     Prep, fitment, and warranty handling decide whether the finish looks premium or
                     disappointing.
                   </p>
@@ -2246,8 +2357,8 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                             <Icon className="h-4.5 w-4.5" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-base font-semibold leading-tight text-white">{item.title}</p>
-                            <p className="mt-1.5 text-sm leading-6 text-slate-300">{item.text}</p>
+                            <p className="text-[0.98rem] font-semibold leading-tight text-white">{item.title}</p>
+                            <p className="mt-1.5 text-[0.92rem] leading-6 text-slate-300">{item.text}</p>
                           </div>
                         </div>
                       </div>
@@ -2278,14 +2389,14 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     <p className="text-sm uppercase tracking-[0.26em] text-muted-foreground">
                       How we reduce the risk
                     </p>
-                    <h2 className="mt-3 max-w-[22ch] text-3xl font-bold leading-[1.02] text-white sm:max-w-[26ch] sm:text-4xl lg:max-w-none lg:text-[2.35rem] xl:text-4xl">
+                    <h2 className="mt-3 max-w-[22ch] text-[2rem] font-bold leading-[1.02] text-white sm:max-w-[26ch] sm:text-4xl lg:max-w-none lg:text-[2.35rem] xl:text-4xl">
                       Sean-led quote.
                       <span className="block text-white">Prep before film.</span>
                       <span className="block bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent drop-shadow-[0_10px_30px_rgba(247,181,43,0.16)]">
                         Registered warranty.
                       </span>
                     </h2>
-                    <p className="mt-4 max-w-[52ch] text-base leading-7 text-slate-300">
+                    <p className="mt-4 max-w-[52ch] text-[0.97rem] leading-7 text-slate-300 sm:text-base">
                       One standard all the way through: Sean-led advice, prep before film, and STEK
                       warranty registration at handover.
                     </p>
@@ -2318,14 +2429,14 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/75">
                             {item.eyebrow}
                           </p>
-                          <p className="mt-2 text-lg font-semibold leading-tight text-white">{item.title}</p>
-                          <p className="mt-2 text-sm leading-6 text-slate-300">{item.text}</p>
+                          <p className="mt-2 text-[1rem] font-semibold leading-tight text-white sm:text-lg">{item.title}</p>
+                          <p className="mt-2 text-[0.92rem] leading-6 text-slate-300 sm:text-sm">{item.text}</p>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="flex w-full min-w-0 justify-center lg:justify-end">
+                  <div className="order-2 flex w-full min-w-0 justify-center lg:order-none lg:justify-end">
                     <div
                       className={cn(
                         "relative mx-auto w-full max-w-[min(100%,400px)] overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,0.35)]",
@@ -2379,7 +2490,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                 <div className="absolute right-0 top-16 h-32 w-32 rounded-full bg-white/5 blur-3xl" />
               </div>
               <div className="relative grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-center">
-                <div className="mx-auto w-full max-w-[360px]">
+                <div className="order-2 mx-auto w-full max-w-[360px] lg:order-1">
                   <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
                     <video
                       ref={whyStekVideoRef}
@@ -2433,11 +2544,11 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                   </div>
                 </div>
 
-                <div className="min-w-0 w-full max-w-2xl lg:max-w-none">
+                <div className="order-1 min-w-0 w-full max-w-2xl lg:order-2 lg:max-w-none">
                   <p className="text-sm uppercase tracking-[0.26em] text-muted-foreground">
                     WHY WE USE STEK
                   </p>
-                  <h2 className="mt-3 max-w-xl text-3xl font-bold leading-[1.05] tracking-tight text-white sm:text-[2.35rem] sm:leading-[1.06]">
+                  <h2 className="mt-3 max-w-xl text-[2rem] font-bold leading-[1.05] tracking-tight text-white sm:text-[2.35rem] sm:leading-[1.06]">
                     <span className="block">Why Sean</span>
                     <span className="block">
                       recommends{" "}
@@ -2447,7 +2558,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       .
                     </span>
                   </h2>
-                  <p className="mt-4 max-w-[48ch] text-base font-medium leading-7 text-slate-200">
+                  <p className="mt-4 max-w-[48ch] text-[0.97rem] font-medium leading-7 text-slate-200 sm:text-base">
                     Not hype. Just genuine film, the right finish, and warranty registration done
                     properly.
                   </p>
@@ -2531,7 +2642,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
               <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
                 Customer reviews & our work
               </p>
-              <h2 className="mt-2 text-3xl font-bold">Real buyers, real handovers, real cars</h2>
+              <h2 className="mt-2 text-[2rem] font-bold sm:text-3xl">Real buyers, real handovers, real cars</h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
                 Real owners trust Sean, the finish looks right, and the handover feels properly done.
               </p>
@@ -2659,7 +2770,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
                       Our process
                     </p>
-                    <h2 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
+                    <h2 className="mt-2 text-[2rem] font-bold leading-tight sm:text-4xl">
                       From decontamination to
                       <span className="bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent">
                         {" "}verified warranty
@@ -3021,7 +3132,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         </div>
                       </div>
 
-                      <p className="mt-4 max-w-2xl text-base leading-7 text-slate-100">
+                      <p className="mt-4 max-w-2xl text-[0.97rem] leading-7 text-slate-100 sm:text-base">
                         After one week, the vehicle is checked again, the install is confirmed, and the STEK warranty is registered properly with full traceability.
                       </p>
 
@@ -3137,7 +3248,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
               <div className="relative">
                 <p className="text-sm uppercase tracking-[0.25em] text-primary/80">Final step</p>
-                <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-5xl">
+                <h2 className="mt-3 text-[2rem] font-bold leading-tight sm:text-5xl">
                   Ready to get a proper PPF quote for your car?
                 </h2>
                 <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
@@ -3161,12 +3272,17 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[rgba(8,8,8,0.88)] p-3 backdrop-blur-xl md:hidden">
+      <div
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[rgba(8,8,8,0.88)] p-2.5 backdrop-blur-xl transition-opacity duration-200 md:hidden",
+          showMobileStickyCta && !heroFormOpen && !isKeyboardOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+      >
         <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="block">
           <Button
             type="button"
             variant="default"
-            className={whatsappCtaButtonClass}
+            className={cn(whatsappCtaButtonClass, "h-10 rounded-xl text-[0.95rem]")}
             size="lg"
             onClick={() => handleWhatsAppClick("mobile_sticky")}
           >

@@ -603,6 +603,7 @@ const formatMinutes = (value: number) => {
 };
 
 const getResponseSlaState = (lead: LeadRow, channel: "whatsapp" | "call") => {
+  const isCall = channel === "call";
   const receivedAt = getLeadReceivedAt(lead);
   if (!receivedAt) {
     return {
@@ -640,11 +641,13 @@ const getResponseSlaState = (lead: LeadRow, channel: "whatsapp" | "call") => {
     return {
       done: true,
       state: withinSla ? ("good" as const) : ("late" as const),
-      elapsedLabel: formatMinutes(elapsedMinutes),
-      dueLabel: withinSla ? "On time" : "Late",
-      badgeClass: withinSla
-        ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
-        : "border-rose-400/20 bg-rose-500/10 text-rose-200",
+      elapsedLabel: withinSla ? `Done ${formatMinutes(elapsedMinutes)}` : `Done late ${formatMinutes(elapsedMinutes)}`,
+      dueLabel: withinSla ? "Completed on time" : "Completed after SLA",
+      badgeClass: isCall
+        ? "border-emerald-400/25 bg-emerald-500/12 text-emerald-100"
+        : withinSla
+          ? "border-amber-300/25 bg-amber-400/15 text-amber-100"
+          : "border-emerald-400/25 bg-emerald-500/12 text-emerald-100",
       score,
     };
   }
@@ -662,13 +665,15 @@ const getResponseSlaState = (lead: LeadRow, channel: "whatsapp" | "call") => {
       : dueTomorrow
         ? "Due tomorrow"
         : dueLaterToday
-          ? `Due in ${formatMinutes(minutesUntilDue)}`
-          : "Due next window",
-    dueLabel: formatTimestamp(dueAt.toISOString()),
+          ? `Within ${formatMinutes(minutesUntilDue)}`
+          : "Next window",
+    dueLabel: `Due ${formatTimestamp(dueAt.toISOString())}`,
     badgeClass: overdue
-      ? "border-rose-400/20 bg-rose-500/10 text-rose-200"
-      : "border-amber-400/20 bg-amber-500/10 text-amber-200",
-    score: overdue ? 0 : null,
+      ? "border-rose-400/30 bg-rose-500/16 text-rose-100"
+      : isCall
+        ? "border-rose-400/30 bg-rose-500/16 text-rose-100"
+        : "border-violet-400/25 bg-violet-500/12 text-violet-100",
+    score: null,
   };
 };
 
@@ -758,6 +763,10 @@ const getLeadRowAccentClass = (lead: Pick<LeadRow, "status" | "quality_label">) 
 
   return "";
 };
+
+const hiddenLeadStatuses = new Set<LeadStatus>(["lost", "junk"]);
+
+const isLeadVisibleByDefault = (lead: Pick<LeadRow, "status">) => !hiddenLeadStatuses.has(lead.status);
 
 const buildSourceGroup = (lead: LeadRow) => {
   const sourceText = [
@@ -896,7 +905,6 @@ const AdminLeads = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [metaTokenWatchPinned, setMetaTokenWatchPinned] = useState(false);
-  const [metaTokenWatchHover, setMetaTokenWatchHover] = useState(false);
 
   const setSaving = (key: string, value: boolean) => {
     setSavingKeys((current) => {
@@ -1380,8 +1388,15 @@ const AdminLeads = () => {
     statusHistoryByLeadId,
   ]);
 
+  const inboxLeads = useMemo(
+    () => leadsWithIntent.filter((lead) => isLeadVisibleByDefault(lead)),
+    [leadsWithIntent],
+  );
+
   const filteredLeads = useMemo(() => {
-    return leadsWithIntent.filter((lead) => {
+    const leadPool = statusFilter === "all" ? inboxLeads : leadsWithIntent;
+
+    return leadPool.filter((lead) => {
       const vehicle = getLeadVehicleText(lead);
       const haystack = [
         lead.full_name,
@@ -1424,6 +1439,7 @@ const AdminLeads = () => {
     });
   }, [
     followupFilter,
+    inboxLeads,
     leadsWithIntent,
     progressFilter,
     qualityFilter,
@@ -1433,24 +1449,24 @@ const AdminLeads = () => {
   ]);
 
   const summary = useMemo(() => {
-    const metaLeads = leadsWithIntent.filter((lead) => lead.isMetaOriginated);
+    const metaLeads = inboxLeads.filter((lead) => lead.isMetaOriginated);
     const pendingMetaFeedback = metaLeads.filter((lead) =>
       lead.feedback.some((entry) => entry.platform === "meta" && entry.feedback_status === "pending"),
     );
 
     return {
-      newLeads: leadsWithIntent.filter((lead) => lead.status === "new").length,
-      dueFollowups: leadsWithIntent.filter((lead) =>
+      newLeads: inboxLeads.filter((lead) => lead.status === "new").length,
+      dueFollowups: inboxLeads.filter((lead) =>
         ["overdue", "due_today"].includes(lead.followupState),
       ).length,
-      partialLeads: leadsWithIntent.filter((lead) => lead.lifecycleLabel === "partial").length,
+      partialLeads: inboxLeads.filter((lead) => lead.lifecycleLabel === "partial").length,
       pendingMetaFeedback: pendingMetaFeedback.length,
       metaLeads: metaLeads.length,
     };
-  }, [leadsWithIntent]);
+  }, [inboxLeads]);
 
   const followupBoardRows = useMemo(() => {
-    return leadsWithIntent
+    return inboxLeads
       .flatMap((lead) =>
         lead.followups
           .filter((followup) => followup.status === "open")
@@ -1470,7 +1486,7 @@ const AdminLeads = () => {
         if (left.urgency !== right.urgency) return left.urgency - right.urgency;
         return left.dueTime - right.dueTime;
       });
-  }, [leadsWithIntent]);
+  }, [inboxLeads]);
 
   const alertQueueSummary = useMemo(
     () => ({
@@ -1480,6 +1496,9 @@ const AdminLeads = () => {
     }),
     [alertQueueRows],
   );
+
+  const defaultVisibleLeadCount = statusFilter === "all" ? inboxLeads.length : leadsWithIntent.length;
+  const leadCountLabel = statusFilter === "all" ? "active leads" : "recent leads";
 
   const updateFollowupDraft = (
     leadId: string,
@@ -2114,7 +2133,7 @@ const AdminLeads = () => {
     void loadLeadDesk({ refresh: true });
   };
 
-  const metaTokenWatchExpanded = metaTokenWatchPinned || metaTokenWatchHover;
+  const metaTokenWatchExpanded = metaTokenWatchPinned;
 
   return (
     <AdminShell
@@ -2386,11 +2405,7 @@ const AdminLeads = () => {
       </Card>
 
       <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
-        <div
-          className="mb-4"
-          onMouseEnter={() => setMetaTokenWatchHover(true)}
-          onMouseLeave={() => setMetaTokenWatchHover(false)}
-        >
+        <div className="mb-4">
           <button
             type="button"
             aria-expanded={metaTokenWatchExpanded}
@@ -2693,7 +2708,7 @@ const AdminLeads = () => {
 
         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-400">
           <span>
-            Showing {filteredLeads.length} of {leadsWithIntent.length} recent leads.
+            Showing {filteredLeads.length} of {defaultVisibleLeadCount} {leadCountLabel}.
           </span>
           <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
             Partial capture preserved
