@@ -1109,7 +1109,10 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         });
       }
 
-      window.location.assign(url);
+      const popup = window.open(url, "_blank", "noopener,noreferrer");
+      if (!popup) {
+        window.location.assign(url);
+      }
     },
     [trackEvent]
   );
@@ -1827,7 +1830,11 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
             currency: "AED",
           },
         });
-        window.location.assign(buildWhatsAppUrl(message));
+        const url = buildWhatsAppUrl(message);
+        const popup = window.open(url, "_blank", "noopener,noreferrer");
+        if (!popup) {
+          window.location.assign(url);
+        }
       }
     };
 
