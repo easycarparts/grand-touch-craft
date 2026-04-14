@@ -160,10 +160,15 @@ const PpfCostCalculatorWidget = ({
       return;
     }
 
+    if (finish === null) {
+      setFinish("Gloss");
+      onFinishChange?.("Gloss");
+    }
+
     if (coverage === null) {
       setCoverage("Full Body");
     }
-  }, [coverage, isPrimaryReady]);
+  }, [coverage, finish, isPrimaryReady, onFinishChange]);
 
   useEffect(() => {
     if (!frontAvailable && coverage === "Front") {
@@ -278,7 +283,9 @@ const PpfCostCalculatorWidget = ({
             ? showIntro
               ? "pb-16"
               : "pt-0 pb-16"
-            : "pb-16 md:pb-20"
+            : isEmbeddedInPage
+              ? "pb-0"
+              : "pb-16 md:pb-20"
         )}
       >
         <div className={isEmbeddedInPage ? "w-full max-w-none" : "container mx-auto max-w-6xl"}>
@@ -342,9 +349,9 @@ const PpfCostCalculatorWidget = ({
                     <div
                       className={`grid gap-2 sm:gap-3 ${
                         warrantyYearsForBrand(brand).length === 3
-                          ? "grid-cols-1 sm:grid-cols-3"
+                          ? "grid-cols-3 sm:grid-cols-3"
                           : warrantyYearsForBrand(brand).length === 2
-                            ? "grid-cols-1 sm:grid-cols-2"
+                            ? "grid-cols-2 sm:grid-cols-2"
                             : "grid-cols-1 max-w-xs"
                       }`}
                     >
@@ -362,29 +369,31 @@ const PpfCostCalculatorWidget = ({
                             }}
                             className={cn(
                               cardBaseClass,
-                              "min-w-0 px-3 py-3 text-left sm:px-4 sm:py-3.5",
+                              "min-w-0 rounded-[18px] px-2 py-2.5 text-left sm:rounded-[22px] sm:px-4 sm:py-3.5",
                               effectiveWarrantyYears === years ? selectedCardClass : "hover:border-primary/40"
                             )}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div>
-                                <p className="text-3xl font-black leading-none text-white">{years}</p>
-                                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">
+                                <p className="text-2xl font-black leading-none text-white sm:text-3xl">{years}</p>
+                                <p className="mt-0.5 text-[9px] uppercase tracking-[0.14em] text-slate-400 sm:mt-1 sm:text-[10px] sm:tracking-[0.16em]">
                                   Years
                                 </p>
                               </div>
                               {meta?.badge ? (
-                                <span className="rounded-full border border-primary/16 bg-primary/12 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#ffd47a]">
+                                <span className="hidden rounded-full border border-primary/16 bg-primary/12 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#ffd47a] sm:inline-flex sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.12em]">
                                   {meta.badge}
                                 </span>
                               ) : null}
                             </div>
                             {series ? (
-                              <p className="mt-3 text-sm font-semibold uppercase tracking-[0.14em] text-white">
+                              <p className="mt-2 hidden text-xs font-semibold uppercase tracking-[0.08em] text-white sm:block sm:mt-3 sm:text-sm sm:tracking-[0.14em]">
                                 {meta?.subtitle ?? series}
                               </p>
                             ) : null}
-                            <p className="mt-1 text-xs text-slate-400">{meta?.helper ?? "Protection package"}</p>
+                            <p className="mt-0.5 hidden text-[11px] leading-tight text-slate-400 sm:block sm:mt-1 sm:text-xs">
+                              {meta?.helper ?? "Protection package"}
+                            </p>
                           </button>
                         );
                       })}
@@ -393,7 +402,7 @@ const PpfCostCalculatorWidget = ({
 
                   <div>
                     <p className="mb-3 text-sm text-muted-foreground">Car size</p>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       {sizes.map((option) => {
                         const { title, subtitle } = sizeLabels[option];
                         return (
@@ -415,7 +424,7 @@ const PpfCostCalculatorWidget = ({
                             <div
                               className={cn(
                                 "relative w-full overflow-hidden bg-black",
-                                isEmbeddedInPage ? "aspect-[3/2] sm:aspect-video" : "aspect-video"
+                                isEmbeddedInPage ? "aspect-[16/11] sm:aspect-video" : "aspect-video"
                               )}
                             >
                               <img
@@ -425,9 +434,11 @@ const PpfCostCalculatorWidget = ({
                                 loading="lazy"
                               />
                             </div>
-                            <div className="px-3 py-3">
-                              <p className="text-sm font-semibold text-white">{title}</p>
-                              <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>
+                            <div className="px-2 py-2 sm:px-3 sm:py-3">
+                              <p className="text-[13px] font-semibold leading-tight text-white sm:text-sm">{title}</p>
+                              <p className="mt-0.5 hidden text-[11px] leading-snug text-slate-400 sm:block sm:text-xs">
+                                {subtitle}
+                              </p>
                             </div>
                           </button>
                         );
@@ -495,7 +506,7 @@ const PpfCostCalculatorWidget = ({
                                 />
                                 <div>
                                   <p className="text-base font-semibold text-white">{option}</p>
-                                  <p className="mt-0.5 text-xs text-slate-400">
+                                  <p className="mt-0.5 hidden text-xs text-slate-400 sm:block">
                                     {option === "Gloss" ? "Factory shine" : "Satin stealth"}
                                   </p>
                                 </div>
@@ -509,13 +520,17 @@ const PpfCostCalculatorWidget = ({
                         <div
                           className={cn(
                             "rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.14))]",
-                            isEmbeddedInPage ? "p-2 sm:p-4" : "p-4"
+                            isEmbeddedInPage
+                              ? "border-0 bg-transparent p-0 sm:rounded-[26px] sm:border sm:border-white/10 sm:bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.14))] sm:p-4"
+                              : "p-4"
                           )}
                         >
                           <div
                             className={cn(
                               "relative overflow-hidden rounded-[22px] border border-white/10 bg-black",
-                              isEmbeddedInPage ? "aspect-[3/2] sm:aspect-video" : "aspect-video"
+                              isEmbeddedInPage
+                                ? "aspect-[16/9] rounded-[24px] border-0 sm:aspect-video sm:rounded-[22px] sm:border sm:border-white/10"
+                                : "aspect-video"
                             )}
                           >
                             <img
@@ -652,8 +667,8 @@ const PpfCostCalculatorWidget = ({
                       {!isPriceReady ? (
                         <p className="text-sm text-slate-400">
                           {effectiveWarrantyYears === 5
-                            ? "Choose your finish and coverage to reveal the price and WhatsApp handoff."
-                            : "Choose your finish to reveal the price and WhatsApp handoff."}
+                            ? "Gloss is preselected. Switch to matte or front coverage if you want, then reveal the price."
+                            : "Gloss is preselected. Switch to matte if you want, then reveal the price."}
                         </p>
                       ) : null}
                     </div>

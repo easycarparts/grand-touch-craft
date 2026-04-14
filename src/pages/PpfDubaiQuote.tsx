@@ -82,14 +82,20 @@ const LEAD_PROFILE_STORAGE_KEY_BASE = "ppf-quote-lead-v1";
 const WHATSAPP_NUMBER = "971567191045";
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
 const DEFAULT_PHONE_COUNTRY_CODE = "971";
+const CUSTOM_PHONE_COUNTRY_CODE_VALUE = "__custom_country_code__";
 const PHONE_COUNTRY_OPTIONS: PhoneCountryOption[] = [
   { dialCode: "971", label: "UAE (+971)", shortLabel: "UAE" },
+  { dialCode: "1", label: "US / Canada (+1)", shortLabel: "US/CA" },
   { dialCode: "44", label: "UK (+44)", shortLabel: "UK" },
   { dialCode: "91", label: "India (+91)", shortLabel: "India" },
   { dialCode: "92", label: "Pakistan (+92)", shortLabel: "Pakistan" },
+  { dialCode: "20", label: "Egypt (+20)", shortLabel: "Egypt" },
+  { dialCode: "962", label: "Jordan (+962)", shortLabel: "Jordan" },
+  { dialCode: "961", label: "Lebanon (+961)", shortLabel: "Lebanon" },
   { dialCode: "966", label: "Saudi Arabia (+966)", shortLabel: "Saudi" },
   { dialCode: "974", label: "Qatar (+974)", shortLabel: "Qatar" },
 ];
+const isPresetPhoneCountryCode = (value: string) => PHONE_COUNTRY_OPTIONS.some((option) => option.dialCode === value);
 
 const EMAILJS_SERVICE_ID = "service_f2na96a";
 const EMAILJS_TEMPLATE_ID = "template_bs1inle";
@@ -325,8 +331,24 @@ const SectionCta = ({
   note?: string;
   className?: string;
   stacked?: boolean;
-}) => {
-  const showSecondary = Boolean(secondaryHref && onSecondaryClick);
+  }) => {
+  const showSecondary = Boolean(onSecondaryClick);
+  const secondaryButton = (
+    <Button
+      type="button"
+      variant="default"
+      className={cn(
+        whatsappCtaButtonClass,
+        stacked && "h-auto min-h-11 whitespace-normal py-3 text-center leading-snug sm:py-3"
+      )}
+      size="lg"
+      onClick={onSecondaryClick}
+      disabled={disabled}
+    >
+      <MessageCircle className="mr-2 h-4 w-4 shrink-0" />
+      {secondaryLabel}
+    </Button>
+  );
 
   return (
     <div className={cn("mt-7", align === "center" ? "text-center" : "", className)}>
@@ -346,36 +368,27 @@ const SectionCta = ({
             stacked ? "h-auto min-h-11 whitespace-normal py-3 sm:py-3" : showSecondary ? "sm:w-auto" : "sm:max-w-md"
           )}
           onClick={onPrimaryClick}
-        >
-          {primaryLabel}
-          <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
-        </Button>
-        {showSecondary ? (
-          <a
-            href={secondaryHref}
-            target="_blank"
-            rel="noreferrer"
-            className={cn("w-full", stacked ? "" : "sm:w-auto")}
           >
-            <Button
-              type="button"
-              variant="default"
-              className={cn(
-                whatsappCtaButtonClass,
-                stacked && "h-auto min-h-11 whitespace-normal py-3 text-center leading-snug sm:py-3"
-              )}
-              size="lg"
-              onClick={onSecondaryClick}
-              disabled={disabled}
-            >
-              <MessageCircle className="mr-2 h-4 w-4 shrink-0" />
-              {secondaryLabel}
-            </Button>
-          </a>
-        ) : null}
-      </div>
-      {note ? (
-        <p className={cn("mt-3 text-sm text-slate-400", align === "center" ? "mx-auto max-w-2xl" : "")}>
+            {primaryLabel}
+            <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+          </Button>
+          {showSecondary ? (
+            secondaryHref ? (
+              <a
+                href={secondaryHref}
+                target="_blank"
+                rel="noreferrer"
+                className={cn("w-full", stacked ? "" : "sm:w-auto")}
+              >
+                {secondaryButton}
+              </a>
+            ) : (
+              <div className={cn("w-full", stacked ? "" : "sm:w-auto")}>{secondaryButton}</div>
+            )
+          ) : null}
+        </div>
+        {note ? (
+          <p className={cn("mt-3 text-sm text-slate-400", align === "center" ? "mx-auto max-w-2xl" : "")}>
           {note}
         </p>
       ) : null}
@@ -390,6 +403,7 @@ const QuoteUnlockForm = ({
   formSubmitted,
   name,
   phoneCountryCode,
+  phoneCountryCodeCustom,
   phoneLocalNumber,
   vehicleMake,
   vehicleModel,
@@ -400,6 +414,7 @@ const QuoteUnlockForm = ({
   vehicleSummary,
   onNameChange,
   onPhoneCountryCodeChange,
+  onPhoneCountryCodeCustomChange,
   onPhoneLocalNumberChange,
   onVehicleMakeChange,
   onVehicleModelChange,
@@ -419,6 +434,7 @@ const QuoteUnlockForm = ({
   formSubmitted: boolean;
   name: string;
   phoneCountryCode: string;
+  phoneCountryCodeCustom: string;
   phoneLocalNumber: string;
   vehicleMake: string;
   vehicleModel: string;
@@ -429,6 +445,7 @@ const QuoteUnlockForm = ({
   vehicleSummary: string;
   onNameChange: (value: string) => void;
   onPhoneCountryCodeChange: (value: string) => void;
+  onPhoneCountryCodeCustomChange: (value: string) => void;
   onPhoneLocalNumberChange: (value: string) => void;
   onVehicleMakeChange: (value: string) => void;
   onVehicleModelChange: (value: string) => void;
@@ -446,6 +463,8 @@ const QuoteUnlockForm = ({
   const isCalculatorFlow = flow === "calculator";
   const step1CtaRef = useRef<HTMLDivElement>(null);
   const step2CtaRef = useRef<HTMLDivElement>(null);
+  const isCustomPhoneCountryCode = !isPresetPhoneCountryCode(phoneCountryCode);
+  const phoneCountrySelectValue = isCustomPhoneCountryCode ? CUSTOM_PHONE_COUNTRY_CODE_VALUE : phoneCountryCode;
   const flowSteps = isCalculatorFlow
     ? [
         { step: 1, label: "Contact" },
@@ -595,7 +614,16 @@ const QuoteUnlockForm = ({
               <div>
                 <label className="mb-2 block text-sm font-medium text-white/78">Mobile number</label>
                 <div className="grid grid-cols-[122px_minmax(0,1fr)] gap-2.5">
-                  <Select value={phoneCountryCode} onValueChange={onPhoneCountryCodeChange}>
+                  <Select
+                    value={phoneCountrySelectValue}
+                    onValueChange={(value) => {
+                      if (value === CUSTOM_PHONE_COUNTRY_CODE_VALUE) {
+                        onPhoneCountryCodeChange(phoneCountryCodeCustom);
+                        return;
+                      }
+                      onPhoneCountryCodeChange(value);
+                    }}
+                  >
                     <SelectTrigger className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] px-3 text-[0.95rem] text-white focus:ring-primary/40 focus:ring-offset-0 sm:h-12">
                       <SelectValue placeholder="+971" />
                     </SelectTrigger>
@@ -605,6 +633,12 @@ const QuoteUnlockForm = ({
                           {option.label}
                         </SelectItem>
                       ))}
+                      <SelectItem
+                        value={CUSTOM_PHONE_COUNTRY_CODE_VALUE}
+                        className="text-white focus:bg-white/10 focus:text-white"
+                      >
+                        Other (enter manually)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <Input
@@ -617,6 +651,19 @@ const QuoteUnlockForm = ({
                     className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
                   />
                 </div>
+                {isCustomPhoneCountryCode ? (
+                  <div className="mt-2.5">
+                    <Input
+                      value={phoneCountryCodeCustom}
+                      onChange={(event) => onPhoneCountryCodeCustomChange(event.target.value)}
+                      onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
+                      placeholder="Country code (e.g. 353)"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.95rem] text-white placeholder:text-white/35 sm:h-12"
+                    />
+                  </div>
+                ) : null}
                 <p className="mt-2 text-xs leading-5 text-slate-400">
                   Country code stays included for the CRM. Enter the number without the leading 0.
                 </p>
@@ -786,6 +833,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const [formStep, setFormStep] = useState<1 | 2 | 3>(1);
   const [name, setName] = useState("");
   const [phoneCountryCode, setPhoneCountryCode] = useState(DEFAULT_PHONE_COUNTRY_CODE);
+  const [phoneCountryCodeCustom, setPhoneCountryCodeCustom] = useState("");
   const [phoneLocalNumber, setPhoneLocalNumber] = useState("");
   const [vehicleMake, setVehicleMake] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
@@ -801,6 +849,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [showMobileStickyCta, setShowMobileStickyCta] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const pendingWhatsAppPlacementRef = useRef<string | null>(null);
 
   const hasTrackedFormStart = useRef(false);
   const hasTrackedConfiguratorStart = useRef(false);
@@ -882,6 +931,11 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       /^\d{4}$/.test(vehicleYear.trim()),
     [vehicleMake, vehicleModel, vehicleYear]
   );
+  const getResumeFormStep = useCallback((): 1 | 2 | 3 => {
+    if (formSubmitted) return 3;
+    if (hasValidContactDetails) return 2;
+    return 1;
+  }, [formSubmitted, hasValidContactDetails]);
   const contactSignature = useMemo(() => {
     if (!hasValidContactDetails) return "";
     return `${name.trim().toLowerCase()}|${sanitizePhoneSignature(mobile)}`;
@@ -907,6 +961,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       const parsedPhone = parseIntlPhoneNumber(parsed.mobile || `+${DEFAULT_PHONE_COUNTRY_CODE}`);
       setName(parsed.name || "");
       setPhoneCountryCode(parsedPhone.countryCode);
+      setPhoneCountryCodeCustom(isPresetPhoneCountryCode(parsedPhone.countryCode) ? "" : parsedPhone.countryCode);
       setPhoneLocalNumber(parsedPhone.localNumber);
       setVehicleMake(parsed.vehicleMake || "");
       setVehicleModel(parsed.vehicleModel || "");
@@ -1024,6 +1079,39 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       });
     },
     [funnelContext]
+  );
+
+  const openTrackedWhatsApp = useCallback(
+    ({
+      placement,
+      url,
+      whatsappState,
+    }: {
+      placement: string;
+      url: string;
+      whatsappState: string;
+    }) => {
+      trackEvent("whatsapp_click", {
+        cta_location: placement,
+        whatsapp_state: whatsappState,
+      }, {
+        metaStandardEvent: "Contact",
+        metaPayload: {
+          contact_channel: "whatsapp",
+          cta_location: placement,
+          whatsapp_state: whatsappState,
+        },
+      });
+
+      if (placement === "hero") {
+        trackEvent("hero_whatsapp_click", {
+          whatsapp_state: whatsappState,
+        });
+      }
+
+      window.location.assign(url);
+    },
+    [trackEvent]
   );
 
   useEffect(() => {
@@ -1545,10 +1633,11 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       return;
     }
 
-    setVehicleError("");
-    setIsSubmitting(true);
+      setVehicleError("");
+      setIsSubmitting(true);
+      const pendingWhatsAppPlacement = pendingWhatsAppPlacementRef.current;
 
-    try {
+      try {
       if (quoteModalFlow === "calculator" && selection) {
         await sendCalculatorRevealEmail(selection);
       } else {
@@ -1572,20 +1661,20 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           "standard quote lead"
         );
       }
-    } catch (error) {
-      console.error("Failed to send quote lead email:", error);
-    } finally {
-      setIsSubmitting(false);
-      setFormSubmitted(true);
+      } catch (error) {
+        console.error("Failed to send quote lead email:", error);
+      } finally {
+        setIsSubmitting(false);
+        setFormSubmitted(true);
       if (quoteModalFlow === "calculator" && selection) {
         setCalculatorPriceUnlocked(true);
       }
       setFormStep(3);
-      void captureLeadSnapshot({
-        snapshotType: "submit",
-        context: funnelContext,
-        fullName: name.trim(),
-        phone: mobile.trim(),
+        const captureSnapshotPromise = captureLeadSnapshot({
+          snapshotType: "submit",
+          context: funnelContext,
+          fullName: name.trim(),
+          phone: mobile.trim(),
         vehicleMake: vehicleMake.trim(),
         vehicleModel: vehicleModel.trim(),
         vehicleYear: vehicleYear.trim(),
@@ -1617,38 +1706,56 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           vehicle_model: vehicleModel.trim(),
           vehicle_year: vehicleYear.trim(),
         },
-      });
-      trackGoogleAdsLeadConversion();
-      trackTikTokLeadConversion();
-    }
-  };
+        });
+        trackGoogleAdsLeadConversion();
+        trackTikTokLeadConversion();
+
+        if (pendingWhatsAppPlacement) {
+          pendingWhatsAppPlacementRef.current = null;
+          await captureSnapshotPromise;
+          openTrackedWhatsApp({
+            placement: pendingWhatsAppPlacement,
+            url: buildWhatsAppUrl(
+              vehicleSummary.trim()
+                ? `Hi Sean, I’ve just sent my details through on the Grand Touch website for my ${vehicleSummary.trim()}. I’d love your advice on the right PPF package for it when you have a moment.`
+                : "Hi Sean, I’ve just sent my details through on the Grand Touch website and wanted your advice on the right PPF package when you have a moment."
+            ),
+            whatsappState: "known_lead",
+          });
+        }
+      }
+    };
 
   const handleWhatsAppClick = (placement: string = "unknown") => {
+    if (!formSubmitted) {
+      pendingWhatsAppPlacementRef.current = placement;
+      trackFormStartIfNeeded();
+      trackEvent("whatsapp_capture_required", {
+        cta_location: placement,
+        missing_contact: !hasValidContactDetails,
+        missing_vehicle: !hasValidVehicleDetails,
+      });
+      trackEvent("quote_modal_opened", {
+        flow: "standard",
+        cta_location: `${placement}_whatsapp_gate`,
+      });
+      setQuoteModalFlow("standard");
+      setFormStep(hasValidContactDetails ? 2 : 1);
+      setHeroFormOpen(true);
+      return;
+    }
+
     const whatsappState = selection
       ? calculatorPriceUnlocked
         ? "calculator_quote"
         : "calculator_setup"
-      : formSubmitted
-        ? "known_lead"
-        : "cold_start";
+      : "known_lead";
 
-    trackEvent("whatsapp_click", {
-      cta_location: placement,
-      whatsapp_state: whatsappState,
-    }, {
-      metaStandardEvent: "Contact",
-      metaPayload: {
-        contact_channel: "whatsapp",
-        cta_location: placement,
-        whatsapp_state: whatsappState,
-      },
+    openTrackedWhatsApp({
+      placement,
+      url: whatsAppUrl,
+      whatsappState,
     });
-
-    if (placement === "hero") {
-      trackEvent("hero_whatsapp_click", {
-        whatsapp_state: whatsappState,
-      });
-    }
   };
 
   const handleCalculatorWhatsApp = async (calculatorSelection: CalculatorSelection) => {
@@ -1702,9 +1809,9 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       if (funnelEmailsEnabled) {
         setIsSendingCalculatorLead(false);
       }
-      trackEvent("whatsapp_click", {
-        cta_location: "calculator_quote",
-        whatsapp_state: "calculator_quote",
+        trackEvent("whatsapp_click", {
+          cta_location: "calculator_quote",
+          whatsapp_state: "calculator_quote",
         package_name: packageLabel,
         size: calculatorSelection.size,
         coverage: calculatorSelection.coverage,
@@ -1712,17 +1819,17 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         estimate_value: calculatorSelection.estimateMin,
       }, {
         metaStandardEvent: "Contact",
-        metaPayload: {
-          contact_channel: "whatsapp",
-          cta_location: "calculator_quote",
-          package_name: packageLabel,
-          value: calculatorSelection.estimateMin,
-          currency: "AED",
-        },
-      });
-      window.open(buildWhatsAppUrl(message), "_blank", "noopener,noreferrer");
-    }
-  };
+          metaPayload: {
+            contact_channel: "whatsapp",
+            cta_location: "calculator_quote",
+            package_name: packageLabel,
+            value: calculatorSelection.estimateMin,
+            currency: "AED",
+          },
+        });
+        window.location.assign(buildWhatsAppUrl(message));
+      }
+    };
 
   const openHeroForm = (placement: string = "quote_cta") => {
     trackFormStartIfNeeded();
@@ -1734,7 +1841,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       cta_location: placement,
     });
     setQuoteModalFlow("standard");
-    setFormStep(formSubmitted ? 3 : 1);
+    setFormStep(getResumeFormStep());
     setHeroFormOpen(true);
   };
 
@@ -1765,12 +1872,15 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       return;
     }
 
-    setFormStep(1);
+    setFormStep(getResumeFormStep());
     setHeroFormOpen(true);
   };
 
   const handleModalOpenChange = (open: boolean) => {
     setHeroFormOpen(open);
+    if (!open) {
+      pendingWhatsAppPlacementRef.current = null;
+    }
   };
 
   const handleOpenCalculatorFromModal = () => {
@@ -2108,6 +2218,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         formSubmitted={formSubmitted}
                         name={name}
                         phoneCountryCode={phoneCountryCode}
+                        phoneCountryCodeCustom={phoneCountryCodeCustom}
                         phoneLocalNumber={phoneLocalNumber}
                         vehicleMake={vehicleMake}
                         vehicleModel={vehicleModel}
@@ -2123,6 +2234,16 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         onPhoneCountryCodeChange={(value) => {
                           trackFormStartIfNeeded();
                           setPhoneCountryCode(value);
+                          if (!isPresetPhoneCountryCode(value)) {
+                            setPhoneCountryCodeCustom(value);
+                          }
+                          if (phoneError) setPhoneError("");
+                        }}
+                        onPhoneCountryCodeCustomChange={(value) => {
+                          trackFormStartIfNeeded();
+                          const cleaned = value.replace(/\D/g, "").slice(0, 4);
+                          setPhoneCountryCodeCustom(cleaned);
+                          setPhoneCountryCode(cleaned);
                           if (phoneError) setPhoneError("");
                         }}
                         onPhoneLocalNumberChange={(value) => {
@@ -2162,7 +2283,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     </DialogContent>
                   </Dialog>
 
-                  <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="hidden w-full sm:block">
+                  <div className="hidden w-full sm:block">
                     <Button
                       type="button"
                       variant="default"
@@ -2173,7 +2294,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Ask Sean on WhatsApp
                     </Button>
-                  </a>
+                  </div>
 
                   {formSubmitted ? (
                     <Button
@@ -2745,14 +2866,13 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
               </Card>
             </div>
 
-            <SectionCta
-              primaryLabel="Get My PPF Quote"
-              secondaryLabel="Ask Sean on WhatsApp"
-              onPrimaryClick={() => openHeroForm("mid_page")}
-              secondaryHref={whatsAppUrl}
-              onSecondaryClick={() => handleWhatsAppClick("mid_page")}
-              note="Seen enough? Get your quote or ask Sean directly."
-            />
+              <SectionCta
+                primaryLabel="Get My PPF Quote"
+                secondaryLabel="Ask Sean on WhatsApp"
+                onPrimaryClick={() => openHeroForm("mid_page")}
+                onSecondaryClick={() => handleWhatsAppClick("mid_page")}
+                note="Seen enough? Get your quote or ask Sean directly."
+              />
           </div>
         </section>
 
@@ -2933,7 +3053,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           id="quote-calculator"
           ref={calculatorRef}
           data-funnel-section="calculator"
-          className="scroll-mt-6 border-t border-border/50 bg-[radial-gradient(circle_at_50%_0%,rgba(245,181,43,0.04),transparent_42%)] px-0 pb-16 pt-16 [overflow-anchor:none] sm:scroll-mt-8 sm:pb-20 sm:pt-20"
+          className="scroll-mt-6 border-t border-border/50 bg-[radial-gradient(circle_at_50%_0%,rgba(245,181,43,0.04),transparent_42%)] px-0 pb-6 pt-16 [overflow-anchor:none] sm:scroll-mt-8 sm:pb-20 sm:pt-20"
         >
           <div className="container mx-auto max-w-6xl">
             <div className="mb-8 overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-8">
@@ -3012,7 +3132,10 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           </div>
         </section>
 
-        <section data-funnel-section="process" className="px-0 pb-24 pt-14 sm:pb-28">
+        <section
+          data-funnel-section="process"
+          className="border-t border-border/50 px-0 pb-24 pt-6 sm:pb-28 sm:pt-14"
+        >
           <div className="container mx-auto max-w-6xl">
             <div className="relative overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.1),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-7">
               <div className="pointer-events-none absolute inset-0">
@@ -3256,15 +3379,14 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                   fast recommendation before you book.
                 </p>
 
-                <SectionCta
-                  primaryLabel="Get My PPF Quote"
-                  secondaryLabel="Ask Sean on WhatsApp"
-                  onPrimaryClick={() => openHeroForm("final_cta")}
-                  secondaryHref={whatsAppUrl}
-                  onSecondaryClick={() => handleWhatsAppClick("final_cta")}
-                  align="center"
-                  note="Clear quote. Direct accountability. No vague handoff."
-                />
+                  <SectionCta
+                    primaryLabel="Get My PPF Quote"
+                    secondaryLabel="Ask Sean on WhatsApp"
+                    onPrimaryClick={() => openHeroForm("final_cta")}
+                    onSecondaryClick={() => handleWhatsAppClick("final_cta")}
+                    align="center"
+                    note="Clear quote. Direct accountability. No vague handoff."
+                  />
               </div>
             </div>
           </div>
@@ -3278,28 +3400,24 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           showMobileStickyCta && !heroFormOpen && !isKeyboardOpen ? "opacity-100" : "pointer-events-none opacity-0"
         )}
       >
-        <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="block">
-          <Button
-            type="button"
-            variant="default"
-            className={cn(whatsappCtaButtonClass, "h-10 rounded-xl text-[0.95rem]")}
-            size="lg"
-            onClick={() => handleWhatsAppClick("mobile_sticky")}
-          >
-            <MessageCircle className="mr-2 h-4 w-4" />
-            Ask Sean on WhatsApp
-          </Button>
-        </a>
+        <Button
+          type="button"
+          variant="default"
+          className={cn(whatsappCtaButtonClass, "h-10 rounded-xl text-[0.95rem]")}
+          size="lg"
+          onClick={() => handleWhatsAppClick("mobile_sticky")}
+        >
+          <MessageCircle className="mr-2 h-4 w-4" />
+          Ask Sean on WhatsApp
+        </Button>
       </div>
 
       <div className="pointer-events-none fixed bottom-0 right-0 z-40 hidden overflow-visible md:block">
-        <a
-          href={whatsAppUrl}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          type="button"
           onClick={() => handleWhatsAppClick("desktop_sticky")}
           aria-label="Ask Sean on WhatsApp"
-          className="group pointer-events-auto absolute bottom-0 right-6 z-0 block cursor-pointer"
+          className="group pointer-events-auto absolute bottom-0 right-6 z-0 block cursor-pointer bg-transparent p-0"
         >
           <img
             src="/chat-to-sean.png"
@@ -3307,7 +3425,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
             className="h-auto w-44 max-w-[min(260px,46vw)] origin-bottom-right object-contain object-bottom-right transition-transform duration-300 ease-out group-hover:scale-[1.18]"
             loading="lazy"
           />
-        </a>
+        </button>
       </div>
     </div>
   );
