@@ -39,6 +39,7 @@ import OctaneB2B from "./pages/OctaneB2B";
 import Partner2B2B from "./pages/Partner2B2B";
 import TechnicalResourcesB2B from "./pages/TechnicalResourcesB2B";
 import { RequireAdmin } from "@/components/admin/RequireAdmin";
+import G700Customizer from "./pages/G700Customizer";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/blog" element={<Blog />} />
+            <Route path="/g700-customizer" element={<G700Customizer />} />
             <Route path="/ppf-dubai" element={<Navigate to="/ppf-cost-calculator" replace />} />
             <Route path="/ppf-cost-calculator" element={<PpfCostCalculator />} />
             <Route path="/ppf-dubai-quote" element={<PpfDubaiQuote />} />
