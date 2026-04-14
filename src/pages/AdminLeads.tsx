@@ -1,5 +1,6 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronUp, RefreshCw, Trash2 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { useAdminAuth } from "@/components/admin/AdminAuthProvider";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -45,6 +46,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import { buildLeadTasks } from "@/lib/admin-lead-tasks";
 import { getIntentScore } from "@/lib/funnel-intent";
 import { supabase } from "@/lib/supabase";
 
@@ -873,6 +875,7 @@ const responseTrackingLeadSelect =
 const AdminLeads = () => {
   const { adminProfile } = useAdminAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
 
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [sessionRollups, setSessionRollups] = useState<SessionRollupRow[]>([]);
@@ -905,6 +908,8 @@ const AdminLeads = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [metaTokenWatchPinned, setMetaTokenWatchPinned] = useState(false);
+  const leadTableRef = useRef<HTMLDivElement | null>(null);
+  const lastDeepLinkedLeadRef = useRef<string | null>(null);
 
   const setSaving = (key: string, value: boolean) => {
     setSavingKeys((current) => {
@@ -1453,40 +1458,18 @@ const AdminLeads = () => {
     const pendingMetaFeedback = metaLeads.filter((lead) =>
       lead.feedback.some((entry) => entry.platform === "meta" && entry.feedback_status === "pending"),
     );
+    const taskCounts = buildLeadTasks(inboxLeads);
 
     return {
-      newLeads: inboxLeads.filter((lead) => lead.status === "new").length,
-      dueFollowups: inboxLeads.filter((lead) =>
-        ["overdue", "due_today"].includes(lead.followupState),
-      ).length,
+      newLeads: taskCounts.filter((task) => task.taskKind === "first_touch").length,
+      dueFollowups: taskCounts.filter((task) => ["overdue", "due_today"].includes(task.priorityBand)).length,
       partialLeads: inboxLeads.filter((lead) => lead.lifecycleLabel === "partial").length,
       pendingMetaFeedback: pendingMetaFeedback.length,
       metaLeads: metaLeads.length,
     };
   }, [inboxLeads]);
 
-  const followupBoardRows = useMemo(() => {
-    return inboxLeads
-      .flatMap((lead) =>
-        lead.followups
-          .filter((followup) => followup.status === "open")
-          .map((followup) => ({
-            lead,
-            followup,
-            dueTime: new Date(followup.due_at || followup.created_at).getTime(),
-            urgency:
-              lead.followupState === "overdue"
-                ? 0
-                : lead.followupState === "due_today"
-                  ? 1
-                  : 2,
-          })),
-      )
-      .sort((left, right) => {
-        if (left.urgency !== right.urgency) return left.urgency - right.urgency;
-        return left.dueTime - right.dueTime;
-      });
-  }, [inboxLeads]);
+  const taskBoardRows = useMemo(() => buildLeadTasks(inboxLeads), [inboxLeads]);
 
   const alertQueueSummary = useMemo(
     () => ({
@@ -1990,20 +1973,64 @@ const AdminLeads = () => {
     void loadLeadDesk({ refresh: true });
   };
 
-  const handleOpenLeadFromBoard = (leadId: string) => {
+  const handleNeedsFirstTouchClick = () => {
+    setSearchQuery("");
+    setStatusFilter("new");
+    setQualityFilter("all");
+    setSourceFilter("all");
+    setProgressFilter("all");
+    setFollowupFilter("all");
+    setExpandedLeadId(null);
+
+    window.setTimeout(() => {
+      leadTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  const handleClearLeadFilters = () => {
     setSearchQuery("");
     setStatusFilter("all");
     setQualityFilter("all");
     setSourceFilter("all");
     setProgressFilter("all");
     setFollowupFilter("all");
-    setExpandedLeadId(leadId);
+    setExpandedLeadId(null);
+  };
+
+  const buildTaskBoardHref = (leadId: string, followupId?: string | null) => {
+    const params = new URLSearchParams({ lead: leadId });
+    if (followupId) {
+      params.set("followup", followupId);
+    }
+    return `/admin/leads/tasks?${params.toString()}`;
+  };
+
+  useEffect(() => {
+    const deepLinkedLeadId = searchParams.get("lead");
+
+    if (!deepLinkedLeadId) {
+      lastDeepLinkedLeadRef.current = null;
+      return;
+    }
+
+    if (isLoading || lastDeepLinkedLeadRef.current === deepLinkedLeadId) {
+      return;
+    }
+
+    lastDeepLinkedLeadRef.current = deepLinkedLeadId;
+    setSearchQuery("");
+    setStatusFilter("all");
+    setQualityFilter("all");
+    setSourceFilter("all");
+    setProgressFilter("all");
+    setFollowupFilter("all");
+    setExpandedLeadId(deepLinkedLeadId);
 
     window.setTimeout(() => {
-      const leadRow = document.getElementById(`lead-row-${leadId}`);
+      const leadRow = document.getElementById(`lead-row-${deepLinkedLeadId}`);
       leadRow?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 120);
-  };
+  }, [isLoading, searchParams]);
 
   const handleCreateManualLead = async () => {
     if (!supabase || !adminProfile?.id) return;
@@ -2141,10 +2168,21 @@ const AdminLeads = () => {
       description="This is now the working sales inbox for website leads. It keeps partial captures, notes, follow-ups, and source context together, while preparing Meta-originated leads for later quality feedback sending from a backend job."
     >
       <div className="grid gap-4 xl:grid-cols-4">
-        <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
+        <Card
+          className="cursor-pointer border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 transition hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(10,10,10,0.96))]"
+          role="button"
+          tabIndex={0}
+          onClick={handleNeedsFirstTouchClick}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handleNeedsFirstTouchClick();
+            }
+          }}
+        >
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Needs first touch</p>
           <p className="mt-3 text-3xl font-semibold text-white">{summary.newLeads}</p>
-          <p className="mt-2 text-sm text-slate-400">Leads still sitting in the `new` status.</p>
+          <p className="mt-2 text-sm text-slate-400">Contactable leads still waiting for first outreach.</p>
         </Card>
         <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Follow-ups due</p>
@@ -2169,93 +2207,58 @@ const AdminLeads = () => {
         <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Follow-up board</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Who needs attention next</h2>
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Daily task board</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">Top tasks right now</h2>
               <p className="mt-2 text-sm text-slate-400">
-                This is the action queue for sales: overdue first, due today second, then the rest.
+                This preview shows the six highest-priority actions. Open the full board to clear first-touch leads and follow-ups without crowding the CRM page.
               </p>
             </div>
-            <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
-              {followupBoardRows.length} open follow-up{followupBoardRows.length === 1 ? "" : "s"}
-            </Badge>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
+                {taskBoardRows.length} active task{taskBoardRows.length === 1 ? "" : "s"}
+              </Badge>
+              <Button asChild type="button" size="sm" variant="outline" className="border-white/10 bg-black/20 text-white hover:bg-white/10">
+                <Link to="/admin/leads/tasks">View all tasks</Link>
+              </Button>
+            </div>
           </div>
 
-          <div className="mt-6 space-y-3">
-            {followupBoardRows.length ? (
-              followupBoardRows.slice(0, 10).map(({ lead, followup }) => {
-                const whatsappUrl = buildWhatsAppUrl(lead.phone);
-
-                return (
-                  <div
-                    key={followup.id}
-                    className="rounded-2xl border border-white/10 bg-black/20 p-4"
-                  >
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="space-y-2">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {taskBoardRows.length ? (
+              taskBoardRows.slice(0, 6).map((task) => (
+                <Link key={task.taskId} to={buildTaskBoardHref(task.leadId, task.followupId)} className="rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:border-white/20 hover:bg-white/5">
+                  <div className="flex h-full flex-col justify-between gap-4">
+                    <div className="space-y-3">
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline" className={getFollowupBadgeClass(lead.followupState)}>
-                          {formatTokenLabel(lead.followupState)}
+                        <Badge variant="outline" className={task.taskBadgeClass}>
+                          {task.taskLabel}
                         </Badge>
-                        <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                          {formatTokenLabel(followup.channel)}
-                        </Badge>
-                        <Badge variant="outline" className={getSourceBadgeClass(lead.sourceGroup)}>
-                          {formatTokenLabel(lead.sourceGroup)}
+                        <Badge variant="outline" className={getSourceBadgeClass(task.lead.sourceGroup)}>
+                          {formatTokenLabel(task.lead.sourceGroup)}
                         </Badge>
                       </div>
+
                       <div>
-                        <p className="text-lg font-semibold text-white">{lead.full_name || "Unnamed lead"}</p>
-                        {whatsappUrl && lead.phone ? (
-                          <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm text-emerald-300 transition hover:text-emerald-200 hover:underline"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            {lead.phone}
-                          </a>
-                        ) : (
-                          <p className="text-sm text-slate-400">{lead.phone || "No phone captured"}</p>
-                        )}
+                        <p className="text-lg font-semibold text-white">{task.lead.full_name || "Unnamed lead"}</p>
+                        <p className="text-sm text-slate-400">{task.phone || task.lead.email || "No contact route captured"}</p>
                       </div>
-                      <p className="text-sm text-slate-300">
-                        <span className="text-slate-500">Due:</span> {formatDueLabel(followup)}
-                      </p>
-                      <p className="text-sm text-slate-300">
-                        <span className="text-slate-500">Summary:</span> {followup.notes || "No follow-up notes yet."}
-                      </p>
+
+                      <div className="space-y-1 text-sm text-slate-300">
+                        <p><span className="text-slate-500">Vehicle:</span> {task.vehicle || "Not captured"}</p>
+                        <p><span className="text-slate-500">Timing:</span> {task.dueLabel}</p>
+                        {task.packageLabel ? (
+                          <p><span className="text-slate-500">Package:</span> {task.packageLabel}</p>
+                        ) : null}
+                      </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="border-white/10 bg-black/20 text-white hover:bg-white/10"
-                        onClick={() => handleOpenLeadFromBoard(lead.id)}
-                      >
-                        Open lead
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
-                        onClick={() => void handleFollowupStatusChange(lead.id, followup.id, "done")}
-                        disabled={Boolean(savingKeys[`followup-status:${followup.id}`])}
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Mark done
-                      </Button>
-                    </div>
+                    <p className="text-sm text-slate-300">{task.summary || "No quick summary yet."}</p>
                   </div>
-                  </div>
-                );
-              })
+                </Link>
+              ))
             ) : (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-slate-400">
-                No open follow-ups yet. Create them from lead cards or the manual intake form.
+                No active tasks right now. New first-touch leads and follow-ups will show up here automatically.
               </div>
             )}
           </div>
@@ -2710,6 +2713,15 @@ const AdminLeads = () => {
           <span>
             Showing {filteredLeads.length} of {defaultVisibleLeadCount} {leadCountLabel}.
           </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 border-white/10 bg-black/20 px-3 text-xs text-slate-300 hover:bg-white/10"
+            onClick={handleClearLeadFilters}
+          >
+            Clear filters
+          </Button>
           <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
             Partial capture preserved
           </Badge>
@@ -2718,7 +2730,7 @@ const AdminLeads = () => {
           </Badge>
         </div>
 
-        <div className="mt-6">
+        <div ref={leadTableRef} className="mt-6">
           <Table>
             <TableHeader>
               <TableRow>

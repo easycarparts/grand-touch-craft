@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 type QueueRow = {
   id: string;
-  alert_type: "new_lead" | "followup_created" | "followup_morning_digest";
+  alert_type: "new_lead" | "partial_lead" | "followup_created" | "followup_morning_digest";
   lead_id: string | null;
   followup_id: string | null;
   title: string;
@@ -528,9 +528,24 @@ const deliverQueuedAlerts = async () => {
     try {
       let message = `🔔 <b>${escapeHtml(alert.title)}</b>\n${escapeHtml(alert.body)}`;
 
-      if (alert.alert_type === "new_lead" && alert.lead_id) {
+      if ((alert.alert_type === "new_lead" || alert.alert_type === "partial_lead") && alert.lead_id) {
         const lead = await fetchLeadAlertDetails(alert.lead_id);
         if (lead) {
+          if (alert.alert_type === "partial_lead" && lead.submitted_at) {
+            const { error: skipError } = await supabase
+              .from("crm_alert_queue")
+              .update({
+                delivery_status: "skipped",
+                delivery_attempts: 1,
+                last_error: "Lead became submitted before partial alert was due.",
+              })
+              .eq("id", alert.id);
+
+            if (skipError) throw skipError;
+            skipped += 1;
+            continue;
+          }
+
           message = buildNewLeadMessage(lead, alert.title);
         }
       }

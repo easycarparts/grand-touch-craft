@@ -32,6 +32,7 @@ import PpfDubaiQuoteV1 from "./pages/PpfDubaiQuoteV1";
 import AdminFunnelDashboard from "./pages/AdminFunnelDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminLeads from "./pages/AdminLeads";
+import AdminLeadTasks from "./pages/AdminLeadTasks";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -93,6 +94,14 @@ function App() {
               element={
                 <RequireAdmin>
                   <AdminLeads />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/leads/tasks"
+              element={
+                <RequireAdmin>
+                  <AdminLeadTasks />
                 </RequireAdmin>
               }
             />
