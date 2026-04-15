@@ -158,6 +158,8 @@ export type LeadTaskItem = {
   packageLabel: string | null;
   vehicle: string;
   phone: string | null;
+  timingAt: string | null;
+  timingLabel: string;
   dueLabel: string;
   urgencyLabel: string;
   taskLabel: string;
@@ -438,6 +440,8 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
         packageLabel: getLeadTaskPackageLabel(lead),
         vehicle: getLeadVehicleText(lead),
         phone: lead.phone,
+        timingAt: dueAt ? dueAt.toISOString() : receivedAt,
+        timingLabel: dueAt ? "Response due" : "Received",
         dueLabel: dueAt ? `Response due ${formatTimestamp(dueAt.toISOString())}` : `Received ${formatTimestamp(receivedAt)}`,
         urgencyLabel: overdue ? "First touch overdue" : dueAt ? "Needs first touch" : "Email follow-up needed",
         taskLabel: "First touch",
@@ -465,6 +469,8 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
         packageLabel: getLeadTaskPackageLabel(lead),
         vehicle: getLeadVehicleText(lead),
         phone: lead.phone,
+        timingAt: dueAt ? dueAt.toISOString() : receivedAt,
+        timingLabel: dueAt ? "Call due" : "Received",
         dueLabel: dueAt ? `Call due ${formatTimestamp(dueAt.toISOString())}` : `Received ${formatTimestamp(receivedAt)}`,
         urgencyLabel:
           priorityBand === "call_overdue"
@@ -504,6 +510,8 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
         packageLabel: getLeadTaskPackageLabel(lead),
         vehicle: getLeadVehicleText(lead),
         phone: lead.phone,
+        timingAt: followup.due_at || followup.created_at,
+        timingLabel: followup.due_at ? "Due" : "Created",
         dueLabel: followup.due_at ? `Due ${formatTimestamp(followup.due_at)}` : `Created ${formatTimestamp(followup.created_at)}`,
         urgencyLabel: priorityBand === "overdue" ? "Overdue" : priorityBand === "due_today" ? "Due today" : "Open follow-up",
         taskLabel: priorityBand === "overdue" ? "Overdue follow-up" : priorityBand === "due_today" ? "Due today" : "Open follow-up",

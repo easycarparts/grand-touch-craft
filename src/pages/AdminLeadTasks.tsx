@@ -47,6 +47,27 @@ const getOwnerFilterLabel = (ownerFilter: string, adminUsers: AdminUserOption[])
   const assignee = adminUsers.find((user) => user.id === ownerFilter);
   return assignee ? assignee.full_name || assignee.email : "Selected owner";
 };
+const formatLoudTaskDate = (value: string) =>
+  new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Dubai",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(value));
+
+const isDubaiToday = (value: string) => {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Dubai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(new Date(value)) === formatter.format(new Date());
+};
 
 const TaskCard = ({
   task,
@@ -135,7 +156,21 @@ const TaskCard = ({
 
           <div className="grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
             <p><span className="text-slate-500">Vehicle:</span> {task.vehicle || "Not captured"}</p>
-            <p><span className="text-slate-500">Timing:</span> {task.dueLabel}</p>
+            <div className="rounded-2xl border border-primary/20 bg-primary/10 p-3 sm:col-span-2">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] uppercase tracking-[0.16em] text-primary/90">{task.timingLabel}</span>
+                {task.timingAt &&
+                task.timingLabel !== "Created" &&
+                isDubaiToday(task.timingAt) ? (
+                  <Badge variant="outline" className="border-amber-400/30 bg-amber-500/15 text-amber-200">
+                    TODAY
+                  </Badge>
+                ) : null}
+              </div>
+              <p className="text-base font-semibold text-white">
+                {task.timingAt ? formatLoudTaskDate(task.timingAt) : task.dueLabel}
+              </p>
+            </div>
             {lead.expected_delivery_at ? (
               <p><span className="text-slate-500">Expected delivery:</span> {formatTimestamp(lead.expected_delivery_at)}</p>
             ) : null}
@@ -306,7 +341,11 @@ const AdminLeadTasks = () => {
         (taskFilter === "phone_calls" && task.taskKind === "call") ||
         (taskFilter === "call_overdue" && task.priorityBand === "call_overdue") ||
         (taskFilter === "overdue" && ["call_overdue", "overdue"].includes(task.priorityBand)) ||
-        (taskFilter === "due_today" && ["call_due_today", "due_today"].includes(task.priorityBand)) ||
+        (taskFilter === "due_today" &&
+          (["call_due_today", "due_today"].includes(task.priorityBand) ||
+            (task.timingAt &&
+              ["Response due", "Call due", "Due"].includes(task.timingLabel) &&
+              isDubaiToday(task.timingAt)))) ||
         (taskFilter === "open_later" && ["call_open", "open_later"].includes(task.priorityBand));
 
       const haystack = [task.title, task.summary, task.lead.full_name, task.phone, task.vehicle, task.packageLabel]

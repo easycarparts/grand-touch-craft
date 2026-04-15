@@ -401,6 +401,7 @@ const QuoteUnlockForm = ({
   flow,
   formStep,
   formSubmitted,
+  isWhatsAppGateActive,
   name,
   phoneCountryCode,
   phoneCountryCodeCustom,
@@ -425,6 +426,7 @@ const QuoteUnlockForm = ({
   onOpenCalculator,
   whatsAppUrl,
   onWhatsAppClick,
+  onSkipToWhatsApp,
   calculatorSelection,
   onCalculatorWhatsAppClick,
 }: {
@@ -432,6 +434,7 @@ const QuoteUnlockForm = ({
   flow: QuoteModalFlow;
   formStep: 1 | 2 | 3;
   formSubmitted: boolean;
+  isWhatsAppGateActive: boolean;
   name: string;
   phoneCountryCode: string;
   phoneCountryCodeCustom: string;
@@ -456,6 +459,7 @@ const QuoteUnlockForm = ({
   onOpenCalculator: () => void;
   whatsAppUrl: string;
   onWhatsAppClick: () => void;
+  onSkipToWhatsApp: () => void;
   calculatorSelection: CalculatorSelection | null;
   onCalculatorWhatsAppClick: () => void;
 }) => {
@@ -586,7 +590,7 @@ const QuoteUnlockForm = ({
 
       <div className="relative px-4 pb-4 pt-4 sm:px-7 sm:pb-7 sm:pt-5">
         {formStep === 1 ? (
-          <div className="space-y-4 max-sm:pb-[min(34vh,210px)]">
+          <div className="space-y-4">
             <div>
               <p className="text-[2rem] font-semibold tracking-tight text-white sm:text-4xl">
                 Get My PPF Estimate
@@ -676,12 +680,22 @@ const QuoteUnlockForm = ({
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
+              {isWhatsAppGateActive ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mt-2.5 h-auto w-full whitespace-normal px-3 py-2.5 text-center text-[0.95rem] leading-snug rounded-xl border border-[#25D366]/35 bg-[#25D366]/10 text-[#d7ffe9] hover:bg-[#25D366]/20 hover:text-white sm:whitespace-nowrap"
+                  onClick={onSkipToWhatsApp}
+                >
+                  In a hurry? Skip and talk to Sean on WhatsApp
+                </Button>
+              ) : null}
             </div>
           </div>
         ) : null}
 
         {formStep === 2 ? (
-          <div className="space-y-4 max-sm:pb-[min(34vh,210px)]">
+          <div className="space-y-4">
             <div>
               <p className="text-[2rem] font-semibold tracking-tight text-white sm:text-4xl">
                 Tell us about your car
@@ -757,6 +771,16 @@ const QuoteUnlockForm = ({
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
+            {isWhatsAppGateActive ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-auto w-full whitespace-normal px-3 py-2.5 text-center text-[0.95rem] leading-snug rounded-xl border border-[#25D366]/35 bg-[#25D366]/10 text-[#d7ffe9] hover:bg-[#25D366]/20 hover:text-white sm:whitespace-nowrap"
+                onClick={onSkipToWhatsApp}
+              >
+                In a hurry? Skip and talk to Sean on WhatsApp
+              </Button>
+            ) : null}
           </div>
         ) : null}
 
@@ -849,6 +873,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [showMobileStickyCta, setShowMobileStickyCta] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [pendingWhatsAppPlacement, setPendingWhatsAppPlacement] = useState<string | null>(null);
   const pendingWhatsAppPlacementRef = useRef<string | null>(null);
 
   const hasTrackedFormStart = useRef(false);
@@ -1116,6 +1141,11 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     },
     [trackEvent]
   );
+
+  const clearPendingWhatsAppGate = useCallback(() => {
+    pendingWhatsAppPlacementRef.current = null;
+    setPendingWhatsAppPlacement(null);
+  }, []);
 
   useEffect(() => {
     if (!contactSignature) return;
@@ -1714,7 +1744,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         trackTikTokLeadConversion();
 
         if (pendingWhatsAppPlacement) {
-          pendingWhatsAppPlacementRef.current = null;
+          clearPendingWhatsAppGate();
           await captureSnapshotPromise;
           openTrackedWhatsApp({
             placement: pendingWhatsAppPlacement,
@@ -1732,6 +1762,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const handleWhatsAppClick = (placement: string = "unknown") => {
     if (!formSubmitted) {
       pendingWhatsAppPlacementRef.current = placement;
+      setPendingWhatsAppPlacement(placement);
       trackFormStartIfNeeded();
       trackEvent("whatsapp_capture_required", {
         cta_location: placement,
@@ -1760,6 +1791,30 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       whatsappState,
     });
   };
+
+  const handleSkipToWhatsApp = useCallback(() => {
+    const placement = pendingWhatsAppPlacementRef.current ?? "quote_form_skip";
+    clearPendingWhatsAppGate();
+    setHeroFormOpen(false);
+
+    const whatsappState = hasValidContactDetails
+      ? hasValidVehicleDetails
+        ? "partial_vehicle_known"
+        : "partial_contact_known"
+      : "skipped_capture";
+
+    openTrackedWhatsApp({
+      placement: `${placement}_skip`,
+      url: whatsAppUrl,
+      whatsappState,
+    });
+  }, [
+    clearPendingWhatsAppGate,
+    hasValidContactDetails,
+    hasValidVehicleDetails,
+    openTrackedWhatsApp,
+    whatsAppUrl,
+  ]);
 
   const handleCalculatorWhatsApp = async (calculatorSelection: CalculatorSelection) => {
     const packageLabel = getCalculatorPackageLabel(calculatorSelection);
@@ -1886,7 +1941,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const handleModalOpenChange = (open: boolean) => {
     setHeroFormOpen(open);
     if (!open) {
-      pendingWhatsAppPlacementRef.current = null;
+      clearPendingWhatsAppGate();
     }
   };
 
@@ -2223,6 +2278,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         flow={quoteModalFlow}
                         formStep={formStep}
                         formSubmitted={formSubmitted}
+                        isWhatsAppGateActive={Boolean(pendingWhatsAppPlacement)}
                         name={name}
                         phoneCountryCode={phoneCountryCode}
                         phoneCountryCodeCustom={phoneCountryCodeCustom}
@@ -2279,6 +2335,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         onOpenCalculator={handleOpenCalculatorFromModal}
                         whatsAppUrl={whatsAppUrl}
                         onWhatsAppClick={() => handleWhatsAppClick("quote_form")}
+                        onSkipToWhatsApp={handleSkipToWhatsApp}
                         calculatorSelection={selection}
                         onCalculatorWhatsAppClick={() => {
                           if (selection) {
