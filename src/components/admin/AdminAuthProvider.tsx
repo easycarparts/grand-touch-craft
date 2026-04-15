@@ -41,7 +41,7 @@ const loadAdminProfile = async (userId: string): Promise<AdminUserProfile | null
 
   const { data, error } = await supabase
     .from("admin_users")
-    .select("id, email, full_name, role, is_active, last_login_at")
+    .select("id, email, full_name, role, is_active, owner_color, last_login_at")
     .eq("id", userId)
     .maybeSingle();
 

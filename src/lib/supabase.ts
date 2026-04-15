@@ -21,5 +21,6 @@ export type AdminUserProfile = {
   full_name: string | null;
   role: "owner" | "manager" | "sales";
   is_active: boolean;
+  owner_color: string;
   last_login_at: string | null;
 };

@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronUp, RefreshCw, Trash2 } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import { useAdminAuth } from "@/components/admin/AdminAuthProvider";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -196,6 +196,7 @@ type AdminUserOption = {
   full_name: string | null;
   role: "owner" | "manager" | "sales";
   is_active: boolean;
+  owner_color: string;
   last_login_at: string | null;
 };
 
@@ -724,6 +725,11 @@ const getFeedbackBadgeClass = (status: "pending" | "sent" | "failed") => {
   }
 };
 
+const withAlpha = (hexColor: string, alphaHex: string) => {
+  if (!/^#[0-9A-Fa-f]{6}$/.test(hexColor)) return hexColor;
+  return `${hexColor}${alphaHex}`;
+};
+
 const getFollowupBadgeClass = (state: DisplayLeadRow["followupState"]) => {
   switch (state) {
     case "overdue":
@@ -890,6 +896,7 @@ const AdminLeads = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [qualityFilter, setQualityFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("all");
   const [progressFilter, setProgressFilter] = useState("all");
   const [followupFilter, setFollowupFilter] = useState("all");
   const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
@@ -1016,7 +1023,7 @@ const AdminLeads = () => {
 
       const adminUsersQuery = supabase
         .from("admin_users")
-        .select("id, email, full_name, role, is_active, last_login_at")
+        .select("id, email, full_name, role, is_active, owner_color, last_login_at")
         .eq("is_active", true)
         .order("full_name", { ascending: true });
 
@@ -1401,47 +1408,58 @@ const AdminLeads = () => {
   const filteredLeads = useMemo(() => {
     const leadPool = statusFilter === "all" ? inboxLeads : leadsWithIntent;
 
-    return leadPool.filter((lead) => {
-      const vehicle = getLeadVehicleText(lead);
-      const haystack = [
-        lead.full_name,
-        lead.phone,
-        lead.email,
-        vehicle,
-        lead.source_platform,
-        lead.landing_page_variant,
-        getLeadCampaignLabel(lead),
-        lead.status,
-        lead.quality_label,
-        lead.assignedAdmin?.full_name,
-        lead.assignedAdmin?.email,
-        lead.notes_summary,
-      ]
-        .join(" ")
-        .toLowerCase();
+    return leadPool
+      .filter((lead) => {
+        const vehicle = getLeadVehicleText(lead);
+        const haystack = [
+          lead.full_name,
+          lead.phone,
+          lead.email,
+          vehicle,
+          lead.source_platform,
+          lead.landing_page_variant,
+          getLeadCampaignLabel(lead),
+          lead.status,
+          lead.quality_label,
+          lead.assignedAdmin?.full_name,
+          lead.assignedAdmin?.email,
+          lead.notes_summary,
+        ]
+          .join(" ")
+          .toLowerCase();
 
-      const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
-      const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
-      const matchesQuality = qualityFilter === "all" || lead.quality_label === qualityFilter;
-      const matchesSource = sourceFilter === "all" || lead.sourceGroup === sourceFilter;
-      const matchesProgress = progressFilter === "all" || lead.lifecycleLabel === progressFilter;
-      const matchesFollowup =
-        followupFilter === "all" ||
-        (followupFilter === "needs_attention" &&
-          ["overdue", "due_today", "open"].includes(lead.followupState)) ||
-        (followupFilter === "overdue" && lead.followupState === "overdue") ||
-        (followupFilter === "due_today" && lead.followupState === "due_today") ||
-        (followupFilter === "none" && lead.followupState === "none");
+        const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
+        const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
+        const matchesQuality = qualityFilter === "all" || lead.quality_label === qualityFilter;
+        const matchesSource = sourceFilter === "all" || lead.sourceGroup === sourceFilter;
+        const matchesOwner =
+          ownerFilter === "all" ||
+          (ownerFilter === "unassigned" && !lead.assigned_to) ||
+          lead.assigned_to === ownerFilter;
+        const matchesProgress = progressFilter === "all" || lead.lifecycleLabel === progressFilter;
+        const matchesFollowup =
+          followupFilter === "all" ||
+          (followupFilter === "needs_attention" &&
+            ["overdue", "due_today", "open"].includes(lead.followupState)) ||
+          (followupFilter === "overdue" && lead.followupState === "overdue") ||
+          (followupFilter === "due_today" && lead.followupState === "due_today") ||
+          (followupFilter === "none" && lead.followupState === "none");
 
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesQuality &&
-        matchesSource &&
-        matchesProgress &&
-        matchesFollowup
-      );
-    });
+        return (
+          matchesSearch &&
+          matchesStatus &&
+          matchesQuality &&
+          matchesSource &&
+          matchesOwner &&
+          matchesProgress &&
+          matchesFollowup
+        );
+      })
+      .sort((left, right) => {
+        const leftTime = getLeadReceivedAt(left);
+        const rightTime = getLeadReceivedAt(right);
+        return new Date(rightTime || 0).getTime() - new Date(leftTime || 0).getTime();
+      });
   }, [
     followupFilter,
     inboxLeads,
@@ -1449,6 +1467,7 @@ const AdminLeads = () => {
     progressFilter,
     qualityFilter,
     searchQuery,
+    ownerFilter,
     sourceFilter,
     statusFilter,
   ]);
@@ -1462,14 +1481,12 @@ const AdminLeads = () => {
 
     return {
       newLeads: taskCounts.filter((task) => task.taskKind === "first_touch").length,
-      dueFollowups: taskCounts.filter((task) => ["overdue", "due_today"].includes(task.priorityBand)).length,
+      dueFollowups: taskCounts.filter((task) => ["call_overdue", "call_due_today", "overdue", "due_today"].includes(task.priorityBand)).length,
       partialLeads: inboxLeads.filter((lead) => lead.lifecycleLabel === "partial").length,
       pendingMetaFeedback: pendingMetaFeedback.length,
       metaLeads: metaLeads.length,
     };
   }, [inboxLeads]);
-
-  const taskBoardRows = useMemo(() => buildLeadTasks(inboxLeads), [inboxLeads]);
 
   const alertQueueSummary = useMemo(
     () => ({
@@ -1978,6 +1995,7 @@ const AdminLeads = () => {
     setStatusFilter("new");
     setQualityFilter("all");
     setSourceFilter("all");
+    setOwnerFilter("all");
     setProgressFilter("all");
     setFollowupFilter("all");
     setExpandedLeadId(null);
@@ -1992,17 +2010,10 @@ const AdminLeads = () => {
     setStatusFilter("all");
     setQualityFilter("all");
     setSourceFilter("all");
+    setOwnerFilter("all");
     setProgressFilter("all");
     setFollowupFilter("all");
     setExpandedLeadId(null);
-  };
-
-  const buildTaskBoardHref = (leadId: string, followupId?: string | null) => {
-    const params = new URLSearchParams({ lead: leadId });
-    if (followupId) {
-      params.set("followup", followupId);
-    }
-    return `/admin/leads/tasks?${params.toString()}`;
   };
 
   useEffect(() => {
@@ -2022,6 +2033,7 @@ const AdminLeads = () => {
     setStatusFilter("all");
     setQualityFilter("all");
     setSourceFilter("all");
+    setOwnerFilter("all");
     setProgressFilter("all");
     setFollowupFilter("all");
     setExpandedLeadId(deepLinkedLeadId);
@@ -2185,9 +2197,9 @@ const AdminLeads = () => {
           <p className="mt-2 text-sm text-slate-400">Contactable leads still waiting for first outreach.</p>
         </Card>
         <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Follow-ups due</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Tasks due</p>
           <p className="mt-3 text-3xl font-semibold text-white">{summary.dueFollowups}</p>
-          <p className="mt-2 text-sm text-slate-400">Open reminders due today or already overdue.</p>
+          <p className="mt-2 text-sm text-slate-400">Calls and follow-ups due today or already overdue.</p>
         </Card>
         <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Partial captures</p>
@@ -2203,68 +2215,7 @@ const AdminLeads = () => {
         </Card>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Daily task board</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Top tasks right now</h2>
-              <p className="mt-2 text-sm text-slate-400">
-                This preview shows the six highest-priority actions. Open the full board to clear first-touch leads and follow-ups without crowding the CRM page.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
-                {taskBoardRows.length} active task{taskBoardRows.length === 1 ? "" : "s"}
-              </Badge>
-              <Button asChild type="button" size="sm" variant="outline" className="border-white/10 bg-black/20 text-white hover:bg-white/10">
-                <Link to="/admin/leads/tasks">View all tasks</Link>
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {taskBoardRows.length ? (
-              taskBoardRows.slice(0, 6).map((task) => (
-                <Link key={task.taskId} to={buildTaskBoardHref(task.leadId, task.followupId)} className="rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:border-white/20 hover:bg-white/5">
-                  <div className="flex h-full flex-col justify-between gap-4">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline" className={task.taskBadgeClass}>
-                          {task.taskLabel}
-                        </Badge>
-                        <Badge variant="outline" className={getSourceBadgeClass(task.lead.sourceGroup)}>
-                          {formatTokenLabel(task.lead.sourceGroup)}
-                        </Badge>
-                      </div>
-
-                      <div>
-                        <p className="text-lg font-semibold text-white">{task.lead.full_name || "Unnamed lead"}</p>
-                        <p className="text-sm text-slate-400">{task.phone || task.lead.email || "No contact route captured"}</p>
-                      </div>
-
-                      <div className="space-y-1 text-sm text-slate-300">
-                        <p><span className="text-slate-500">Vehicle:</span> {task.vehicle || "Not captured"}</p>
-                        <p><span className="text-slate-500">Timing:</span> {task.dueLabel}</p>
-                        {task.packageLabel ? (
-                          <p><span className="text-slate-500">Package:</span> {task.packageLabel}</p>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-slate-300">{task.summary || "No quick summary yet."}</p>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-slate-400">
-                No active tasks right now. New first-touch leads and follow-ups will show up here automatically.
-              </div>
-            )}
-          </div>
-        </Card>
-
-        <div className="space-y-6">
+      <div className="space-y-6">
           <Card className="hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -2329,7 +2280,6 @@ const AdminLeads = () => {
               )}
             </div>
           </Card>
-        </div>
       </div>
 
       <Card className="mb-6 border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
@@ -2639,7 +2589,7 @@ const AdminLeads = () => {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
           <Input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
@@ -2683,6 +2633,20 @@ const AdminLeads = () => {
               <SelectItem value="google">Google</SelectItem>
               <SelectItem value="tiktok">TikTok</SelectItem>
               <SelectItem value="manual">Manual</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+            <SelectTrigger className="border-white/10 bg-black/20 text-white">
+              <SelectValue placeholder="Owner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All owners</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {adminUsers.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.full_name || user.email}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={progressFilter} onValueChange={setProgressFilter}>
@@ -2741,7 +2705,7 @@ const AdminLeads = () => {
                 <TableHead>Follow-up</TableHead>
                 <TableHead>Intent</TableHead>
                 <TableHead>Estimate</TableHead>
-                <TableHead>Last activity</TableHead>
+                <TableHead>Lead received</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2778,6 +2742,7 @@ const AdminLeads = () => {
                   const callSla = getResponseSlaState(lead, "call");
                   const intentPresentation = getLeadIntentPresentation(lead);
                   const rowAccentClass = getLeadRowAccentClass(lead);
+                  const leadReceivedAt = getLeadReceivedAt(lead);
                   const followupLabel =
                     lead.followupState === "overdue"
                       ? "Overdue"
@@ -2839,9 +2804,20 @@ const AdminLeads = () => {
                               </Badge>
                             </div>
                             <p className="text-xs text-slate-400">
-                              {lead.assignedAdmin
-                                ? `Owner: ${lead.assignedAdmin.full_name || lead.assignedAdmin.email}`
-                                : "Unassigned"}
+                              {lead.assignedAdmin ? (
+                                <span
+                                  className="inline-flex items-center rounded-full border px-2 py-0.5 font-medium"
+                                  style={{
+                                    borderColor: withAlpha(lead.assignedAdmin.owner_color, "55"),
+                                    backgroundColor: withAlpha(lead.assignedAdmin.owner_color, "1A"),
+                                    color: lead.assignedAdmin.owner_color,
+                                  }}
+                                >
+                                  Owner: {lead.assignedAdmin.full_name || lead.assignedAdmin.email}
+                                </span>
+                              ) : (
+                                "Unassigned"
+                              )}
                             </p>
                             {pendingMetaFeedback.length ? (
                               <p className="text-xs text-amber-200">
@@ -2883,7 +2859,7 @@ const AdminLeads = () => {
                         <TableCell className={rowAccentClass}>{formatCurrency(lead.latest_quote_estimate)}</TableCell>
                         <TableCell className={rowAccentClass}>
                           <div className="flex items-center justify-between gap-3">
-                            <span>{formatTimestamp(lead.last_activity_at || lead.submitted_at)}</span>
+                            <span>{formatTimestamp(leadReceivedAt)}</span>
                             {lead.status === "won" ? (
                               <div className="rotate-[-6deg] rounded-2xl border border-emerald-300/30 bg-[linear-gradient(135deg,rgba(16,185,129,0.28),rgba(16,185,129,0.08))] px-3 py-1 text-right shadow-[0_0_30px_rgba(16,185,129,0.16)]">
                                 <p className="text-[10px] uppercase tracking-[0.35em] text-emerald-100/80">
@@ -3168,11 +3144,20 @@ const AdminLeads = () => {
                                         </p>
                                         <p>
                                           <span className="text-slate-500">Owner:</span>{" "}
-                                          <span className="text-white">
-                                            {lead.assignedAdmin?.full_name ||
-                                              lead.assignedAdmin?.email ||
-                                              "Unassigned"}
-                                          </span>
+                                          {lead.assignedAdmin ? (
+                                            <span
+                                              className="inline-flex items-center rounded-full border px-2 py-0.5 font-medium"
+                                              style={{
+                                                borderColor: withAlpha(lead.assignedAdmin.owner_color, "55"),
+                                                backgroundColor: withAlpha(lead.assignedAdmin.owner_color, "1A"),
+                                                color: lead.assignedAdmin.owner_color,
+                                              }}
+                                            >
+                                              {lead.assignedAdmin.full_name || lead.assignedAdmin.email}
+                                            </span>
+                                          ) : (
+                                            <span className="text-white">Unassigned</span>
+                                          )}
                                         </p>
                                         <p>
                                           <span className="text-slate-500">Next follow-up:</span>{" "}
@@ -3185,6 +3170,10 @@ const AdminLeads = () => {
                                         <p>
                                           <span className="text-slate-500">Estimate:</span>{" "}
                                           <span className="text-white">{formatCurrency(lead.latest_quote_estimate)}</span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">Lead received:</span>{" "}
+                                          <span className="text-white">{formatTimestamp(leadReceivedAt)}</span>
                                         </p>
                                         <p>
                                           <span className="text-slate-500">Last activity:</span>{" "}

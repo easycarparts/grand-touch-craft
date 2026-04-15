@@ -115,6 +115,15 @@ export type LeadTaskLead = LeadRow & {
   followupState: "none" | "open" | "due_today" | "overdue" | "done";
 };
 
+export type AdminUserOption = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: "owner" | "manager" | "sales";
+  is_active: boolean;
+  owner_color: string;
+};
+
 export type FollowupDraft = {
   assignedTo: string;
   channel: FollowupChannel;
@@ -126,11 +135,18 @@ export type LeadScheduleDraft = {
   expectedDeliveryAt: string;
 };
 
-export type LeadTaskPriorityBand = "first_touch" | "overdue" | "due_today" | "open_later";
+export type LeadTaskPriorityBand =
+  | "first_touch"
+  | "call_overdue"
+  | "call_due_today"
+  | "call_open"
+  | "overdue"
+  | "due_today"
+  | "open_later";
 
 export type LeadTaskItem = {
   taskId: string;
-  taskKind: "first_touch" | "followup";
+  taskKind: "first_touch" | "call" | "followup";
   leadId: string;
   followupId: string | null;
   lead: LeadTaskLead;
@@ -374,6 +390,17 @@ const truncateText = (value: string | null | undefined, maxLength = 140) => {
   return normalized.length <= maxLength ? normalized : `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
 };
 
+const getDuePriorityBand = (
+  dueAt: Date | null,
+  kind: "call" | "followup",
+  now: Date,
+): LeadTaskPriorityBand => {
+  if (!dueAt) return kind === "call" ? "call_open" : "open_later";
+  if (dueAt.getTime() < now.getTime()) return kind === "call" ? "call_overdue" : "overdue";
+  if (isSameDubaiDay(dueAt, now)) return kind === "call" ? "call_due_today" : "due_today";
+  return kind === "call" ? "call_open" : "open_later";
+};
+
 export const getLeadTaskPackageLabel = (lead: Pick<LeadTaskLead, "latestRollup" | "import_metadata">) => {
   const protection = readImportMetadataValue(lead.import_metadata, "protection_level");
   if (lead.latestRollup?.package_name) return lead.latestRollup.package_name;
@@ -419,13 +446,50 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
       continue;
     }
 
+    const needsFirstCall = Boolean((lead.phone || "").trim()) && !lead.first_called_at;
+    if (needsFirstCall) {
+      const receivedAt = getLeadReceivedAt(lead);
+      const dueAt = getSlaDueAt(lead, "call");
+      const priorityBand = getDuePriorityBand(dueAt, "call", now);
+      tasks.push({
+        taskId: `call:${lead.id}`,
+        taskKind: "call",
+        leadId: lead.id,
+        followupId: null,
+        lead,
+        followup: null,
+        priorityBand,
+        sortAt: dueAt?.getTime() ?? (receivedAt ? new Date(receivedAt).getTime() : Date.now()),
+        title: "First call needed",
+        summary: truncateText(lead.notes_summary || "Lead still needs the first customer call."),
+        packageLabel: getLeadTaskPackageLabel(lead),
+        vehicle: getLeadVehicleText(lead),
+        phone: lead.phone,
+        dueLabel: dueAt ? `Call due ${formatTimestamp(dueAt.toISOString())}` : `Received ${formatTimestamp(receivedAt)}`,
+        urgencyLabel:
+          priorityBand === "call_overdue"
+            ? "Call overdue"
+            : priorityBand === "call_due_today"
+              ? "Call due today"
+              : "First call still needed",
+        taskLabel:
+          priorityBand === "call_overdue"
+            ? "Call overdue"
+            : priorityBand === "call_due_today"
+              ? "Call today"
+              : "Phone call",
+        taskBadgeClass:
+          priorityBand === "call_overdue"
+            ? "border-rose-400/20 bg-rose-500/10 text-rose-200"
+            : priorityBand === "call_due_today"
+              ? "border-amber-400/20 bg-amber-500/10 text-amber-200"
+              : "border-white/10 bg-white/5 text-slate-200",
+      });
+    }
+
     for (const followup of lead.followups.filter((item) => item.status === "open")) {
-      let priorityBand: LeadTaskPriorityBand = "open_later";
-      if (followup.due_at) {
-        const dueDate = new Date(followup.due_at);
-        if (dueDate.getTime() < now.getTime()) priorityBand = "overdue";
-        else if (isSameDubaiDay(dueDate, now)) priorityBand = "due_today";
-      }
+      const dueDate = followup.due_at ? new Date(followup.due_at) : null;
+      const priorityBand = getDuePriorityBand(dueDate, "followup", now);
       tasks.push({
         taskId: `followup:${followup.id}`,
         taskKind: "followup",
@@ -448,7 +512,15 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
     }
   }
 
-  const order: Record<LeadTaskPriorityBand, number> = { first_touch: 0, overdue: 1, due_today: 2, open_later: 3 };
+  const order: Record<LeadTaskPriorityBand, number> = {
+    first_touch: 0,
+    call_overdue: 1,
+    overdue: 2,
+    call_due_today: 3,
+    due_today: 4,
+    call_open: 5,
+    open_later: 6,
+  };
   return tasks.sort((left, right) => order[left.priorityBand] - order[right.priorityBand] || left.sortAt - right.sortAt);
 };
 
@@ -466,6 +538,7 @@ export const useLeadTaskBoardData = () => {
   const [notes, setNotes] = useState<LeadNoteRow[]>([]);
   const [followups, setFollowups] = useState<LeadFollowupRow[]>([]);
   const [feedbackRows, setFeedbackRows] = useState<AdPlatformFeedbackRow[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUserOption[]>([]);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [followupDrafts, setFollowupDrafts] = useState<Record<string, FollowupDraft>>({});
   const [leadScheduleDrafts, setLeadScheduleDrafts] = useState<Record<string, LeadScheduleDraft>>({});
@@ -494,21 +567,23 @@ export const useLeadTaskBoardData = () => {
     const loadLeads = (selectClause: string) =>
       supabase.from("leads").select(selectClause).order("last_activity_at", { ascending: false, nullsFirst: false }).limit(150);
 
-    let [leadsResult, rollupsResult, notesResult, followupsResult, feedbackResult] = await Promise.all([
+    let [leadsResult, rollupsResult, notesResult, followupsResult, feedbackResult, adminUsersResult] = await Promise.all([
       loadLeads(responseTrackingLeadSelect),
       supabase.from("admin_session_rollups").select("session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at").order("ended_at", { ascending: false }).limit(700),
       supabase.from("lead_notes").select("id, lead_id, author_admin_user_id, body, created_at").order("created_at", { ascending: false }).limit(700),
       supabase.from("lead_followups").select("id, lead_id, assigned_to, status, channel, due_at, completed_at, notes, created_at, updated_at").order("created_at", { ascending: false }).limit(700),
       supabase.from("ad_platform_feedback").select("id, lead_id, platform, feedback_type, feedback_status").order("created_at", { ascending: false }).limit(700),
+      supabase.from("admin_users").select("id, email, full_name, role, is_active, owner_color").eq("is_active", true).order("full_name", { ascending: true, nullsFirst: false }),
     ]);
 
     if (leadsResult.error?.code === "42703") {
-      [leadsResult, rollupsResult, notesResult, followupsResult, feedbackResult] = await Promise.all([
+      [leadsResult, rollupsResult, notesResult, followupsResult, feedbackResult, adminUsersResult] = await Promise.all([
         loadLeads(baseLeadSelect),
         supabase.from("admin_session_rollups").select("session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at").order("ended_at", { ascending: false }).limit(700),
         supabase.from("lead_notes").select("id, lead_id, author_admin_user_id, body, created_at").order("created_at", { ascending: false }).limit(700),
         supabase.from("lead_followups").select("id, lead_id, assigned_to, status, channel, due_at, completed_at, notes, created_at, updated_at").order("created_at", { ascending: false }).limit(700),
         supabase.from("ad_platform_feedback").select("id, lead_id, platform, feedback_type, feedback_status").order("created_at", { ascending: false }).limit(700),
+        supabase.from("admin_users").select("id, email, full_name, role, is_active, owner_color").eq("is_active", true).order("full_name", { ascending: true, nullsFirst: false }),
       ]);
     }
 
@@ -517,12 +592,14 @@ export const useLeadTaskBoardData = () => {
     if (notesResult.error) console.warn("Failed to load lead notes", notesResult.error);
     if (followupsResult.error) console.warn("Failed to load lead followups", followupsResult.error);
     if (feedbackResult.error) console.warn("Failed to load feedback rows", feedbackResult.error);
+    if (adminUsersResult.error) console.warn("Failed to load admin users", adminUsersResult.error);
 
     setLeads((((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => ({ first_whatsapp_contacted_at: null, first_called_at: null, source_received_at: null, created_at: "", ...lead })) as LeadRow[]) ?? []);
     setSessionRollups((rollupsResult.data as SessionRollupRow[]) ?? []);
     setNotes((notesResult.data as LeadNoteRow[]) ?? []);
     setFollowups((followupsResult.data as LeadFollowupRow[]) ?? []);
     setFeedbackRows((feedbackResult.data as AdPlatformFeedbackRow[]) ?? []);
+    setAdminUsers((adminUsersResult.data as AdminUserOption[]) ?? []);
     setIsLoading(false);
     setIsRefreshing(false);
   }, []);
@@ -619,10 +696,23 @@ export const useLeadTaskBoardData = () => {
   }, [feedbackByLeadId, followupsByLeadId, leads, notesByLeadId, sessionRollups]);
 
   const taskItems = useMemo(() => buildLeadTasks(taskLeads), [taskLeads]);
+  const stagingLeads = useMemo(
+    () =>
+      taskLeads
+        .filter((lead) => !lead.assigned_to)
+        .sort((left, right) => {
+          const leftTime = getLeadReceivedAt(left);
+          const rightTime = getLeadReceivedAt(right);
+          return new Date(rightTime || 0).getTime() - new Date(leftTime || 0).getTime();
+        }),
+    [taskLeads],
+  );
   const taskSummary = useMemo(() => ({
     firstTouch: taskItems.filter((task) => task.taskKind === "first_touch").length,
-    overdue: taskItems.filter((task) => task.priorityBand === "overdue").length,
-    dueToday: taskItems.filter((task) => task.priorityBand === "due_today").length,
+    phoneCalls: taskItems.filter((task) => task.taskKind === "call").length,
+    callOverdue: taskItems.filter((task) => task.priorityBand === "call_overdue").length,
+    overdue: taskItems.filter((task) => ["call_overdue", "overdue"].includes(task.priorityBand)).length,
+    dueToday: taskItems.filter((task) => ["call_due_today", "due_today"].includes(task.priorityBand)).length,
     openFollowups: taskItems.filter((task) => task.taskKind === "followup").length,
   }), [taskItems]);
 
@@ -764,7 +854,27 @@ export const useLeadTaskBoardData = () => {
     void loadLeadDesk(true);
   }, [loadLeadDesk, setSaving, toast]);
 
+  const handleLeadAssignment = useCallback(async (leadId: string, assignedTo: string) => {
+    if (!supabase) return;
+    const saveKey = `assign:${leadId}`;
+    const assigneeId = assignedTo === "unassigned" ? null : assignedTo;
+    setSaving(saveKey, true);
+    const { error } = await supabase.from("leads").update({ assigned_to: assigneeId }).eq("id", leadId);
+    setSaving(saveKey, false);
+    if (error) {
+      toast({ title: "Lead assignment failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: "Lead owner updated",
+      description: assigneeId ? "Lead was assigned successfully." : "Lead is now unassigned.",
+    });
+    void loadLeadDesk(true);
+  }, [loadLeadDesk, setSaving, toast]);
+
   return {
+    adminUsers,
+    stagingLeads,
     isLoading,
     isRefreshing,
     leadScheduleDrafts,
@@ -782,6 +892,7 @@ export const useLeadTaskBoardData = () => {
     handleCreateFollowup,
     handleExpectedDeliverySave,
     handleFollowupStatusChange,
+    handleLeadAssignment,
     handleLogOutreach,
     handleStatusChange,
   };

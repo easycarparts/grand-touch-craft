@@ -33,6 +33,7 @@ import AdminFunnelDashboard from "./pages/AdminFunnelDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminLeads from "./pages/AdminLeads";
 import AdminLeadTasks from "./pages/AdminLeadTasks";
+import AdminUsers from "./pages/AdminUsers";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -110,6 +111,14 @@ function App() {
               element={
                 <RequireAdmin>
                   <AdminFunnelDashboard />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <RequireAdmin>
+                  <AdminUsers />
                 </RequireAdmin>
               }
             />

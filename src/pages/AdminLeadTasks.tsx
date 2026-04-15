@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  AdminUserOption,
   LeadStatus,
   LeadTaskItem,
   buildWhatsAppUrl,
@@ -27,17 +28,25 @@ import {
   useLeadTaskBoardData,
 } from "@/lib/admin-lead-tasks";
 
-type TaskFilter = "all" | "first_touch" | "overdue" | "due_today" | "open_later";
+type TaskFilter = "all" | "first_touch" | "phone_calls" | "call_overdue" | "overdue" | "due_today" | "open_later";
 
 const taskFilterOptions: Array<{ value: TaskFilter; label: string }> = [
   { value: "all", label: "All" },
   { value: "first_touch", label: "First touch" },
+  { value: "phone_calls", label: "Phone calls" },
+  { value: "call_overdue", label: "Call overdue" },
   { value: "overdue", label: "Overdue" },
   { value: "due_today", label: "Due today" },
   { value: "open_later", label: "Open later" },
 ];
 
 const getTaskDomId = (taskId: string) => `task-card-${taskId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+const getOwnerFilterLabel = (ownerFilter: string, adminUsers: AdminUserOption[]) => {
+  if (ownerFilter === "all") return "All owners";
+  if (ownerFilter === "unassigned") return "Unassigned only";
+  const assignee = adminUsers.find((user) => user.id === ownerFilter);
+  return assignee ? assignee.full_name || assignee.email : "Selected owner";
+};
 
 const TaskCard = ({
   task,
@@ -246,10 +255,12 @@ const TaskCard = ({
 const AdminLeadTasks = () => {
   const {
     followupDrafts,
+    adminUsers,
     handleAddNote,
     handleCreateFollowup,
     handleExpectedDeliverySave,
     handleFollowupStatusChange,
+    handleLeadAssignment,
     handleLogOutreach,
     handleStatusChange,
     isLoading,
@@ -259,6 +270,7 @@ const AdminLeadTasks = () => {
     noteDrafts,
     savingKeys,
     setNoteDrafts,
+    stagingLeads,
     taskItems,
     taskSummary,
     updateFollowupDraft,
@@ -267,6 +279,7 @@ const AdminLeadTasks = () => {
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("all");
+  const [ownerFilter, setOwnerFilter] = useState("all");
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
   const highlightedTaskId = useMemo(() => {
@@ -290,38 +303,57 @@ const AdminLeadTasks = () => {
       const matchesFilter =
         taskFilter === "all" ||
         (taskFilter === "first_touch" && task.taskKind === "first_touch") ||
-        (taskFilter === "overdue" && task.priorityBand === "overdue") ||
-        (taskFilter === "due_today" && task.priorityBand === "due_today") ||
-        (taskFilter === "open_later" && task.priorityBand === "open_later");
+        (taskFilter === "phone_calls" && task.taskKind === "call") ||
+        (taskFilter === "call_overdue" && task.priorityBand === "call_overdue") ||
+        (taskFilter === "overdue" && ["call_overdue", "overdue"].includes(task.priorityBand)) ||
+        (taskFilter === "due_today" && ["call_due_today", "due_today"].includes(task.priorityBand)) ||
+        (taskFilter === "open_later" && ["call_open", "open_later"].includes(task.priorityBand));
 
       const haystack = [task.title, task.summary, task.lead.full_name, task.phone, task.vehicle, task.packageLabel]
         .join(" ")
         .toLowerCase();
       const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
-      return matchesFilter && matchesSearch;
+      const matchesOwner =
+        ownerFilter === "all" ||
+        (ownerFilter === "unassigned" && !task.lead.assigned_to) ||
+        task.lead.assigned_to === ownerFilter;
+      return matchesFilter && matchesSearch && matchesOwner;
     });
-  }, [searchQuery, taskFilter, taskItems]);
+  }, [ownerFilter, searchQuery, taskFilter, taskItems]);
+
+  const filteredStagingLeads = useMemo(() => {
+    return stagingLeads.filter((lead) => {
+      if (ownerFilter === "all") return true;
+      if (ownerFilter === "unassigned") return !lead.assigned_to;
+      return lead.assigned_to === ownerFilter;
+    });
+  }, [ownerFilter, stagingLeads]);
 
   return (
     <AdminShell
       title="Task Board"
-      description="This is the daily action queue for sales. New leads that still need first touch and open follow-ups stay here so the team can clear the desk fast without getting buried in full CRM detail."
+      description="This is the daily action queue for sales. New leads that still need first touch, pending phone calls, and open follow-ups stay here so the team can clear the desk fast without getting buried in full CRM detail."
     >
-      <div className="grid gap-4 xl:grid-cols-4">
+      <div className="grid gap-4 xl:grid-cols-5">
         <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Needs first touch</p>
           <p className="mt-3 text-3xl font-semibold text-white">{taskSummary.firstTouch}</p>
           <p className="mt-2 text-sm text-slate-400">Contactable leads still waiting for first outreach.</p>
         </Card>
         <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Overdue</p>
-          <p className="mt-3 text-3xl font-semibold text-white">{taskSummary.overdue}</p>
-          <p className="mt-2 text-sm text-slate-400">Follow-ups already past their due time.</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Phone calls</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{taskSummary.phoneCalls}</p>
+          <p className="mt-2 text-sm text-slate-400">Leads that still need the first customer call.</p>
+        </Card>
+        <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Calls overdue</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{taskSummary.callOverdue}</p>
+          <p className="mt-2 text-sm text-slate-400">First calls already outside the response window.</p>
         </Card>
         <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Due today</p>
           <p className="mt-3 text-3xl font-semibold text-white">{taskSummary.dueToday}</p>
-          <p className="mt-2 text-sm text-slate-400">Follow-ups that should be cleared before the day ends.</p>
+          <p className="mt-2 text-sm text-slate-400">Calls and follow-ups that should be cleared before the day ends.</p>
         </Card>
         <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Open follow-ups</p>
@@ -331,16 +363,108 @@ const AdminLeadTasks = () => {
       </div>
 
       <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Lead staging</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Assign unowned leads before queue work</h2>
+            <p className="mt-2 text-sm text-slate-400">
+              Any unassigned lead lands here first. Assign an owner so every lead has clear accountability in CRM and tasks.
+            </p>
+          </div>
+          <Badge variant="outline" className="w-fit border-white/10 bg-black/20 text-slate-300">
+            {filteredStagingLeads.length} unassigned lead{filteredStagingLeads.length === 1 ? "" : "s"}
+          </Badge>
+        </div>
+
+        <div className="mt-5">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Lead</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Vehicle</TableHead>
+                <TableHead>Received</TableHead>
+                <TableHead>Assign to</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-slate-400">Loading staging leads...</TableCell>
+                </TableRow>
+              ) : filteredStagingLeads.length ? (
+                filteredStagingLeads.map((lead) => (
+                  <TableRow key={lead.id}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <p className="font-medium text-white">{lead.full_name || "Unnamed lead"}</p>
+                        <p className="text-xs text-slate-400">{lead.phone || lead.email || "No direct contact captured"}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={getSourceBadgeClass(lead.sourceGroup)}>
+                        {formatTokenLabel(lead.sourceGroup)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-300">{getLeadVehicleText(lead) || "Not captured"}</TableCell>
+                    <TableCell className="text-slate-300">{formatTimestamp(lead.source_received_at || lead.submitted_at || lead.first_captured_at || lead.created_at)}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={lead.assigned_to || "unassigned"}
+                        onValueChange={(value) => void handleLeadAssignment(lead.id, value)}
+                      >
+                        <SelectTrigger className="h-9 w-[220px] border-white/10 bg-black/20 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {adminUsers.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.full_name || user.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-slate-400">
+                    No unassigned leads right now.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+
+      <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Daily action queue</p>
             <h2 className="mt-2 text-2xl font-semibold text-white">Clear what matters next</h2>
             <p className="mt-2 text-sm text-slate-400">
-              First-touch leads are ranked first, then overdue follow-ups, then due today, then the rest.
+              First-touch leads are ranked first, then overdue phone calls, then overdue follow-ups, then today's work, then the rest.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, phone, vehicle..." className="h-9 w-full border-white/10 bg-black/20 px-3 text-sm text-white placeholder:text-slate-500 sm:w-[260px]" />
+            <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+              <SelectTrigger className="h-9 w-full border-white/10 bg-black/20 text-white sm:w-[220px]">
+                <SelectValue placeholder="Owner" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All owners</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {adminUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.full_name || user.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button type="button" variant="outline" className="border-white/10 bg-black/20 text-white hover:bg-white/10" onClick={() => void loadLeadDesk(true)} disabled={isRefreshing}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
               Refresh
@@ -349,6 +473,9 @@ const AdminLeadTasks = () => {
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
+          <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
+            {getOwnerFilterLabel(ownerFilter, adminUsers)}
+          </Badge>
           {taskFilterOptions.map((option) => (
             <Button key={option.value} type="button" size="sm" variant="outline" className={taskFilter === option.value ? "border-primary/30 bg-primary/10 text-primary" : "border-white/10 bg-black/20 text-slate-300 hover:bg-white/10"} onClick={() => setTaskFilter(option.value)}>
               {option.label}
@@ -356,44 +483,42 @@ const AdminLeadTasks = () => {
           ))}
         </div>
 
-        <ScrollArea className="mt-6 h-[calc(100vh-18rem)] min-h-[540px] pr-4">
-          <div className="space-y-4">
-            {isLoading ? (
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-slate-400">Loading task board...</div>
-            ) : filteredTasks.length ? (
-              filteredTasks.map((task) => {
-                const followupDraft = followupDrafts[task.lead.id] ?? makeDefaultFollowupDraft(task.lead.assigned_to, undefined);
-                const scheduleDraft = leadScheduleDrafts[task.lead.id] ?? makeLeadScheduleDraft(task.lead);
-                return (
-                  <TaskCard
-                    key={task.taskId}
-                    task={task}
-                    isExpanded={expandedTaskId === task.taskId}
-                    isHighlighted={highlightedTaskId === task.taskId}
-                    onToggle={() => setExpandedTaskId(expandedTaskId === task.taskId ? null : task.taskId)}
-                    noteDraft={noteDrafts[task.lead.id] ?? ""}
-                    onNoteChange={(value) => setNoteDrafts((current) => ({ ...current, [task.lead.id]: value }))}
-                    followupDraft={followupDraft}
-                    onFollowupDraftChange={(patch) => updateFollowupDraft(task.lead.id, patch, task.lead.assigned_to)}
-                    scheduleValue={scheduleDraft.expectedDeliveryAt}
-                    onScheduleChange={(value) => updateLeadScheduleDraft(task.lead, { expectedDeliveryAt: value })}
-                    onLogOutreach={(channel) => void handleLogOutreach(task.lead, channel)}
-                    onStatusChange={(nextStatus) => void handleStatusChange(task.lead, nextStatus)}
-                    onSaveNote={() => void handleAddNote(task.lead)}
-                    onCreateFollowup={() => void handleCreateFollowup(task.lead)}
-                    onSaveExpectedDelivery={() => void handleExpectedDeliverySave(task.lead)}
-                    onMarkDone={task.followup ? () => void handleFollowupStatusChange(task.lead.id, task.followup.id, "done") : null}
-                    savingKeys={savingKeys}
-                  />
-                );
-              })
-            ) : (
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-slate-400">
-                No matching tasks right now. Adjust the filter or search, or come back after the next lead refresh.
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+        <div className="mt-6 space-y-4">
+          {isLoading ? (
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-slate-400">Loading task board...</div>
+          ) : filteredTasks.length ? (
+            filteredTasks.map((task) => {
+              const followupDraft = followupDrafts[task.lead.id] ?? makeDefaultFollowupDraft(task.lead.assigned_to, undefined);
+              const scheduleDraft = leadScheduleDrafts[task.lead.id] ?? makeLeadScheduleDraft(task.lead);
+              return (
+                <TaskCard
+                  key={task.taskId}
+                  task={task}
+                  isExpanded={expandedTaskId === task.taskId}
+                  isHighlighted={highlightedTaskId === task.taskId}
+                  onToggle={() => setExpandedTaskId(expandedTaskId === task.taskId ? null : task.taskId)}
+                  noteDraft={noteDrafts[task.lead.id] ?? ""}
+                  onNoteChange={(value) => setNoteDrafts((current) => ({ ...current, [task.lead.id]: value }))}
+                  followupDraft={followupDraft}
+                  onFollowupDraftChange={(patch) => updateFollowupDraft(task.lead.id, patch, task.lead.assigned_to)}
+                  scheduleValue={scheduleDraft.expectedDeliveryAt}
+                  onScheduleChange={(value) => updateLeadScheduleDraft(task.lead, { expectedDeliveryAt: value })}
+                  onLogOutreach={(channel) => void handleLogOutreach(task.lead, channel)}
+                  onStatusChange={(nextStatus) => void handleStatusChange(task.lead, nextStatus)}
+                  onSaveNote={() => void handleAddNote(task.lead)}
+                  onCreateFollowup={() => void handleCreateFollowup(task.lead)}
+                  onSaveExpectedDelivery={() => void handleExpectedDeliverySave(task.lead)}
+                  onMarkDone={task.followup ? () => void handleFollowupStatusChange(task.lead.id, task.followup.id, "done") : null}
+                  savingKeys={savingKeys}
+                />
+              );
+            })
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-slate-400">
+              No matching tasks right now. Adjust the filter or search, or come back after the next lead refresh.
+            </div>
+          )}
+        </div>
       </Card>
     </AdminShell>
   );
