@@ -1954,6 +1954,20 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     window.setTimeout(() => scrollToCalculatorSection(), 520);
   };
 
+  const handlePostTrustCalculatorLinkClick = useCallback(() => {
+    const isMobileDevice =
+      typeof window !== "undefined" &&
+      (window.matchMedia?.("(max-width: 767px)").matches === true ||
+        window.matchMedia?.("(pointer: coarse)").matches === true);
+
+    trackEvent("calculator_link_click", {
+      cta_location: "post_trust_calculator_link",
+      page_variant: variantConfig.landingPageVariant,
+      device_type: isMobileDevice ? "mobile" : "desktop",
+    });
+    scrollToCalculatorSection();
+  }, [scrollToCalculatorSection, trackEvent, variantConfig.landingPageVariant]);
+
   const faqItems = [
     {
       question: "Is full front enough, or should I go full body?",
@@ -2191,7 +2205,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         <section
           ref={heroSectionRef}
           data-funnel-section="hero"
-          className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.09),_transparent_42%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.04),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.05),transparent_22%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-0 pb-7 pt-8 sm:bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] sm:pb-8 sm:pt-10"
+          className="relative overflow-hidden border-b border-border/50 bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.09),_transparent_42%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.04),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.05),transparent_22%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] px-0 pb-7 pt-6 sm:bg-[radial-gradient(circle_at_top,_hsl(38_92%_58%_/_0.24),_transparent_32%),radial-gradient(circle_at_15%_25%,rgba(245,158,11,0.12),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.08),transparent_18%),linear-gradient(180deg,hsl(0_0%_8%)_0%,hsl(0_0%_5%)_100%)] sm:pb-8 sm:pt-10"
         >
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-24 top-16 h-56 w-56 rounded-full bg-primary/8 blur-3xl sm:bg-primary/12" />
@@ -2208,7 +2222,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                 >
                   <img src={logo} alt="Grand Touch" className="h-10 w-auto" />
                 </Link>
-                <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-2 sm:mt-5">
                   <Badge
                     variant="secondary"
                     className="gap-2 border border-white/10 bg-white/8 px-3 py-1.5 shadow-sm backdrop-blur-sm"
@@ -2223,15 +2237,27 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     Warranty-registered STEK film
                   </Badge>
                 </div>
-                <h1 className="mt-5 flex max-w-3xl flex-col gap-1 text-[2.35rem] font-bold leading-[1.04] tracking-tight sm:gap-1.5 sm:text-5xl sm:leading-tight md:gap-2 md:text-6xl">
-                  <span className="text-white">PPF in Dubai</span>
-                  <span className="text-white">you can trust.</span>
-                  <span className="bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent drop-shadow-[0_8px_30px_rgba(247,181,43,0.15)]">
+                <h1 className="mt-4 flex max-w-3xl flex-col gap-1 text-[clamp(1.78rem,8.1vw,1.9rem)] font-bold leading-[1.08] tracking-tight sm:mt-5 sm:gap-1.5 sm:text-5xl sm:leading-tight md:gap-2 md:text-6xl">
+                  <span className="text-white sm:hidden">
+                    Find the <span className="bg-[linear-gradient(180deg,#ffd978_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent">right PPF</span>
+                  </span>
+                  <span className="sm:hidden">
+                    <span className="text-white">setup for </span>
+                    <span className="bg-[linear-gradient(180deg,#ffd978_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent">your car</span>
+                  </span>
+                  <span className="hidden text-white sm:block">PPF in Dubai</span>
+                  <span className="hidden text-white sm:block">you can trust.</span>
+                  <span className="hidden bg-[linear-gradient(180deg,#ffcc63_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent drop-shadow-[0_8px_30px_rgba(247,181,43,0.15)] sm:block">
                     Direct with Sean. Installed properly.
                   </span>
                 </h1>
-                <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-                  Get a clear PPF quote and deal directly with Sean from first message to final handover.
+                <p className="mt-3 max-w-2xl text-[0.98rem] leading-6 text-slate-300 sm:text-lg sm:leading-7">
+                  <span className="sm:hidden">
+                    Answer a few quick questions and Sean will point you to the right package.
+                  </span>
+                  <span className="hidden sm:inline">
+                    Get a clear PPF quote and deal directly with Sean from first message to final handover.
+                  </span>
                 </p>
 
                 <div className="hidden mt-5 grid gap-2 sm:grid-cols-2">
@@ -2259,7 +2285,8 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         className={cn(primaryPpfCtaButtonClass, "w-full")}
                         onClick={() => openHeroForm("hero")}
                       >
-                        Get My PPF Quote
+                        <span className="sm:hidden">Get My PPF Estimate</span>
+                        <span className="hidden sm:inline">Get My PPF Quote</span>
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </DialogTrigger>
@@ -2347,6 +2374,33 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     </DialogContent>
                   </Dialog>
 
+                  <button
+                    type="button"
+                    className="self-start text-sm text-slate-400 transition hover:text-slate-200 sm:hidden"
+                    onClick={() => handleWhatsAppClick("hero")}
+                  >
+                    <span>Want to chat instead? </span>
+                    <span className="font-medium text-white underline underline-offset-4">Ask Sean on WhatsApp</span>
+                  </button>
+
+                  <div className="grid grid-cols-3 gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:hidden">
+                    {[
+                      { label: "2 min start", Icon: ScanSearch },
+                      { label: "Clear setup", Icon: ShieldCheck },
+                      { label: "Direct Sean", Icon: MessageCircle },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex min-w-0 flex-col items-center justify-center rounded-lg border border-white/10 bg-black/20 px-2 py-2.5 text-center"
+                      >
+                        <item.Icon className="h-3.5 w-3.5 text-primary" />
+                        <p className="mt-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-white/85">
+                          {item.label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
                   <div className="hidden w-full sm:block">
                     <Button
                       type="button"
@@ -2379,7 +2433,32 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
               </div>
 
-              <div className="relative order-2 flex min-h-0 flex-col justify-end overflow-visible lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
+              <div className="order-2 sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => handleWhatsAppClick("hero")}
+                  className="group relative w-full overflow-hidden rounded-2xl border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(10,10,10,0.92))] p-3 text-left shadow-[0_18px_45px_rgba(0,0,0,0.35)]"
+                >
+                  <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10">
+                    <video
+                      className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                      src="https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/f_auto/v1775556526/Jetour_EDIT_yi001t.mp4"
+                      muted
+                      loop
+                      playsInline
+                      autoPlay
+                      preload="metadata"
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="pointer-events-none absolute bottom-2 left-2 inline-flex items-center rounded-full border border-white/20 bg-black/55 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-white/90">
+                      Recent install
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-white">Recent customer handover</p>
+                </button>
+              </div>
+
+              <div className="relative order-2 hidden min-h-0 flex-col justify-end overflow-visible sm:flex lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
                 <div className="relative mx-auto flex w-full max-w-[480px] min-h-0 flex-col justify-end pb-0 pt-2">
                     <div className="relative mx-auto aspect-[9/19.5] w-full min-h-0 min-w-0 max-h-full max-w-[420px] shrink-0">
                       <div className="pointer-events-none absolute -left-[5px] top-[157px] z-20 h-[4.5rem] w-[4px] rounded-full bg-gradient-to-b from-white/55 via-white/15 to-white/35 shadow-[0_0_12px_rgba(255,255,255,0.16)]" />
@@ -2425,38 +2504,38 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
               <div className="order-3 w-full lg:col-start-1 lg:row-start-2 lg:mt-5 lg:self-start">
                 <div className="grid gap-2 sm:grid-cols-3 sm:items-stretch sm:gap-2.5">
-                  <div className="flex flex-row items-center gap-3 rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(66,133,244,0.08),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] px-3 py-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-sm sm:flex-col sm:items-stretch sm:rounded-2xl sm:p-3 sm:py-3">
-                    <div className="flex shrink-0 flex-col gap-1 sm:w-full sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
-                      <GoogleWordmark className="text-[1.125rem] leading-none sm:text-[1.4rem]" />
-                      <TrustStars starClassName="h-4 w-4 sm:h-[1.25rem] sm:w-[1.25rem]" />
+                  <div className="flex flex-row items-center gap-2 rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(66,133,244,0.08),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] px-2.5 py-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-sm sm:flex-col sm:items-stretch sm:gap-3 sm:rounded-2xl sm:p-3 sm:py-3">
+                    <div className="flex shrink-0 flex-col gap-0.5 sm:w-full sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+                      <GoogleWordmark className="text-[1rem] leading-none sm:text-[1.4rem]" />
+                      <TrustStars starClassName="h-3.5 w-3.5 sm:h-[1.25rem] sm:w-[1.25rem]" />
                     </div>
                     <div className="min-w-0 flex-1 sm:mt-2 sm:flex-none">
-                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Trusted by real buyers</p>
-                      <p className="mt-0.5 text-sm leading-snug text-slate-300 sm:mt-1 sm:max-w-[19ch] sm:text-[0.8125rem]">
+                      <p className="text-[0.84rem] font-semibold leading-tight text-white sm:text-sm">Trusted by real buyers</p>
+                      <p className="mt-0.5 hidden text-[0.84rem] leading-snug text-slate-300 sm:mt-1 sm:block sm:max-w-[19ch] sm:text-[0.8125rem]">
                         Google proof from real Grand Touch handovers.
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-row items-center gap-3 rounded-xl border border-primary/20 bg-[linear-gradient(180deg,rgba(245,158,11,0.11),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] px-3 py-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.28)] ring-1 ring-primary/10 backdrop-blur-sm sm:flex-col sm:items-stretch sm:rounded-2xl sm:p-3 sm:py-3">
+                  <div className="flex flex-row items-center gap-2 rounded-xl border border-primary/20 bg-[linear-gradient(180deg,rgba(245,158,11,0.11),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] px-2.5 py-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.28)] ring-1 ring-primary/10 backdrop-blur-sm sm:flex-col sm:items-stretch sm:gap-3 sm:rounded-2xl sm:p-3 sm:py-3">
                     <div className="flex shrink-0 items-center justify-start sm:w-full sm:justify-center sm:py-0.5">
                       <img
                         src="/stek-white-small.png"
                         alt="STEK"
-                        className="h-7 w-auto max-w-[120px] object-contain object-left sm:h-9 sm:max-w-[140px]"
+                        className="h-6 w-auto max-w-[105px] object-contain object-left sm:h-9 sm:max-w-[140px]"
                         loading="lazy"
                       />
                     </div>
                     <div className="min-w-0 flex-1 sm:mt-2 sm:flex-none">
-                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Certified STEK installs</p>
-                      <p className="mt-0.5 text-sm leading-snug text-slate-300 sm:mt-1 sm:max-w-[17ch] sm:text-[0.8125rem]">
+                      <p className="text-[0.84rem] font-semibold leading-tight text-white sm:text-sm">Certified STEK installs</p>
+                      <p className="mt-0.5 hidden text-[0.84rem] leading-snug text-slate-300 sm:mt-1 sm:block sm:max-w-[17ch] sm:text-[0.8125rem]">
                         Genuine STEK, fitted properly.
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-row items-center gap-3 rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(95,143,121,0.09),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] px-3 py-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-sm sm:flex-col sm:items-stretch sm:rounded-2xl sm:p-3 sm:py-3">
+                  <div className="flex flex-row items-center gap-2 rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(95,143,121,0.09),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] px-2.5 py-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-sm sm:flex-col sm:items-stretch sm:gap-3 sm:rounded-2xl sm:p-3 sm:py-3">
                     <div className="flex shrink-0 items-center justify-start sm:w-full sm:justify-center sm:py-0.5">
                       <div
-                        className="inline-flex max-w-[9.25rem] -rotate-[2deg] items-center gap-1.5 rounded-md border-2 border-white/30 bg-white px-1.5 py-1 text-black shadow-[0_6px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-black/15 sm:max-w-[11.5rem] sm:-rotate-[3deg] sm:gap-2 sm:rounded-lg sm:px-2 sm:py-1.5"
+                        className="inline-flex max-w-[8.5rem] -rotate-[2deg] items-center gap-1 rounded-md border-2 border-white/30 bg-white px-1.5 py-0.5 text-black shadow-[0_6px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-black/15 sm:max-w-[11.5rem] sm:-rotate-[3deg] sm:gap-2 sm:rounded-lg sm:px-2 sm:py-1.5"
                         role="img"
                         aria-label="Serial verified STEK warranty sticker"
                       >
@@ -2475,12 +2554,23 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       </div>
                     </div>
                     <div className="min-w-0 flex-1 sm:mt-2 sm:flex-none">
-                      <p className="text-[0.9375rem] font-semibold leading-tight text-white sm:text-sm">Warranty you can trace</p>
-                      <p className="mt-0.5 text-sm leading-snug text-slate-300 sm:mt-1 sm:max-w-[17ch] sm:text-[0.8125rem]">
+                      <p className="text-[0.84rem] font-semibold leading-tight text-white sm:text-sm">Warranty you can trace</p>
+                      <p className="mt-0.5 hidden text-[0.84rem] leading-snug text-slate-300 sm:mt-1 sm:block sm:max-w-[17ch] sm:text-[0.8125rem]">
                         Serial-tracked and registered properly.
                       </p>
                     </div>
                   </div>
+                </div>
+                <div className="mx-auto mt-6 mb-7 w-full max-w-xl rounded-2xl border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.6))] px-3.5 py-2.5 text-center shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:mt-7 sm:mb-8 sm:px-5 sm:py-3 lg:mx-0 lg:text-left">
+                  <p className="text-[0.83rem] font-medium text-white/70 sm:text-sm">Want to compare options first?</p>
+                  <button
+                    type="button"
+                    onClick={handlePostTrustCalculatorLinkClick}
+                    className="mt-1 inline-flex items-center justify-center gap-1 text-[0.92rem] font-semibold text-primary underline-offset-4 transition hover:underline hover:text-[#ffd175] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(0_0%_8%)] sm:text-[0.95rem] lg:justify-start"
+                  >
+                    Open the PPF calculator
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -2489,26 +2579,26 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
         <section
           data-funnel-section="serious_buyer_risks"
-          className="border-b border-border/50 bg-[radial-gradient(circle_at_18%_0%,rgba(245,181,43,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-12"
+          className="border-b border-border/50 bg-[radial-gradient(circle_at_18%_0%,rgba(245,181,43,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-9 sm:py-12"
         >
           <div className="container mx-auto max-w-6xl">
-            <div className="rounded-[32px] border border-primary/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(12,12,12,0.96))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.3)] sm:p-8">
-              <div className="grid gap-6 lg:grid-cols-[0.88fr_1.12fr] lg:items-start lg:gap-8">
+            <div className="rounded-[32px] border border-primary/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(12,12,12,0.96))] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.3)] sm:p-8">
+              <div className="grid gap-5 lg:grid-cols-[0.88fr_1.12fr] lg:items-start lg:gap-8">
                 <div className="max-w-xl">
                   <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
                     What serious buyers are trying to avoid
                   </p>
-                  <h2 className="mt-2 text-[2rem] font-bold leading-tight sm:text-4xl">
+                  <h2 className="mt-1.5 text-[1.72rem] font-bold leading-tight sm:mt-2 sm:text-4xl">
                     The risk is the install.
                     <span className="block text-[#f6c76d]">Not the film.</span>
                   </h2>
-                  <p className="mt-3 max-w-[34rem] text-[0.97rem] leading-7 text-slate-300 sm:text-base">
+                  <p className="mt-2.5 max-w-[34rem] text-[0.95rem] leading-[1.6] text-slate-300 sm:text-base sm:leading-7">
                     Prep, fitment, and warranty handling decide whether the finish looks premium or
                     disappointing.
                   </p>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
                   {[
                     {
                       title: "Poor prep",
@@ -2535,15 +2625,19 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     return (
                       <div
                         key={item.title}
-                        className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(10,10,10,0.98))] px-4 py-4 shadow-[0_16px_42px_rgba(0,0,0,0.18)]"
+                        className="rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(10,10,10,0.98))] px-3.5 py-3.5 shadow-[0_16px_42px_rgba(0,0,0,0.18)] sm:rounded-[24px] sm:px-4 sm:py-4"
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/18 bg-primary/10 text-primary shadow-[0_10px_24px_rgba(245,181,43,0.12)]">
-                            <Icon className="h-4.5 w-4.5" />
+                        <div className="flex items-start gap-2.5 sm:gap-3">
+                          <div className="mt-0.5 inline-flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-xl border border-primary/18 bg-primary/10 text-primary shadow-[0_10px_24px_rgba(245,181,43,0.12)] sm:h-10 sm:w-10 sm:rounded-2xl">
+                            <Icon className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[0.98rem] font-semibold leading-tight text-white">{item.title}</p>
-                            <p className="mt-1.5 text-[0.92rem] leading-6 text-slate-300">{item.text}</p>
+                            <p className="text-[0.93rem] font-semibold leading-tight text-white sm:text-[0.98rem]">
+                              {item.title}
+                            </p>
+                            <p className="mt-1 text-[0.87rem] leading-[1.5] text-slate-300 sm:mt-1.5 sm:text-[0.92rem] sm:leading-6">
+                              {item.text}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -2559,34 +2653,34 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           id="why-grand-touch"
           ref={trustSectionRef}
           data-funnel-section="risk_reduction"
-          className="border-y border-border/50 bg-[radial-gradient(circle_at_18%_20%,rgba(245,181,43,0.07),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14"
+          className="border-y border-border/50 bg-[radial-gradient(circle_at_18%_20%,rgba(245,181,43,0.07),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-10 sm:py-14"
         >
           <div className="container mx-auto max-w-6xl">
-            <div className="relative overflow-hidden rounded-[32px] border border-primary/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.97))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
+            <div className="relative overflow-hidden rounded-[32px] border border-primary/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.97))] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
               <div className="pointer-events-none absolute inset-0">
                 <div className="absolute -right-12 top-0 h-44 w-44 rounded-full bg-primary/8 blur-3xl" />
                 <div className="absolute -left-10 top-28 h-32 w-32 rounded-full bg-primary/6 blur-3xl" />
               </div>
 
               <div className="relative">
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,38%)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(360px,42%)]">
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,38%)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(360px,42%)]">
                   <div className="min-w-0">
                     <p className="text-sm uppercase tracking-[0.26em] text-muted-foreground">
                       How we reduce the risk
                     </p>
-                    <h2 className="mt-3 max-w-[22ch] text-[2rem] font-bold leading-[1.02] text-white sm:max-w-[26ch] sm:text-4xl lg:max-w-none lg:text-[2.35rem] xl:text-4xl">
+                    <h2 className="mt-2 max-w-[22ch] text-[1.76rem] font-bold leading-[1.03] text-white sm:mt-3 sm:max-w-[26ch] sm:text-4xl lg:max-w-none lg:text-[2.35rem] xl:text-4xl">
                       Sean-led quote.
                       <span className="block text-white">Prep before film.</span>
                       <span className="block bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent drop-shadow-[0_10px_30px_rgba(247,181,43,0.16)]">
                         Registered warranty.
                       </span>
                     </h2>
-                    <p className="mt-4 max-w-[52ch] text-[0.97rem] leading-7 text-slate-300 sm:text-base">
+                    <p className="mt-3 max-w-[52ch] text-[0.95rem] leading-[1.55] text-slate-300 sm:text-base sm:leading-7">
                       One standard all the way through: Sean-led advice, prep before film, and STEK
                       warranty registration at handover.
                     </p>
 
-                    <div className="mt-6 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:mt-8">
+                    <div className="mt-5 grid gap-2.5 sm:grid-cols-2 sm:gap-4 lg:mt-8">
                       {[
                         {
                           eyebrow: "One owner-led standard",
@@ -2607,15 +2701,15 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         <div
                           key={item.title}
                           className={cn(
-                            "rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.98))] px-4 py-4 shadow-[0_18px_42px_rgba(0,0,0,0.2)]",
+                            "rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.98))] px-3.5 py-3.5 shadow-[0_18px_42px_rgba(0,0,0,0.2)] sm:rounded-[24px] sm:px-4 sm:py-4",
                             index === 2 && "sm:col-span-2 sm:mx-auto sm:w-full sm:max-w-2xl"
                           )}
                         >
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/75">
+                          <p className="hidden text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/75 sm:block">
                             {item.eyebrow}
                           </p>
-                          <p className="mt-2 text-[1rem] font-semibold leading-tight text-white sm:text-lg">{item.title}</p>
-                          <p className="mt-2 text-[0.92rem] leading-6 text-slate-300 sm:text-sm">{item.text}</p>
+                          <p className="text-[0.98rem] font-semibold leading-tight text-white sm:mt-2 sm:text-lg">{item.title}</p>
+                          <p className="mt-1.5 text-[0.9rem] leading-[1.5] text-slate-300 sm:mt-2 sm:text-sm sm:leading-6">{item.text}</p>
                         </div>
                       ))}
                     </div>
@@ -2666,15 +2760,15 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           id="why-stek"
           ref={whyStekSectionRef}
           data-funnel-section="why_stek"
-          className="border-b border-border/50 bg-[radial-gradient(circle_at_75%_20%,rgba(245,181,43,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-14"
+          className="border-b border-border/50 bg-[radial-gradient(circle_at_75%_20%,rgba(245,181,43,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-0 py-10 sm:py-14"
         >
           <div className="container mx-auto max-w-6xl">
-            <div className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
+            <div className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,12,12,0.96))] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.35)] sm:p-8">
               <div className="pointer-events-none absolute inset-0">
                 <div className="absolute -left-12 top-6 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
                 <div className="absolute right-0 top-16 h-32 w-32 rounded-full bg-white/5 blur-3xl" />
               </div>
-              <div className="relative grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-center">
+              <div className="relative grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-center">
                 <div className="order-2 mx-auto w-full max-w-[360px] lg:order-1">
                   <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
                     <video
@@ -2701,8 +2795,8 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         className="absolute inset-0 z-[100] flex touch-manipulation touch-pan-y items-center justify-center bg-black/18 transition hover:bg-black/10"
                         aria-label="Play Sean's video about why he chose STEK"
                       >
-                        <span className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-black/60 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-md">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-black">
+                        <span className="inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-black/60 px-4 py-2.5 text-[0.92rem] font-semibold text-white shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-md sm:gap-3 sm:px-5 sm:py-3 sm:text-sm">
+                          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-black sm:h-10 sm:w-10">
                             <Play className="ml-0.5 h-4 w-4 fill-current" />
                           </span>
                           Watch Sean explain it
@@ -2710,7 +2804,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       </button>
                     ) : null}
 
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 bg-gradient-to-t from-black/90 via-black/28 to-transparent px-5 pb-6 pt-16">
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-start gap-2.5 bg-gradient-to-t from-black/90 via-black/28 to-transparent px-4 pb-4 pt-12 sm:gap-3 sm:px-5 sm:pb-6 sm:pt-16">
                       <img
                         src="/stek-white-full.png"
                         alt="STEK"
@@ -2721,7 +2815,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         <p className="text-[11px] uppercase tracking-[0.24em] text-white/60">
                           Sean on why we use STEK
                         </p>
-                        <p className="mt-2 max-w-[22ch] text-lg font-semibold leading-tight text-white">
+                        <p className="mt-1.5 max-w-[22ch] text-[1.05rem] font-semibold leading-tight text-white sm:mt-2 sm:text-lg">
                           Finish, fitment, and warranty need to line up.
                         </p>
                       </div>
@@ -2733,7 +2827,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                   <p className="text-sm uppercase tracking-[0.26em] text-muted-foreground">
                     WHY WE USE STEK
                   </p>
-                  <h2 className="mt-3 max-w-xl text-[2rem] font-bold leading-[1.05] tracking-tight text-white sm:text-[2.35rem] sm:leading-[1.06]">
+                  <h2 className="mt-2 max-w-xl text-[1.76rem] font-bold leading-[1.05] tracking-tight text-white sm:mt-3 sm:text-[2.35rem] sm:leading-[1.06]">
                     <span className="block">Why Sean</span>
                     <span className="block">
                       recommends{" "}
@@ -2743,33 +2837,33 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       .
                     </span>
                   </h2>
-                  <p className="mt-4 max-w-[48ch] text-[0.97rem] font-medium leading-7 text-slate-200 sm:text-base">
+                  <p className="mt-3 max-w-[48ch] text-[0.95rem] font-medium leading-[1.55] text-slate-200 sm:mt-4 sm:text-base sm:leading-7">
                     Not hype. Just genuine film, the right finish, and warranty registration done
                     properly.
                   </p>
 
-                  <div className="mt-4 flex flex-col gap-2.5 rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:flex-row sm:items-center sm:gap-3.5 sm:px-3.5 sm:py-3">
-                    <div className="flex min-w-0 flex-wrap items-center gap-3">
+                  <div className="mt-3 hidden flex-col gap-1.5 rounded-xl border border-white/12 bg-black/40 px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:mt-4 sm:flex sm:flex-row sm:items-center sm:gap-3.5 sm:px-3.5 sm:py-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <img
                         src="/stek-white-small.png"
                         alt="STEK"
-                        className="h-7 w-auto shrink-0 object-contain opacity-95 sm:h-8"
+                        className="h-4.5 w-auto shrink-0 object-contain opacity-95 sm:h-8"
                         loading="lazy"
                       />
                       <span className="hidden h-6 w-px shrink-0 bg-white/12 sm:block" />
                       <img
                         src={stekWarrantySticker}
                         alt="STEK warranty sticker"
-                        className="h-11 w-auto max-w-[min(100%,200px)] shrink-0 rounded-md border border-white/12 bg-black/35 object-contain object-left sm:h-[3.25rem] sm:max-w-[220px]"
+                        className="h-8 w-auto max-w-[min(100%,140px)] shrink-0 rounded-md border border-white/12 bg-black/35 object-contain object-left sm:h-[3.25rem] sm:max-w-[220px]"
                         loading="lazy"
                       />
                     </div>
-                    <p className="w-full text-sm font-medium leading-snug text-slate-200 sm:min-w-0 sm:flex-1 sm:text-[0.9375rem]">
+                    <p className="w-full text-[0.82rem] font-medium leading-snug text-slate-200 sm:min-w-0 sm:flex-1 sm:text-[0.9375rem]">
                       Genuine film. Registered warranty.
                     </p>
                   </div>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-3 grid gap-2.5 sm:mt-4 sm:grid-cols-3 sm:gap-3">
                     {(
                       [
                         {
@@ -2793,21 +2887,21 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       return (
                         <div
                           key={item.label}
-                          className="flex gap-3 rounded-2xl border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(8,8,8,0.92))] px-3.5 py-4 shadow-[0_12px_36px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.06)]"
+                          className="flex gap-2.5 rounded-2xl border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(8,8,8,0.92))] px-3 py-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.06)] sm:gap-3 sm:px-3.5 sm:py-4"
                         >
-                          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/12 text-primary shadow-[0_8px_22px_rgba(245,181,43,0.12)]">
-                            <Icon className="h-4.5 w-4.5" strokeWidth={2.25} />
+                          <div className="mt-0.5 flex h-8.5 w-8.5 shrink-0 items-center justify-center text-primary sm:h-10 sm:w-10 sm:rounded-xl sm:border sm:border-primary/25 sm:bg-primary/12 sm:shadow-[0_8px_22px_rgba(245,181,43,0.12)]">
+                            <Icon className="h-4 w-4 sm:h-4.5 sm:w-4.5" strokeWidth={2.25} />
                           </div>
                           <div className="min-w-0 pt-0.5">
-                            <p className="text-sm font-semibold leading-snug text-white">{item.label}</p>
-                            <p className="mt-2 text-xs leading-relaxed text-slate-400">{item.sub}</p>
+                            <p className="text-[0.88rem] font-semibold leading-snug text-white sm:text-sm">{item.label}</p>
+                            <p className="mt-1.5 text-[0.72rem] leading-relaxed text-slate-400 sm:mt-2 sm:text-xs">{item.sub}</p>
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  <p className="mt-3 max-w-[52ch] text-sm font-medium leading-6 text-slate-300">
+                  <p className="mt-3 hidden max-w-[52ch] text-sm font-medium leading-6 text-slate-300 sm:block">
                     Sean explains what gets fitted, how the finish should look, and why the warranty
                     process matters just as much as the film choice.
                   </p>
@@ -3120,16 +3214,31 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           className="scroll-mt-6 border-t border-border/50 bg-[radial-gradient(circle_at_50%_0%,rgba(245,181,43,0.04),transparent_42%)] px-0 pb-6 pt-16 [overflow-anchor:none] sm:scroll-mt-8 sm:pb-20 sm:pt-20"
         >
           <div className="container mx-auto max-w-6xl">
-            <div className="mb-8 overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-8">
-              <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">PPF Configurator</p>
-              <h2 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
-                Build the right setup for your car
-              </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Choose the package, finish, and coverage that fit your car. Unlock the estimate when
-                you&apos;re ready.
+            <div className="mb-8 overflow-hidden rounded-[34px] border border-primary/12 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-8">
+              <p className="text-sm uppercase tracking-[0.25em] text-primary/80 sm:text-muted-foreground">
+                <span className="sm:hidden">PPF Calculator</span>
+                <span className="hidden sm:inline">PPF Configurator</span>
               </p>
-              <div className="mt-5 rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.12),rgba(245,181,43,0.04))] px-5 py-4 shadow-[0_14px_40px_rgba(245,181,43,0.08)]">
+              <h2 className="mt-1.5 text-[1.7rem] font-bold leading-tight sm:mt-2 sm:text-4xl">
+                <span className="sm:hidden">
+                  Build your{" "}
+                  <span className="bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent">
+                    setup
+                  </span>
+                </span>
+                <span className="hidden sm:inline">Build the right setup for your car</span>
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base sm:leading-7">
+                <span className="sm:hidden">Choose package, finish, and coverage.</span>
+                <span className="hidden sm:inline">
+                  Choose the package, finish, and coverage that fit your car. Unlock the estimate when
+                  you&apos;re ready.
+                </span>
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-300 sm:hidden">
+                Estimate includes genuine film, prep, and registered warranty.
+              </p>
+              <div className="mt-5 hidden rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(245,181,43,0.12),rgba(245,181,43,0.04))] px-5 py-4 shadow-[0_14px_40px_rgba(245,181,43,0.08)] sm:block">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/80">
                   What this estimate includes
                 </p>

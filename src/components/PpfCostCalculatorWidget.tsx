@@ -290,7 +290,7 @@ const PpfCostCalculatorWidget = ({
       >
         <div className={isEmbeddedInPage ? "w-full max-w-none" : "container mx-auto max-w-6xl"}>
           <div className="relative space-y-5 [overflow-anchor:none]">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.12),transparent_28%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.04),transparent_24%)]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-56 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.12),transparent_28%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.04),transparent_24%)] sm:block" />
 
             <div className="relative space-y-5 [overflow-anchor:none]">
               <Card className={cn(panelClass, isEmbeddedInPage ? "p-4 sm:p-5" : "p-5 sm:p-6")}>
@@ -329,12 +329,24 @@ const PpfCostCalculatorWidget = ({
                   <div>
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                       <div>
-                        <p className="text-[11px] uppercase tracking-[0.22em] text-white/52">
-                          {showBrandSelector ? "Warranty term" : "Choose protection package"}
-                        </p>
+                        {showBrandSelector ? (
+                          <p className="text-base font-semibold leading-tight text-white sm:text-[11px] sm:uppercase sm:tracking-[0.22em] sm:text-white/52">
+                            Warranty term
+                          </p>
+                        ) : (
+                          <p className="text-[1.7rem] font-bold leading-tight text-white sm:text-[11px] sm:uppercase sm:tracking-[0.22em] sm:text-white/52">
+                            <span className="sm:hidden">
+                              Choose your{" "}
+                              <span className="bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent">
+                                warranty
+                              </span>
+                            </span>
+                            <span className="hidden sm:inline">Choose protection package</span>
+                          </p>
+                        )}
                         {!showBrandSelector ? (
-                          <p className="mt-1 text-sm leading-6 text-slate-300">
-                            Select the STEK package that fits how long you want the car protected. Certified film, verified warranty.
+                          <p className="mt-1 hidden text-sm leading-6 text-slate-300 sm:block">
+                            Choose the STEK package for your protection term.
                           </p>
                         ) : null}
                       </div>
