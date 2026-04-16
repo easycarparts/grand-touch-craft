@@ -5,6 +5,11 @@
       "source": "/ppf-tiktok-quote",
       "destination": "/ppf-tiktok-quote_2",
       "permanent": true
+    },
+    {
+      "source": "/ppf-tiktok-quote-v2",
+      "destination": "/ppf-tiktok-quote_2",
+      "permanent": true
     }
   ],
   "builds": [

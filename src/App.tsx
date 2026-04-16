@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
 import Portfolio from "./pages/Portfolio";
@@ -45,6 +45,12 @@ import G700Customizer from "./pages/G700Customizer";
 
 const queryClient = new QueryClient();
 
+/** Keeps `?utm_…`, `ttclid`, etc. when swapping TikTok landing paths (cache-bust routes). */
+function RedirectPreserveSearch({ to }: { to: string }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: to, search, hash }} replace />;
+}
+
 function App() {
   // Hide SEO content when React app loads
   useEffect(() => {
@@ -79,7 +85,8 @@ function App() {
             <Route path="/ppf-dubai" element={<Navigate to="/ppf-cost-calculator" replace />} />
             <Route path="/ppf-cost-calculator" element={<PpfCostCalculator />} />
             <Route path="/ppf-dubai-quote" element={<PpfDubaiQuote />} />
-            <Route path="/ppf-tiktok-quote" element={<Navigate to="/ppf-tiktok-quote_2" replace />} />
+            <Route path="/ppf-tiktok-quote" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
+            <Route path="/ppf-tiktok-quote-v2" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote_2" element={<PpfDubaiQuote variant="tiktok" />} />
             <Route path="/ppf-dubai-quote-v1" element={<PpfDubaiQuoteV1 />} />
             <Route path="/admin/login" element={<AdminLogin />} />

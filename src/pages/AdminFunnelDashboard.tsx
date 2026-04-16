@@ -165,6 +165,11 @@ const DUBAI_LOCALE = "en-CA";
 const DUBAI_TIMEZONE = "Asia/Dubai";
 const DASHBOARD_BASELINES_STORAGE_KEY = "grand-touch-funnel-dashboard-baselines-v1";
 
+const SITE_ORIGIN = "https://www.grandtouchauto.ae";
+
+/** TikTok paid social template for the live cache-bust path. Funnel filter: `ppf_tiktok_quote`. TikTok may append `ttclid`. */
+const TIKTOK_QUOTE_FUNNEL_TRACKING_URL = `${SITE_ORIGIN}/ppf-tiktok-quote_2?utm_source=tiktok&utm_medium=paid_social&utm_campaign=tiktok_leadfunnel_apr&utm_id=__CAMPAIGN_ID__`;
+
 type DashboardDatePreset =
   | "all"
   | "today"
@@ -478,6 +483,7 @@ const AdminFunnelDashboard = () => {
   const [baselineStartInput, setBaselineStartInput] = useState("");
   const [savedBaselines, setSavedBaselines] = useState<DashboardBaseline[]>([]);
   const [activeBaselineId, setActiveBaselineId] = useState<string>("all");
+  const [tiktokTrackingUrlCopied, setTiktokTrackingUrlCopied] = useState(false);
 
   const refreshRecords = async () => {
     if (!supabase) {
@@ -516,6 +522,7 @@ const AdminFunnelDashboard = () => {
           utm_campaign: "",
           utm_term: "",
           utm_content: "",
+          utm_id: "",
           gclid: "",
           fbclid: "",
           ttclid: "",
@@ -1092,6 +1099,16 @@ const AdminFunnelDashboard = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const handleCopyTiktokTrackingUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(TIKTOK_QUOTE_FUNNEL_TRACKING_URL);
+      setTiktokTrackingUrlCopied(true);
+      window.setTimeout(() => setTiktokTrackingUrlCopied(false), 2000);
+    } catch {
+      setTiktokTrackingUrlCopied(false);
+    }
+  };
+
   return (
     <AdminShell
       title="Paid Funnel Dashboard"
@@ -1102,7 +1119,7 @@ const AdminFunnelDashboard = () => {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">
-                Browser-local funnel analytics
+                Funnel events
               </Badge>
               <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
                 Paid Funnel Dashboard
@@ -1112,8 +1129,8 @@ const AdminFunnelDashboard = () => {
                 page breakdowns, and where sessions are falling out.
               </p>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-                Current limitation: this dashboard reads browser-local events only until Supabase
-                ingestion is added.
+                Loads from Supabase when configured; if the query fails, it falls back to funnel
+                events stored in this browser only.
               </p>
             </div>
 
@@ -1138,13 +1155,48 @@ const AdminFunnelDashboard = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 text-sm text-slate-300">
-            <span>
-              Start generating events on{" "}
-              <Link className="text-primary hover:underline" to="/ppf-dubai-quote">
-                /ppf-dubai-quote
-              </Link>
-            </span>
+          <div className="mt-4 space-y-4 text-sm text-slate-300">
+            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                TikTok tracking URL (production)
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-400">
+                Use this in TikTok bio or ads. Sessions still bucket under{" "}
+                <span className="font-mono text-white">ppf_tiktok_quote</span> in the funnel dropdown;
+                <code className="mx-1 text-primary/90">pathname</code> will show{" "}
+                <code className="text-primary/90">/ppf-tiktok-quote_2</code>. UTMs and{" "}
+                <code className="text-primary/90">ttclid</code> are captured on first paint.
+                Replace <code className="text-primary/90">__CAMPAIGN_ID__</code> with TikTok&apos;s dynamic
+                token if your ad builder uses a different macro name.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <code className="min-h-11 min-w-0 flex-1 break-all rounded-lg border border-white/10 bg-black/50 p-3 text-[11px] leading-relaxed text-slate-200">
+                  {TIKTOK_QUOTE_FUNNEL_TRACKING_URL}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 shrink-0 border-white/15 bg-black/30 text-white hover:bg-white/10"
+                  onClick={() => void handleCopyTiktokTrackingUrl()}
+                >
+                  {tiktokTrackingUrlCopied ? "Copied" : "Copy URL"}
+                </Button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <span>
+                Test Google funnel:{" "}
+                <Link className="text-primary hover:underline" to="/ppf-dubai-quote">
+                  /ppf-dubai-quote
+                </Link>
+              </span>
+              <span>
+                Test TikTok funnel:{" "}
+                <Link className="text-primary hover:underline" to="/ppf-tiktok-quote_2">
+                  /ppf-tiktok-quote_2
+                </Link>
+              </span>
+            </div>
           </div>
         </div>
 

@@ -6,6 +6,8 @@ export type AttributionParams = {
   utm_campaign: string;
   utm_term: string;
   utm_content: string;
+  /** Ad platform campaign id (e.g. TikTok `__CAMPAIGN_ID__` resolved in the final URL). */
+  utm_id: string;
   gclid: string;
   fbclid: string;
   ttclid: string;
@@ -86,6 +88,7 @@ const emptyAttribution = (): AttributionParams => ({
   utm_campaign: "",
   utm_term: "",
   utm_content: "",
+  utm_id: "",
   gclid: "",
   fbclid: "",
   ttclid: "",
@@ -164,6 +167,7 @@ export const parseAttributionParams = (): AttributionParams => {
     utm_campaign: search.get("utm_campaign") || "",
     utm_term: search.get("utm_term") || "",
     utm_content: search.get("utm_content") || "",
+    utm_id: search.get("utm_id") || "",
     gclid: search.get("gclid") || "",
     fbclid: search.get("fbclid") || "",
     ttclid: search.get("ttclid") || "",
