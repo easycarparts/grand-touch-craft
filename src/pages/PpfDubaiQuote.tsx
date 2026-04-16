@@ -328,7 +328,7 @@ const landingPageCopy = {
     funnelName: "ppf_tiktok_quote",
     landingPageVariant: "tiktok" as const,
     defaultSourcePlatform: "tiktok",
-    seoKey: "ppf-tiktok-quote",
+    seoKey: "ppf-tiktok-quote-2",
     seoTitle: "PPF TikTok Quote | Grand Touch",
     seoDescription:
       "See your Grand Touch PPF price range in Dubai with a faster social-first quote flow and direct WhatsApp follow-up from Sean.",
@@ -336,7 +336,7 @@ const landingPageCopy = {
       "PPF TikTok quote Dubai, Grand Touch PPF Dubai, STEK PPF Dubai, TikTok PPF lead funnel Dubai",
     seoOgDescription:
       "TikTok-first PPF quote funnel for Dubai drivers with quick qualification, visual proof, and fast WhatsApp handoff.",
-    seoUrl: "https://www.grandtouchauto.ae/ppf-tiktok-quote",
+    seoUrl: "https://www.grandtouchauto.ae/ppf-tiktok-quote_2",
     tikTokContentName: "PPF TikTok Quote Funnel",
   },
 } satisfies Record<

@@ -1,5 +1,12 @@
 {
   "version": 2,
+  "redirects": [
+    {
+      "source": "/ppf-tiktok-quote",
+      "destination": "/ppf-tiktok-quote_2",
+      "permanent": true
+    }
+  ],
   "builds": [
     {
       "src": "package.json",

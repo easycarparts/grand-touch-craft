@@ -228,7 +228,7 @@ const pages = [
       "<p><strong>Enable JavaScript</strong> to use the short quote form, estimate controls, and WhatsApp handoff.</p>",
   },
   {
-    path: "/ppf-tiktok-quote",
+    path: "/ppf-tiktok-quote_2",
     title: "PPF TikTok Quote | Grand Touch",
     description:
       "See your Grand Touch PPF price range in Dubai with a faster social-first quote flow, visual proof, and direct WhatsApp follow-up from Sean.",

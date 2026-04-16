@@ -79,7 +79,8 @@ function App() {
             <Route path="/ppf-dubai" element={<Navigate to="/ppf-cost-calculator" replace />} />
             <Route path="/ppf-cost-calculator" element={<PpfCostCalculator />} />
             <Route path="/ppf-dubai-quote" element={<PpfDubaiQuote />} />
-            <Route path="/ppf-tiktok-quote" element={<PpfDubaiQuote variant="tiktok" />} />
+            <Route path="/ppf-tiktok-quote" element={<Navigate to="/ppf-tiktok-quote_2" replace />} />
+            <Route path="/ppf-tiktok-quote_2" element={<PpfDubaiQuote variant="tiktok" />} />
             <Route path="/ppf-dubai-quote-v1" element={<PpfDubaiQuoteV1 />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route
