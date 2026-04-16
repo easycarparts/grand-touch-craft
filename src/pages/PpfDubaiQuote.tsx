@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import emailjs from "@emailjs/browser";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,6 +35,7 @@ import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
 import stekWarrantySticker from "../../Landscape STEK Sticker.png";
 import {
+  AlertCircle,
   ArrowRight,
   Check,
   ChevronDown,
@@ -499,11 +501,14 @@ const QuoteUnlockForm = ({
   onSkipToWhatsApp,
   calculatorSelection,
   onCalculatorWhatsAppClick,
+  leadSnapshotSaveError,
 }: {
   variant: "modal" | "embedded";
   flow: QuoteModalFlow;
   formStep: 1 | 2 | 3;
   formSubmitted: boolean;
+  /** Shown after submit when CRM snapshot failed (e.g. missing Supabase env or RLS). */
+  leadSnapshotSaveError: string | null;
   isWhatsAppGateActive: boolean;
   name: string;
   phoneCountryCode: string;
@@ -696,6 +701,16 @@ const QuoteUnlockForm = ({
       </div>
 
       <div className="relative px-4 pb-4 pt-4 sm:px-7 sm:pb-7 sm:pt-5">
+        {leadSnapshotSaveError ? (
+          <Alert
+            variant="destructive"
+            className="mb-4 border-red-500/45 bg-red-950/55 text-red-50 [&>svg]:text-red-300"
+          >
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Could not save to CRM</AlertTitle>
+            <AlertDescription className="text-red-100/95">{leadSnapshotSaveError}</AlertDescription>
+          </Alert>
+        ) : null}
         {formStep === 1 ? (
           <div className="space-y-4">
             <div>
@@ -974,7 +989,9 @@ const QuoteUnlockForm = ({
                 <p className="text-[11px] uppercase tracking-[0.24em] text-white/48">Lead captured</p>
                 <p className="mt-3 text-lg font-medium text-white">{vehicleSummary}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Sean now has your name, number, and vehicle details.
+                  {leadSnapshotSaveError
+                    ? "We could not confirm the save to our CRM from this browser. Use WhatsApp below so Sean still receives your details."
+                    : "Sean now has your name, number, and vehicle details."}
                 </p>
               </div>
 
@@ -1030,6 +1047,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [pendingWhatsAppPlacement, setPendingWhatsAppPlacement] = useState<string | null>(null);
   const pendingWhatsAppPlacementRef = useRef<string | null>(null);
+  const [leadSnapshotSaveError, setLeadSnapshotSaveError] = useState<string | null>(null);
 
   const hasTrackedFormStart = useRef(false);
   const hasTrackedConfiguratorStart = useRef(false);
@@ -1808,6 +1826,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
   const handleSubmit = async () => {
     trackFormStartIfNeeded();
+    setLeadSnapshotSaveError(null);
 
     if (!vehicleMake.trim() || !vehicleModel.trim() || !vehicleYear.trim()) {
       setVehicleError("Add the make, model, and year so Sean can quote properly.");
@@ -1859,7 +1878,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         setFormStep(3);
 
         /** Always persist submit snapshot (CRM + Telegram path); previously only awaited when WhatsApp gate opened, so leads could silently never reach Supabase. */
-        await captureLeadSnapshot({
+        const persistResult = await captureLeadSnapshot({
           snapshotType: "submit",
           context: funnelContext,
           fullName: name.trim(),
@@ -1872,6 +1891,12 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
             vehicle: vehicleSummary,
           },
         });
+        if (!persistResult.ok) {
+          const suffix = persistResult.code ? ` (${persistResult.code})` : "";
+          setLeadSnapshotSaveError(`${persistResult.reason}${suffix}`);
+        } else {
+          setLeadSnapshotSaveError(null);
+        }
 
         trackEvent("lead_form_step_completed", {
           step_name: "vehicle",
@@ -2051,6 +2076,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     };
 
   const openHeroForm = (placement: string = "quote_cta") => {
+    setLeadSnapshotSaveError(null);
     trackFormStartIfNeeded();
     trackEvent(placement === "hero" ? "hero_cta_click" : "quote_cta_click", {
       cta_location: placement,
@@ -2098,6 +2124,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const handleModalOpenChange = (open: boolean) => {
     setHeroFormOpen(open);
     if (!open) {
+      setLeadSnapshotSaveError(null);
       clearPendingWhatsAppGate();
       const scroller = document.querySelector<HTMLElement>("[data-quote-modal-scroll]");
       if (scroller) scroller.style.paddingBottom = "";
@@ -2467,6 +2494,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         flow={quoteModalFlow}
                         formStep={formStep}
                         formSubmitted={formSubmitted}
+                        leadSnapshotSaveError={leadSnapshotSaveError}
                         isWhatsAppGateActive={Boolean(pendingWhatsAppPlacement)}
                         name={name}
                         phoneCountryCode={phoneCountryCode}

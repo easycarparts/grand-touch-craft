@@ -53,6 +53,10 @@ type LeadSnapshotInput = {
   payload?: Record<string, unknown>;
 };
 
+export type CaptureLeadSnapshotResult =
+  | { ok: true }
+  | { ok: false; reason: string; code?: string };
+
 export const FUNNEL_EVENTS_UPDATED_EVENT = "grand-touch:funnel-events-updated";
 
 type MetaStandardEvent = "PageView" | "Lead" | "Contact";
@@ -327,39 +331,58 @@ export const captureLeadSnapshot = async ({
   vehicleYear,
   capturedAt = new Date().toISOString(),
   payload = {},
-}: LeadSnapshotInput) => {
-  if (!supabase) return;
-
-  const { error } = await supabase.from("lead_contact_snapshots").insert({
-    session_id: context.sessionId,
-    visitor_id: context.visitorId,
-    snapshot_type: snapshotType,
-    full_name: fullName || null,
-    phone: phone || null,
-    vehicle_make: vehicleMake || null,
-    vehicle_model: vehicleModel || null,
-    vehicle_year: vehicleYear || null,
-    source_platform: context.sourcePlatform,
-    landing_page_variant: context.landingPageVariant,
-    funnel_name: context.funnelName,
-    attribution: context.attribution,
-    payload: sanitizePayload({
-      entry_section: context.entrySection,
-      hash: context.hash,
-      ...payload,
-    }),
-    captured_at: capturedAt,
-  });
-
-  if (error) {
-    console.warn(
-      "Failed to persist lead snapshot to Supabase",
-      error.message,
-      error.code ?? "",
-      error.details ?? "",
-      { snapshotType, sessionId: context.sessionId }
-    );
+}: LeadSnapshotInput): Promise<CaptureLeadSnapshotResult> => {
+  if (!supabase) {
+    return {
+      ok: false,
+      reason:
+        "Supabase is not configured in this build (missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY). Nothing is written to the CRM.",
+    };
   }
+
+  try {
+    const { error } = await supabase.from("lead_contact_snapshots").insert({
+      session_id: context.sessionId,
+      visitor_id: context.visitorId,
+      snapshot_type: snapshotType,
+      full_name: fullName || null,
+      phone: phone || null,
+      vehicle_make: vehicleMake || null,
+      vehicle_model: vehicleModel || null,
+      vehicle_year: vehicleYear || null,
+      source_platform: context.sourcePlatform,
+      landing_page_variant: context.landingPageVariant,
+      funnel_name: context.funnelName,
+      attribution: context.attribution,
+      payload: sanitizePayload({
+        entry_section: context.entrySection,
+        hash: context.hash,
+        ...payload,
+      }),
+      captured_at: capturedAt,
+    });
+
+    if (error) {
+      console.warn(
+        "Failed to persist lead snapshot to Supabase",
+        error.message,
+        error.code ?? "",
+        error.details ?? "",
+        { snapshotType, sessionId: context.sessionId }
+      );
+      return {
+        ok: false,
+        reason: error.message || "Supabase rejected the lead snapshot.",
+        code: error.code,
+      };
+    }
+  } catch (caught) {
+    const message = caught instanceof Error ? caught.message : String(caught);
+    console.warn("Lead snapshot insert threw", message, { snapshotType, sessionId: context.sessionId });
+    return { ok: false, reason: message };
+  }
+
+  return { ok: true };
 };
 
 export const trackFunnelEvent = ({
