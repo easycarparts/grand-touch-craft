@@ -2703,6 +2703,28 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     );
                   })}
                 </div>
+                <div className="mt-7 lg:col-span-2">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="default"
+                      className={cn(primaryPpfCtaButtonClass, "w-full sm:w-auto")}
+                      onClick={() => openHeroForm("serious_buyer_risks")}
+                    >
+                      Get My PPF Estimate
+                      <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+                    </Button>
+
+                    <button
+                      type="button"
+                      className="w-full text-center text-sm font-semibold text-slate-300 underline underline-offset-4 transition hover:text-[#ffd175] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto sm:text-left"
+                      onClick={() => handleWhatsAppClick("serious_buyer_risks")}
+                    >
+                      Ask Sean on WhatsApp
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2809,6 +2831,19 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="mt-7 flex w-full justify-center">
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="default"
+                    className={cn(primaryPpfCtaButtonClass, "w-full max-w-[520px]")}
+                    onClick={handlePostTrustCalculatorLinkClick}
+                  >
+                    See Which PPF Package Fits My Car
+                    <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+                  </Button>
                 </div>
               </div>
             </div>
