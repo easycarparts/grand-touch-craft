@@ -496,6 +496,7 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
     for (const followup of lead.followups.filter((item) => item.status === "open")) {
       const dueDate = followup.due_at ? new Date(followup.due_at) : null;
       const priorityBand = getDuePriorityBand(dueDate, "followup", now);
+      const channelLabel = formatTokenLabel(followup.channel);
       tasks.push({
         taskId: `followup:${followup.id}`,
         taskKind: "followup",
@@ -513,8 +514,18 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
         timingAt: followup.due_at || followup.created_at,
         timingLabel: followup.due_at ? "Due" : "Created",
         dueLabel: followup.due_at ? `Due ${formatTimestamp(followup.due_at)}` : `Created ${formatTimestamp(followup.created_at)}`,
-        urgencyLabel: priorityBand === "overdue" ? "Overdue" : priorityBand === "due_today" ? "Due today" : "Open follow-up",
-        taskLabel: priorityBand === "overdue" ? "Overdue follow-up" : priorityBand === "due_today" ? "Due today" : "Open follow-up",
+        urgencyLabel:
+          priorityBand === "overdue"
+            ? `Overdue ${channelLabel}`
+            : priorityBand === "due_today"
+              ? `${channelLabel} due today`
+              : `${channelLabel} follow-up`,
+        taskLabel:
+          priorityBand === "overdue"
+            ? `Overdue ${channelLabel} follow-up`
+            : priorityBand === "due_today"
+              ? `${channelLabel} due today`
+              : `${channelLabel} follow-up`,
         taskBadgeClass: priorityBand === "overdue" ? "border-rose-400/20 bg-rose-500/10 text-rose-200" : priorityBand === "due_today" ? "border-amber-400/20 bg-amber-500/10 text-amber-200" : "border-primary/25 bg-primary/10 text-primary",
       });
     }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, RefreshCw } from "lucide-react";
 
@@ -113,6 +113,14 @@ const TaskCard = ({
   const canUsePhoneActions = Boolean(task.phone);
   const assignedUser = lead.assigned_to ? adminUsers.find((user) => user.id === lead.assigned_to) ?? null : null;
   const assignedLabel = assignedUser ? assignedUser.full_name || assignedUser.email : "Unassigned";
+
+  const followupDueInputRef = useRef<HTMLInputElement | null>(null);
+  const followupDueAtValid = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(followupDraft.dueAt);
+  const openFollowupDuePicker = () => {
+    const el = followupDueInputRef.current as unknown as { showPicker?: () => void; focus?: () => void };
+    el?.showPicker?.();
+    el?.focus?.();
+  };
 
   return (
     <Card
@@ -278,11 +286,39 @@ const TaskCard = ({
                     ))}
                   </SelectContent>
                 </Select>
-                <Input type="datetime-local" value={followupDraft.dueAt} onChange={(event) => onFollowupDraftChange({ dueAt: event.target.value })} className="h-9 border-white/10 bg-black/20 px-3 text-sm text-white" />
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openFollowupDuePicker();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.stopPropagation();
+                      openFollowupDuePicker();
+                    }
+                  }}
+                  className="cursor-pointer rounded-md"
+                >
+                  <Input
+                    ref={followupDueInputRef}
+                    type="datetime-local"
+                    value={followupDraft.dueAt}
+                    onChange={(event) => onFollowupDraftChange({ dueAt: event.target.value })}
+                    className="h-9 border-white/10 bg-black/20 px-3 text-sm text-white"
+                  />
+                </div>
               </div>
               <Textarea value={followupDraft.notes} onChange={(event) => onFollowupDraftChange({ notes: event.target.value })} placeholder="What needs to happen next?" className="mt-3 min-h-[84px] border-white/10 bg-black/20 text-sm text-white placeholder:text-slate-500" />
               <div className="mt-3 flex justify-end">
-                <Button type="button" variant="outline" className="h-9 border-white/10 bg-black/20 px-3 text-sm text-white hover:bg-white/10" onClick={onCreateFollowup} disabled={Boolean(savingKeys[`followup-create:${lead.id}`])}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 border-white/10 bg-black/20 px-3 text-sm text-white hover:bg-white/10"
+                  onClick={onCreateFollowup}
+                  disabled={!followupDueAtValid || Boolean(savingKeys[`followup-create:${lead.id}`])}
+                >
                   Create follow-up
                 </Button>
               </div>
@@ -353,7 +389,9 @@ const AdminLeadTasks = () => {
             (task.timingAt &&
               ["Response due", "Call due", "Due"].includes(task.timingLabel) &&
               isDubaiToday(task.timingAt)))) ||
-        (taskFilter === "open_later" && ["call_open", "open_later"].includes(task.priorityBand));
+        (taskFilter === "open_later" &&
+          ["call_open", "open_later"].includes(task.priorityBand) &&
+          task.timingLabel !== "Created");
 
       const haystack = [task.title, task.summary, task.lead.full_name, task.phone, task.vehicle, task.packageLabel]
         .join(" ")
