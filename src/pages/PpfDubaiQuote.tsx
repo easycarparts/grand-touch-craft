@@ -373,6 +373,10 @@ const heroWhatsAppButtonClass =
 const smokeGlassPanelClass =
   "relative isolate overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045)_18%,rgba(18,18,18,0.62)_42%,rgba(8,8,8,0.84)_100%)] shadow-[0_36px_120px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[22px]";
 
+/** `scrollIntoView({ block: 'start' })` targets; clears TikTok / WebView top chrome + modal step header. */
+const quoteModalFieldScrollMargin =
+  "max-sm:scroll-mt-[min(9.5rem,22svh)] sm:scroll-mt-0";
+
 const SectionCta = ({
   primaryLabel = "Get My PPF Quote",
   secondaryLabel = "Ask Sean on WhatsApp",
@@ -531,8 +535,6 @@ const QuoteUnlockForm = ({
 }) => {
   const isModal = variant === "modal";
   const isCalculatorFlow = flow === "calculator";
-  const step1CtaRef = useRef<HTMLDivElement>(null);
-  const step2CtaRef = useRef<HTMLDivElement>(null);
   const isCustomPhoneCountryCode = !isPresetPhoneCountryCode(phoneCountryCode);
   const phoneCountrySelectValue = isCustomPhoneCountryCode ? CUSTOM_PHONE_COUNTRY_CODE_VALUE : phoneCountryCode;
   const flowSteps = isCalculatorFlow
@@ -547,50 +549,89 @@ const QuoteUnlockForm = ({
       ];
 
   /**
-   * Modal only: nudge the primary CTA inside the dialog when the on-screen keyboard resizes the
-   * visual viewport. Embedded variant must not use this: (1) the lead form sits in an inner
-   * `overflow-y-auto` layer, so `scrollIntoView` scrolls that layer and can crop the UI to a
-   * single button; (2) `visualViewport.resize` also fires when the browser chrome shows/hides
-   * during page scroll, which would fight normal scrolling if we called `scrollIntoView` from the
-   * embedded instance (still mounted with shared state).
+   * Modal + coarse pointer: TikTok / in-app browsers shrink the visual viewport heavily when the
+   * keyboard opens. We (1) add bottom padding to the modal scroll layer so fields can scroll above
+   * the keyboard, and (2) scroll the focused control to the top of the scrollport with generous
+   * scroll-margin — not the primary CTA (old `block: "end"` on the button hid inputs behind keys).
+   * Embedded variant must not touch `[data-quote-modal-scroll]` or it would fight page scroll.
    */
-  const scrollPrimaryCtaAboveKeyboard = useCallback(() => {
-    if (typeof window === "undefined" || !isModal) return;
-    if (window.matchMedia?.("(pointer: coarse)").matches !== true) return;
+  const syncQuoteModalKeyboardInset = useCallback(() => {
+    if (!isModal || typeof window === "undefined") return;
+    const scroller = document.querySelector<HTMLElement>("[data-quote-modal-scroll]");
+    if (!scroller || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const overlap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    const extraSlop = Math.min(112, Math.max(56, Math.round(vv.height * 0.1)));
+    const pad = overlap > 26 ? Math.ceil(overlap + extraSlop) : 0;
+    scroller.style.paddingBottom = pad > 0 ? `${pad}px` : "";
+  }, [isModal]);
 
-    const el =
-      formStep === 1 ? step1CtaRef.current : formStep === 2 ? step2CtaRef.current : null;
-    if (!el) return;
+  const scrollCoarseModalFieldIntoView = useCallback(
+    (field: Element | null) => {
+      if (!field || !(field instanceof HTMLElement)) return;
+      if (typeof window === "undefined" || !isModal) return;
+      if (window.matchMedia?.("(pointer: coarse)").matches !== true) return;
 
-    const nudge = () => {
-      el.scrollIntoView({ block: "end", behavior: "auto", inline: "nearest" });
-    };
+      syncQuoteModalKeyboardInset();
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(nudge);
-    });
-    window.setTimeout(nudge, 100);
-    window.setTimeout(nudge, 320);
-    window.setTimeout(nudge, 520);
-  }, [formStep, isModal]);
+      const nudge = () => {
+        field.scrollIntoView({ block: "start", behavior: "auto", inline: "nearest" });
+      };
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(nudge);
+      });
+      window.setTimeout(nudge, 50);
+      window.setTimeout(nudge, 180);
+      window.setTimeout(nudge, 420);
+      window.setTimeout(nudge, 720);
+    },
+    [isModal, syncQuoteModalKeyboardInset]
+  );
 
   useEffect(() => {
     if (!isModal) return;
     if (typeof window === "undefined" || !window.visualViewport) return;
     if (window.matchMedia?.("(pointer: coarse)").matches !== true) return;
-    if (formStep !== 1 && formStep !== 2) return;
 
     const vv = window.visualViewport;
-    const onResize = () => {
-      /** Ignore chrome-only resizes (e.g. address bar) so we do not scroll the open dialog spuriously. */
+    const onViewportChange = () => {
+      syncQuoteModalKeyboardInset();
       if (vv.height >= window.innerHeight * 0.88) return;
-      scrollPrimaryCtaAboveKeyboard();
+      const ae = document.activeElement;
+      if (
+        ae instanceof HTMLElement &&
+        ae.matches("input, textarea, select") &&
+        ae.closest("[data-quote-modal-scroll]")
+      ) {
+        scrollCoarseModalFieldIntoView(ae);
+      }
     };
-    vv.addEventListener("resize", onResize);
+
+    onViewportChange();
+    vv.addEventListener("resize", onViewportChange);
+    vv.addEventListener("scroll", onViewportChange);
     return () => {
-      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("resize", onViewportChange);
+      vv.removeEventListener("scroll", onViewportChange);
     };
-  }, [formStep, isModal, scrollPrimaryCtaAboveKeyboard]);
+  }, [isModal, scrollCoarseModalFieldIntoView, syncQuoteModalKeyboardInset]);
+
+  useEffect(() => {
+    if (!isModal) return;
+    return () => {
+      const scroller = document.querySelector<HTMLElement>("[data-quote-modal-scroll]");
+      if (scroller) scroller.style.paddingBottom = "";
+    };
+  }, [isModal]);
+
+  const onModalFieldFocus = useCallback(
+    (e: React.FocusEvent<HTMLElement>) => {
+      if (!isModal) return;
+      scrollCoarseModalFieldIntoView(e.currentTarget);
+    },
+    [isModal, scrollCoarseModalFieldIntoView]
+  );
 
   return (
     <div className={cn(smokeGlassPanelClass, isModal ? "w-full" : "w-full max-w-2xl")}>
@@ -658,10 +699,22 @@ const QuoteUnlockForm = ({
         {formStep === 1 ? (
           <div className="space-y-4">
             <div>
-              <p className="text-[2rem] font-semibold tracking-tight text-white sm:text-4xl">
+              <p
+                className={cn(
+                  "font-semibold tracking-tight text-white sm:text-4xl",
+                  isModal ? "text-[1.35rem] leading-snug" : "text-[2rem]"
+                )}
+              >
                 Get My PPF Estimate
               </p>
-              <p className="mt-1.5 max-w-xl text-[0.95rem] leading-6 text-slate-300 sm:mt-2 sm:text-base sm:leading-7">
+              <p
+                className={cn(
+                  "max-w-xl text-slate-300 sm:mt-2 sm:text-base sm:leading-7",
+                  isModal
+                    ? "mt-1 text-[0.88rem] leading-[1.45]"
+                    : "mt-1.5 text-[0.95rem] leading-6"
+                )}
+              >
                 {isCalculatorFlow
                   ? "Name and number first. Keep this quick, then we reveal your personalised quote."
                   : "Name and number first. We keep this part short so the quote unlock feels fast."}
@@ -674,10 +727,13 @@ const QuoteUnlockForm = ({
                 <Input
                   value={name}
                   onChange={(event) => onNameChange(event.target.value)}
-                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
+                  onFocus={isModal ? onModalFieldFocus : undefined}
                   placeholder="Your name"
                   autoComplete="name"
-                  className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
+                  className={cn(
+                    "h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12",
+                    isModal && quoteModalFieldScrollMargin
+                  )}
                 />
               </div>
 
@@ -694,7 +750,13 @@ const QuoteUnlockForm = ({
                       onPhoneCountryCodeChange(value);
                     }}
                   >
-                    <SelectTrigger className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] px-3 text-[0.95rem] text-white focus:ring-primary/40 focus:ring-offset-0 sm:h-12">
+                    <SelectTrigger
+                      onFocus={isModal ? onModalFieldFocus : undefined}
+                      className={cn(
+                        "h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] px-3 text-[0.95rem] text-white focus:ring-primary/40 focus:ring-offset-0 sm:h-12",
+                        isModal && quoteModalFieldScrollMargin
+                      )}
+                    >
                       <SelectValue placeholder="+971" />
                     </SelectTrigger>
                     <SelectContent className="border-white/10 bg-[#121212] text-white">
@@ -714,11 +776,14 @@ const QuoteUnlockForm = ({
                   <Input
                     value={phoneLocalNumber}
                     onChange={(event) => onPhoneLocalNumberChange(event.target.value)}
-                    onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
+                    onFocus={isModal ? onModalFieldFocus : undefined}
                     placeholder="50 123 4567"
                     inputMode="tel"
                     autoComplete="tel-national"
-                    className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
+                    className={cn(
+                      "h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12",
+                      isModal && quoteModalFieldScrollMargin
+                    )}
                   />
                 </div>
                 {isCustomPhoneCountryCode ? (
@@ -726,11 +791,14 @@ const QuoteUnlockForm = ({
                     <Input
                       value={phoneCountryCodeCustom}
                       onChange={(event) => onPhoneCountryCodeCustomChange(event.target.value)}
-                      onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
+                      onFocus={isModal ? onModalFieldFocus : undefined}
                       placeholder="Country code (e.g. 353)"
                       inputMode="numeric"
                       autoComplete="off"
-                      className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.95rem] text-white placeholder:text-white/35 sm:h-12"
+                      className={cn(
+                        "h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.95rem] text-white placeholder:text-white/35 sm:h-12",
+                        isModal && quoteModalFieldScrollMargin
+                      )}
                     />
                   </div>
                 ) : null}
@@ -741,7 +809,7 @@ const QuoteUnlockForm = ({
               </div>
             </div>
 
-            <div ref={step1CtaRef} className="scroll-mt-3">
+            <div className="scroll-mt-3">
               <Button className={cn(primaryPpfCtaButtonClass, "w-full")} size="lg" variant="default" onClick={onContinue}>
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -763,10 +831,22 @@ const QuoteUnlockForm = ({
         {formStep === 2 ? (
           <div className="space-y-4">
             <div>
-              <p className="text-[2rem] font-semibold tracking-tight text-white sm:text-4xl">
+              <p
+                className={cn(
+                  "font-semibold tracking-tight text-white sm:text-4xl",
+                  isModal ? "text-[1.35rem] leading-snug" : "text-[2rem]"
+                )}
+              >
                 Tell us about your car
               </p>
-              <p className="mt-1.5 max-w-xl text-[0.95rem] leading-6 text-slate-300 sm:mt-2 sm:text-base sm:leading-7">
+              <p
+                className={cn(
+                  "max-w-xl text-slate-300 sm:mt-2 sm:text-base sm:leading-7",
+                  isModal
+                    ? "mt-1 text-[0.88rem] leading-[1.45]"
+                    : "mt-1.5 text-[0.95rem] leading-6"
+                )}
+              >
                 Add the make, model, and year so Sean gets something useful, not a vague lead.
               </p>
             </div>
@@ -777,10 +857,13 @@ const QuoteUnlockForm = ({
                 <Input
                   value={vehicleMake}
                   onChange={(event) => onVehicleMakeChange(event.target.value)}
-                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
+                  onFocus={isModal ? onModalFieldFocus : undefined}
                   placeholder="Porsche"
                   autoComplete="off"
-                  className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
+                  className={cn(
+                    "h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12",
+                    isModal && quoteModalFieldScrollMargin
+                  )}
                 />
               </div>
 
@@ -789,10 +872,13 @@ const QuoteUnlockForm = ({
                 <Input
                   value={vehicleModel}
                   onChange={(event) => onVehicleModelChange(event.target.value)}
-                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
+                  onFocus={isModal ? onModalFieldFocus : undefined}
                   placeholder="911 Turbo S"
                   autoComplete="off"
-                  className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
+                  className={cn(
+                    "h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12",
+                    isModal && quoteModalFieldScrollMargin
+                  )}
                 />
               </div>
 
@@ -801,18 +887,21 @@ const QuoteUnlockForm = ({
                 <Input
                   value={vehicleYear}
                   onChange={(event) => onVehicleYearChange(event.target.value)}
-                  onFocus={isModal ? scrollPrimaryCtaAboveKeyboard : undefined}
+                  onFocus={isModal ? onModalFieldFocus : undefined}
                   placeholder="2024"
                   inputMode="numeric"
                   autoComplete="off"
-                  className="h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12"
+                  className={cn(
+                    "h-11 rounded-xl border-white/10 bg-[rgba(255,255,255,0.06)] text-[0.98rem] text-white placeholder:text-white/35 sm:h-12",
+                    isModal && quoteModalFieldScrollMargin
+                  )}
                 />
               </div>
             </div>
 
             {vehicleError ? <p className="text-sm text-red-400">{vehicleError}</p> : null}
 
-            <div ref={step2CtaRef} className="flex scroll-mt-3 flex-col gap-3 sm:flex-row">
+            <div className="flex scroll-mt-3 flex-col gap-3 sm:flex-row">
               <Button
                 type="button"
                 variant="outline"
@@ -2001,6 +2090,8 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     setHeroFormOpen(open);
     if (!open) {
       clearPendingWhatsAppGate();
+      const scroller = document.querySelector<HTMLElement>("[data-quote-modal-scroll]");
+      if (scroller) scroller.style.paddingBottom = "";
     }
   };
 
@@ -2358,7 +2449,10 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         event.preventDefault();
                       }}
                     >
-                      <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-auto [-webkit-overflow-scrolling:touch]">
+                      <div
+                        data-quote-modal-scroll
+                        className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-auto [-webkit-overflow-scrolling:touch]"
+                      >
                         <QuoteUnlockForm
                         variant="modal"
                         flow={quoteModalFlow}
