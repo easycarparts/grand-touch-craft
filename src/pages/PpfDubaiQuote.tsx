@@ -1929,18 +1929,8 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         trackGoogleAdsLeadConversion();
         trackTikTokLeadConversion();
 
-        if (pendingWhatsAppPlacement) {
-          clearPendingWhatsAppGate();
-          openTrackedWhatsApp({
-            placement: pendingWhatsAppPlacement,
-            url: buildWhatsAppUrl(
-              vehicleSummary.trim()
-                ? `Hi Sean, I’ve just sent my details through on the Grand Touch website for my ${vehicleSummary.trim()}. I’d love your advice on the right PPF package for it when you have a moment.`
-                : "Hi Sean, I’ve just sent my details through on the Grand Touch website and wanted your advice on the right PPF package when you have a moment."
-            ),
-            whatsappState: "known_lead",
-          });
-        }
+        /** WhatsApp stays a deliberate tap on the success screen; do not auto-open after submit. */
+        clearPendingWhatsAppGate();
       }
     };
 
