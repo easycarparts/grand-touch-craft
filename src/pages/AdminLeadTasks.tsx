@@ -87,6 +87,7 @@ const TaskCard = ({
   onSaveExpectedDelivery,
   onMarkDone,
   savingKeys,
+  adminUsers,
 }: {
   task: LeadTaskItem;
   isExpanded: boolean;
@@ -105,10 +106,13 @@ const TaskCard = ({
   onSaveExpectedDelivery: () => void;
   onMarkDone: (() => void) | null;
   savingKeys: Record<string, boolean>;
+  adminUsers: AdminUserOption[];
 }) => {
   const whatsappUrl = buildWhatsAppUrl(task.phone);
   const lead = task.lead;
   const canUsePhoneActions = Boolean(task.phone);
+  const assignedUser = lead.assigned_to ? adminUsers.find((user) => user.id === lead.assigned_to) ?? null : null;
+  const assignedLabel = assignedUser ? assignedUser.full_name || assignedUser.email : "Unassigned";
 
   return (
     <Card
@@ -152,6 +156,9 @@ const TaskCard = ({
             ) : (
               <p className="text-sm text-slate-400">{lead.email || "No contact route captured"}</p>
             )}
+            <p className="text-xs text-slate-400">
+              <span className="text-slate-500">Assigned to:</span> <span className="text-slate-200">{assignedLabel}</span>
+            </p>
           </div>
 
           <div className="grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
@@ -549,6 +556,7 @@ const AdminLeadTasks = () => {
                   onSaveExpectedDelivery={() => void handleExpectedDeliverySave(task.lead)}
                   onMarkDone={task.followup ? () => void handleFollowupStatusChange(task.lead.id, task.followup.id, "done") : null}
                   savingKeys={savingKeys}
+                  adminUsers={adminUsers}
                 />
               );
             })

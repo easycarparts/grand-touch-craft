@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Lock, ShieldCheck, Sparkles } from "lucide-react";
+import { ChevronDown, Lock, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -132,6 +132,7 @@ const PpfCostCalculatorWidget = ({
   const [finish, setFinish] = useState<Finish | null>(null);
   const [coverage, setCoverage] = useState<Coverage | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
 
   const stageTwoRef = useRef<HTMLDivElement | null>(null);
   const hasAutoOpenedStageTwo = useRef(false);
@@ -151,6 +152,19 @@ const PpfCostCalculatorWidget = ({
   const isPrimaryReady = effectiveWarrantyYears !== null && size !== null;
   const isPriceReady = effectiveWarrantyYears !== null && size !== null && finish !== null && coverage !== null;
   const canShowEstimate = isPriceReady && priceUnlocked;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia("(pointer: coarse)");
+    const updatePointerType = () => {
+      setIsCoarsePointer(mediaQuery.matches);
+    };
+
+    updatePointerType();
+    mediaQuery.addEventListener("change", updatePointerType);
+    return () => mediaQuery.removeEventListener("change", updatePointerType);
+  }, []);
 
   useEffect(() => {
     if (!isPrimaryReady) {
@@ -179,17 +193,26 @@ const PpfCostCalculatorWidget = ({
   useEffect(() => {
     if (!isPrimaryReady || hasAutoOpenedStageTwo.current) return;
     hasAutoOpenedStageTwo.current = true;
-    const isCoarsePointer =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(pointer: coarse)").matches === true;
-    // Smooth scroll-into-view feels right on desktop; on touch it fights finish-tap scroll locks.
-    window.setTimeout(() => {
+    // On touch devices this forced jump can fight natural scrolling and feel like the page is
+    // snapping around, so only auto-advance the viewport on non-touch layouts.
+    if (isCoarsePointer) return;
+
+    const timer = window.setTimeout(() => {
       stageTwoRef.current?.scrollIntoView({
-        behavior: isCoarsePointer ? "auto" : "smooth",
+        behavior: "smooth",
         block: "start",
       });
     }, 220);
-  }, [isPrimaryReady]);
+
+    return () => window.clearTimeout(timer);
+  }, [isCoarsePointer, isPrimaryReady]);
+
+  const scrollToStageTwo = useCallback(() => {
+    stageTwoRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, []);
 
   useLayoutEffect(() => {
     if (finishScrollLockY.current === null) return;
@@ -459,6 +482,27 @@ const PpfCostCalculatorWidget = ({
                   </div>
                 </div>
               </Card>
+
+              {isPrimaryReady && isCoarsePointer ? (
+                <div className="rounded-[24px] border border-[#f7b52b]/18 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.12),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(10,10,10,0.96))] px-4 py-4 shadow-[0_18px_52px_rgba(0,0,0,0.2)]">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/52">Step 2 unlocked</p>
+                  <p className="mt-2 text-base font-semibold text-white">
+                    Continue down to choose finish and reveal the price.
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-300">
+                    Your package and vehicle are saved. Tap below to jump to the next step.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="default"
+                    className="mt-4 w-full bg-[#f7b52b] text-black shadow-[0_16px_42px_rgba(247,181,43,0.24)] hover:bg-[#ffc54d]"
+                    onClick={scrollToStageTwo}
+                  >
+                    Continue to Step 2
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              ) : null}
 
               <div
                 ref={stageTwoRef}

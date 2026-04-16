@@ -241,6 +241,72 @@ const getCalculatorPackageLabel = (calculatorSelection: CalculatorSelection) => 
 
 const buildWhatsAppUrl = (message: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+const buildWhatsAppAppUrl = (message: string) =>
+  `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
+const extractWhatsAppMessage = (url: string) => {
+  try {
+    return new URL(url).searchParams.get("text") ?? "";
+  } catch {
+    return "";
+  }
+};
+const isProbablyMobileDevice = () => {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(pointer: coarse)").matches === true ||
+    /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent)
+  );
+};
+const openWhatsAppUrl = (url: string) => {
+  if (typeof window === "undefined") return;
+
+  if (isProbablyMobileDevice()) {
+    const appUrl = buildWhatsAppAppUrl(extractWhatsAppMessage(url));
+    let fallbackTimer = 0;
+    let cleanedUp = false;
+
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      if (fallbackTimer) {
+        window.clearTimeout(fallbackTimer);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", cleanup);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        cleanup();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", cleanup, { once: true });
+
+    fallbackTimer = window.setTimeout(() => {
+      const shouldFallback = document.visibilityState === "visible";
+      cleanup();
+      if (shouldFallback) {
+        window.location.assign(url);
+      }
+    }, 900);
+
+    try {
+      window.location.assign(appUrl);
+      return;
+    } catch {
+      cleanup();
+      window.location.assign(url);
+      return;
+    }
+  }
+
+  const popup = window.open(url, "_blank", "noopener,noreferrer");
+  if (!popup) {
+    window.location.assign(url);
+  }
+};
 
 const landingPageCopy = {
   google: {
@@ -1134,10 +1200,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         });
       }
 
-      const popup = window.open(url, "_blank", "noopener,noreferrer");
-      if (!popup) {
-        window.location.assign(url);
-      }
+      openWhatsAppUrl(url);
     },
     [trackEvent]
   );
@@ -1885,11 +1948,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
             currency: "AED",
           },
         });
-        const url = buildWhatsAppUrl(message);
-        const popup = window.open(url, "_blank", "noopener,noreferrer");
-        if (!popup) {
-          window.location.assign(url);
-        }
+        openWhatsAppUrl(buildWhatsAppUrl(message));
       }
     };
 
