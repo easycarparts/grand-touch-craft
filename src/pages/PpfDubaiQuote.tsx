@@ -1853,53 +1853,59 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       } finally {
         setIsSubmitting(false);
         setFormSubmitted(true);
-      if (quoteModalFlow === "calculator" && selection) {
-        setCalculatorPriceUnlocked(true);
-      }
-      setFormStep(3);
-        const captureSnapshotPromise = captureLeadSnapshot({
+        if (quoteModalFlow === "calculator" && selection) {
+          setCalculatorPriceUnlocked(true);
+        }
+        setFormStep(3);
+
+        /** Always persist submit snapshot (CRM + Telegram path); previously only awaited when WhatsApp gate opened, so leads could silently never reach Supabase. */
+        await captureLeadSnapshot({
           snapshotType: "submit",
           context: funnelContext,
           fullName: name.trim(),
           phone: mobile.trim(),
-        vehicleMake: vehicleMake.trim(),
-        vehicleModel: vehicleModel.trim(),
-        vehicleYear: vehicleYear.trim(),
-        payload: {
-          flow: quoteModalFlow,
-          vehicle: vehicleSummary,
-        },
-      });
-      trackEvent("lead_form_step_completed", {
-        step_name: "vehicle",
-        flow: quoteModalFlow,
-        vehicle_ready: true,
-      });
-      trackEvent("lead_form_submitted", {
-        vehicle: vehicleSummary,
-        flow: quoteModalFlow,
-      }, {
-        metaStandardEvent: "Lead",
-        metaPayload: {
-          content_name: "PPF Quote Funnel",
-          status: "submitted",
-          value: selection?.estimateMin ?? 1,
-          currency: "AED",
-        },
-        privatePayload: {
-          lead_name: name.trim(),
-          lead_phone: mobile.trim(),
-          vehicle_make: vehicleMake.trim(),
-          vehicle_model: vehicleModel.trim(),
-          vehicle_year: vehicleYear.trim(),
-        },
+          vehicleMake: vehicleMake.trim(),
+          vehicleModel: vehicleModel.trim(),
+          vehicleYear: vehicleYear.trim(),
+          payload: {
+            flow: quoteModalFlow,
+            vehicle: vehicleSummary,
+          },
         });
+
+        trackEvent("lead_form_step_completed", {
+          step_name: "vehicle",
+          flow: quoteModalFlow,
+          vehicle_ready: true,
+        });
+        trackEvent(
+          "lead_form_submitted",
+          {
+            vehicle: vehicleSummary,
+            flow: quoteModalFlow,
+          },
+          {
+            metaStandardEvent: "Lead",
+            metaPayload: {
+              content_name: "PPF Quote Funnel",
+              status: "submitted",
+              value: selection?.estimateMin ?? 1,
+              currency: "AED",
+            },
+            privatePayload: {
+              lead_name: name.trim(),
+              lead_phone: mobile.trim(),
+              vehicle_make: vehicleMake.trim(),
+              vehicle_model: vehicleModel.trim(),
+              vehicle_year: vehicleYear.trim(),
+            },
+          }
+        );
         trackGoogleAdsLeadConversion();
         trackTikTokLeadConversion();
 
         if (pendingWhatsAppPlacement) {
           clearPendingWhatsAppGate();
-          await captureSnapshotPromise;
           openTrackedWhatsApp({
             placement: pendingWhatsAppPlacement,
             url: buildWhatsAppUrl(

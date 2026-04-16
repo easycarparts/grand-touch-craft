@@ -352,7 +352,13 @@ export const captureLeadSnapshot = async ({
   });
 
   if (error) {
-    console.warn("Failed to persist lead snapshot to Supabase", error);
+    console.warn(
+      "Failed to persist lead snapshot to Supabase",
+      error.message,
+      error.code ?? "",
+      error.details ?? "",
+      { snapshotType, sessionId: context.sessionId }
+    );
   }
 };
 
