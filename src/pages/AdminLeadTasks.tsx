@@ -1,8 +1,20 @@
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, RefreshCw } from "lucide-react";
 
+import { AdminLeadExpandedPanel } from "@/components/admin/AdminLeadExpandedPanel";
 import { AdminShell } from "@/components/admin/AdminShell";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +27,7 @@ import {
   AdminUserOption,
   LeadStatus,
   LeadTaskItem,
+  LeadTaskLead,
   buildWhatsAppUrl,
   followupChannelOptions,
   formatTimestamp,
@@ -72,8 +85,11 @@ const isDubaiToday = (value: string) => {
 const TaskCard = ({
   task,
   isExpanded,
+  isFullLeadOpen,
   isHighlighted,
   onToggle,
+  onOpenFullLead,
+  fullLeadPanel,
   noteDraft,
   onNoteChange,
   followupDraft,
@@ -91,8 +107,11 @@ const TaskCard = ({
 }: {
   task: LeadTaskItem;
   isExpanded: boolean;
+  isFullLeadOpen: boolean;
   isHighlighted: boolean;
   onToggle: () => void;
+  onOpenFullLead: () => void;
+  fullLeadPanel: ReactNode;
   noteDraft: string;
   onNoteChange: (value: string) => void;
   followupDraft: { channel: string; dueAt: string; notes: string };
@@ -205,8 +224,8 @@ const TaskCard = ({
               Mark done
             </Button>
           ) : null}
-          <Button asChild type="button" size="sm" variant="outline" className="border-white/10 bg-black/20 text-white hover:bg-white/10">
-            <Link to={`/admin/leads?lead=${lead.id}`}>Open full lead</Link>
+          <Button type="button" size="sm" variant="outline" className="border-white/10 bg-black/20 text-white hover:bg-white/10" onClick={onOpenFullLead}>
+            {isFullLeadOpen ? "Hide full lead" : "Open full lead"}
           </Button>
         </div>
       </div>
@@ -326,32 +345,46 @@ const TaskCard = ({
           </div>
         </div>
       ) : null}
+
+      {fullLeadPanel}
     </Card>
   );
 };
 
 const AdminLeadTasks = () => {
   const {
-    followupDrafts,
+    adminProfile,
     adminUsers,
+    adminUsersById,
+    estimateDrafts,
+    followupDrafts,
     handleAddNote,
     handleCreateFollowup,
+    handleDeleteLead,
     handleExpectedDeliverySave,
+    handleEstimateSave,
     handleFollowupStatusChange,
     handleLeadAssignment,
+    handleLeadDetailsSave,
     handleLogOutreach,
+    handleQualityChange,
     handleStatusChange,
     isLoading,
     isRefreshing,
+    leadDetailsDrafts,
     leadScheduleDrafts,
     loadLeadDesk,
     noteDrafts,
     savingKeys,
+    setEstimateDrafts,
+    setLeadDetailsDrafts,
+    setLeadScheduleDrafts,
     setNoteDrafts,
     stagingLeads,
     taskItems,
     taskSummary,
     updateFollowupDraft,
+    updateLeadDetailsDraft,
     updateLeadScheduleDraft,
   } = useLeadTaskBoardData();
   const [searchParams] = useSearchParams();
@@ -359,6 +392,8 @@ const AdminLeadTasks = () => {
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [fullLeadTaskId, setFullLeadTaskId] = useState<string | null>(null);
+  const [leadPendingDelete, setLeadPendingDelete] = useState<LeadTaskLead | null>(null);
 
   const highlightedTaskId = useMemo(() => {
     const followupId = searchParams.get("followup");
@@ -371,6 +406,7 @@ const AdminLeadTasks = () => {
   useEffect(() => {
     if (!highlightedTaskId) return;
     setExpandedTaskId(highlightedTaskId);
+    setFullLeadTaskId(null);
     window.setTimeout(() => {
       document.getElementById(getTaskDomId(highlightedTaskId))?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 120);
@@ -572,15 +608,59 @@ const AdminLeadTasks = () => {
             <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-slate-400">Loading task board...</div>
           ) : filteredTasks.length ? (
             filteredTasks.map((task) => {
-              const followupDraft = followupDrafts[task.lead.id] ?? makeDefaultFollowupDraft(task.lead.assigned_to, undefined);
+              const followupDraft = followupDrafts[task.lead.id] ?? makeDefaultFollowupDraft(task.lead.assigned_to, adminProfile?.id);
               const scheduleDraft = leadScheduleDrafts[task.lead.id] ?? makeLeadScheduleDraft(task.lead);
+              const fullLeadOpen = fullLeadTaskId === task.taskId;
+              const fullLeadPanel = fullLeadOpen ? (
+                <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-3 sm:p-4">
+                  <AdminLeadExpandedPanel
+                    lead={task.lead}
+                    adminUsers={adminUsers}
+                    adminUsersById={adminUsersById}
+                    adminProfile={adminProfile}
+                    estimateDrafts={estimateDrafts}
+                    setEstimateDrafts={setEstimateDrafts}
+                    noteDrafts={noteDrafts}
+                    setNoteDrafts={setNoteDrafts}
+                    followupDrafts={followupDrafts}
+                    updateFollowupDraft={updateFollowupDraft}
+                    leadDetailsDrafts={leadDetailsDrafts}
+                    setLeadDetailsDrafts={setLeadDetailsDrafts}
+                    updateLeadDetailsDraft={updateLeadDetailsDraft}
+                    leadScheduleDrafts={leadScheduleDrafts}
+                    updateLeadScheduleDraft={updateLeadScheduleDraft}
+                    setLeadScheduleDrafts={setLeadScheduleDrafts}
+                    savingKeys={savingKeys}
+                    onStatusChange={handleStatusChange}
+                    onQualityChange={handleQualityChange}
+                    onLogOutreach={handleLogOutreach}
+                    onLeadAssignment={(lead, next) => void handleLeadAssignment(lead.id, next)}
+                    onEstimateSave={handleEstimateSave}
+                    onExpectedDeliverySave={handleExpectedDeliverySave}
+                    onAddNote={handleAddNote}
+                    onCreateFollowup={handleCreateFollowup}
+                    onFollowupStatusChange={handleFollowupStatusChange}
+                    onLeadDetailsSave={handleLeadDetailsSave}
+                    onRequestDeleteLead={(lead) => setLeadPendingDelete(lead)}
+                  />
+                </div>
+              ) : null;
               return (
                 <TaskCard
                   key={task.taskId}
                   task={task}
                   isExpanded={expandedTaskId === task.taskId}
+                  isFullLeadOpen={fullLeadOpen}
                   isHighlighted={highlightedTaskId === task.taskId}
-                  onToggle={() => setExpandedTaskId(expandedTaskId === task.taskId ? null : task.taskId)}
+                  onToggle={() => {
+                    setFullLeadTaskId(null);
+                    setExpandedTaskId(expandedTaskId === task.taskId ? null : task.taskId);
+                  }}
+                  onOpenFullLead={() => {
+                    setExpandedTaskId(null);
+                    setFullLeadTaskId(fullLeadTaskId === task.taskId ? null : task.taskId);
+                  }}
+                  fullLeadPanel={fullLeadPanel}
                   noteDraft={noteDrafts[task.lead.id] ?? ""}
                   onNoteChange={(value) => setNoteDrafts((current) => ({ ...current, [task.lead.id]: value }))}
                   followupDraft={followupDraft}
@@ -605,6 +685,40 @@ const AdminLeadTasks = () => {
           )}
         </div>
       </Card>
+
+      <AlertDialog
+        open={Boolean(leadPendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setLeadPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent className="border-white/10 bg-[#111111] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this lead?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              {leadPendingDelete
+                ? `${leadPendingDelete.full_name || leadPendingDelete.phone || "This lead"} will be permanently removed from the CRM. This cannot be restored.`
+                : "This lead will be permanently removed from the CRM. This cannot be restored."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/10 bg-black/20 text-white hover:bg-white/10">Keep lead</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 text-white hover:bg-rose-700"
+              onClick={(event) => {
+                event.preventDefault();
+                if (leadPendingDelete) {
+                  setFullLeadTaskId(null);
+                  void handleDeleteLead(leadPendingDelete);
+                  setLeadPendingDelete(null);
+                }
+              }}
+            >
+              Delete permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminShell>
   );
 };

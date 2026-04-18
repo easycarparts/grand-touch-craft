@@ -14,6 +14,7 @@ type FeedbackType = "qualified_lead" | "disqualified_lead" | "won_job" | "lost_j
 export type LeadRow = {
   id: string;
   primary_session_id: string | null;
+  visitor_id: string | null;
   full_name: string | null;
   phone: string | null;
   email: string | null;
@@ -33,7 +34,10 @@ export type LeadRow = {
   utm_medium: string | null;
   utm_campaign: string | null;
   external_campaign_name: string | null;
+  external_adset_name: string | null;
   external_ad_name: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
   gclid: string | null;
   fbclid: string | null;
   ttclid: string | null;
@@ -47,7 +51,9 @@ export type LeadRow = {
   whatsapp_clicked_at: string | null;
   source_received_at: string | null;
   first_whatsapp_contacted_at: string | null;
+  first_whatsapp_contacted_by: string | null;
   first_called_at: string | null;
+  first_called_by: string | null;
   created_at: string;
 };
 
@@ -97,21 +103,54 @@ export type LeadFollowupRow = {
   updated_at: string;
 };
 
-type AdPlatformFeedbackRow = {
+export type AdPlatformFeedbackRow = {
   id: string;
   lead_id: string;
   platform: "meta" | "google" | "tiktok";
   feedback_type: FeedbackType;
   feedback_status: "pending" | "sent" | "failed";
+  external_identifier_type: string | null;
+  external_identifier_value: string | null;
+  payload: Record<string, unknown>;
+  response_payload: Record<string, unknown>;
+  sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LeadStatusHistoryRow = {
+  id: string;
+  lead_id: string;
+  changed_by: string | null;
+  from_status: string | null;
+  to_status: LeadStatus;
+  reason: string | null;
+  created_at: string;
+};
+
+export type LeadDetailsDraft = {
+  fullName: string;
+  phone: string;
+  email: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: string;
+  vehicleLabel: string;
 };
 
 export type LeadTaskLead = LeadRow & {
+  assignedAdmin: AdminUserOption | null;
+  displayIntentScore: number;
   latestRollup: SessionRollupRow | null;
+  matchingSessions: number;
   sourceGroup: "meta" | "google" | "tiktok" | "website" | "manual";
   isMetaOriginated: boolean;
+  lifecycleLabel: "submitted" | "partial";
   notes: LeadNoteRow[];
   followups: LeadFollowupRow[];
+  statusHistory: LeadStatusHistoryRow[];
   feedback: AdPlatformFeedbackRow[];
+  nextOpenFollowup: LeadFollowupRow | null;
   followupState: "none" | "open" | "due_today" | "overdue" | "done";
 };
 
@@ -167,6 +206,7 @@ export type LeadTaskItem = {
 };
 
 export const leadStatusOptions: LeadStatus[] = ["new", "contacted", "qualified", "quoted", "won", "lost", "junk"];
+export const leadQualityOptions: LeadQuality[] = ["unreviewed", "high", "medium", "low", "spam"];
 export const followupChannelOptions: FollowupChannel[] = ["call", "whatsapp", "sms", "email", "manual"];
 
 export const formatTokenLabel = (value: string) =>
@@ -365,6 +405,214 @@ export const makeLeadScheduleDraft = (lead: Pick<LeadRow, "expected_delivery_at"
   expectedDeliveryAt: toDatetimeLocalValue(lead.expected_delivery_at),
 });
 
+export const makeLeadDetailsDraft = (
+  lead: Pick<LeadRow, "full_name" | "phone" | "email" | "vehicle_make" | "vehicle_model" | "vehicle_year" | "vehicle_label">,
+): LeadDetailsDraft => ({
+  fullName: lead.full_name || "",
+  phone: lead.phone || "",
+  email: lead.email || "",
+  vehicleMake: lead.vehicle_make || "",
+  vehicleModel: lead.vehicle_model || "",
+  vehicleYear: lead.vehicle_year || "",
+  vehicleLabel: lead.vehicle_label || "",
+});
+
+export const formatCurrency = (value: number | null) =>
+  value === null ? "Not unlocked" : `AED ${Math.round(value).toLocaleString("en-AE")}`;
+
+export const formatDurationMs = (value: number | null) => {
+  if (!value || value <= 0) return "0s";
+  const totalSeconds = Math.round(value / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes <= 0) return `${seconds}s`;
+  return `${minutes}m ${seconds}s`;
+};
+
+export const formatSectionName = (value: string) =>
+  value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+export const getLeadCampaignLabel = (
+  lead: Pick<LeadRow, "external_ad_name" | "utm_campaign" | "external_campaign_name" | "import_metadata">,
+) =>
+  lead.external_ad_name ||
+  lead.utm_campaign ||
+  lead.external_campaign_name ||
+  readImportMetadataValue(lead.import_metadata, "ad_name") ||
+  readImportMetadataValue(lead.import_metadata, "campaign_name") ||
+  null;
+
+export const readMetaFeedbackError = (payload: Record<string, unknown> | null | undefined) => {
+  const rawError = payload?.error;
+  if (typeof rawError !== "string" || !rawError.trim()) return null;
+  try {
+    const parsed = JSON.parse(rawError) as {
+      error_user_msg?: string;
+      message?: string;
+      error_user_title?: string;
+    };
+    return parsed.error_user_msg || parsed.message || parsed.error_user_title || rawError;
+  } catch {
+    return rawError;
+  }
+};
+
+export const withAlpha = (hexColor: string, alphaHex: string) => {
+  if (!/^#[0-9A-Fa-f]{6}$/.test(hexColor)) return hexColor;
+  return `${hexColor}${alphaHex}`;
+};
+
+export const formatDueLabel = (followup: LeadFollowupRow | null) => {
+  if (!followup) return "No follow-up set";
+  if (!followup.due_at) return "Open without deadline";
+  return formatTimestamp(followup.due_at);
+};
+
+export const getQualityBadgeClass = (quality: LeadQuality) => {
+  switch (quality) {
+    case "high":
+      return "border-emerald-400/20 bg-emerald-500/10 text-emerald-200";
+    case "medium":
+      return "border-primary/25 bg-primary/10 text-primary";
+    case "low":
+      return "border-amber-400/20 bg-amber-500/10 text-amber-200";
+    case "spam":
+      return "border-rose-400/20 bg-rose-500/10 text-rose-200";
+    case "unreviewed":
+      return "border-white/10 bg-white/5 text-slate-300";
+  }
+};
+
+export const getFollowupBadgeClass = (state: LeadTaskLead["followupState"]) => {
+  switch (state) {
+    case "overdue":
+      return "border-rose-400/20 bg-rose-500/10 text-rose-200";
+    case "due_today":
+      return "border-amber-400/20 bg-amber-500/10 text-amber-200";
+    case "open":
+      return "border-primary/25 bg-primary/10 text-primary";
+    case "done":
+      return "border-emerald-400/20 bg-emerald-500/10 text-emerald-200";
+    case "none":
+      return "border-white/10 bg-white/5 text-slate-300";
+  }
+};
+
+export const getFeedbackBadgeClass = (status: "pending" | "sent" | "failed") => {
+  switch (status) {
+    case "pending":
+      return "border-amber-400/20 bg-amber-500/10 text-amber-200";
+    case "sent":
+      return "border-emerald-400/20 bg-emerald-500/10 text-emerald-200";
+    case "failed":
+      return "border-rose-400/20 bg-rose-500/10 text-rose-200";
+  }
+};
+
+const formatMinutes = (value: number) => {
+  if (value < 1) return "<1m";
+  if (value < 60) return `${Math.round(value)}m`;
+  const hours = Math.floor(value / 60);
+  const minutes = Math.round(value % 60);
+  return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+};
+
+export const getResponseSlaState = (lead: LeadRow, channel: "whatsapp" | "call") => {
+  const isCall = channel === "call";
+  const receivedAt = getLeadReceivedAt(lead);
+  if (!receivedAt) {
+    return {
+      done: false,
+      state: "none" as const,
+      elapsedLabel: "No intake time",
+      dueLabel: "No SLA",
+      badgeClass: "border-white/10 bg-white/5 text-slate-300",
+      score: null as number | null,
+    };
+  }
+
+  const completedAt = channel === "whatsapp" ? lead.first_whatsapp_contacted_at : lead.first_called_at;
+  const dueAt = getSlaDueAt(lead, channel);
+  if (!dueAt) {
+    return {
+      done: Boolean(completedAt),
+      state: "none" as const,
+      elapsedLabel: completedAt ? "Done" : "No SLA",
+      dueLabel: "No SLA",
+      badgeClass: "border-white/10 bg-white/5 text-slate-300",
+      score: null as number | null,
+    };
+  }
+
+  const now = new Date();
+  if (completedAt) {
+    const completedDate = new Date(completedAt);
+    const elapsedMinutes = (completedDate.getTime() - new Date(receivedAt).getTime()) / 60_000;
+    const withinSla = completedDate.getTime() <= dueAt.getTime();
+    const ratio =
+      (completedDate.getTime() - new Date(receivedAt).getTime()) / (dueAt.getTime() - new Date(receivedAt).getTime() || 1);
+    const score = Math.max(0, Math.min(100, Math.round(100 - Math.max(0, ratio) * 70)));
+
+    return {
+      done: true,
+      state: withinSla ? ("good" as const) : ("late" as const),
+      elapsedLabel: withinSla ? `Done ${formatMinutes(elapsedMinutes)}` : `Done late ${formatMinutes(elapsedMinutes)}`,
+      dueLabel: withinSla ? "Completed on time" : "Completed after SLA",
+      badgeClass: isCall
+        ? "border-emerald-400/25 bg-emerald-500/12 text-emerald-100"
+        : withinSla
+          ? "border-amber-300/25 bg-amber-400/15 text-amber-100"
+          : "border-emerald-400/25 bg-emerald-500/12 text-emerald-100",
+      score,
+    };
+  }
+
+  const overdue = now.getTime() > dueAt.getTime();
+  const minutesUntilDue = (dueAt.getTime() - now.getTime()) / 60_000;
+  const dueTomorrow = !overdue && !isSameDubaiDay(now, dueAt);
+  const dueLaterToday = !overdue && isSameDubaiDay(now, dueAt);
+
+  return {
+    done: false,
+    state: overdue ? ("late" as const) : ("pending" as const),
+    elapsedLabel: overdue
+      ? "Overdue"
+      : dueTomorrow
+        ? "Due tomorrow"
+        : dueLaterToday
+          ? `Within ${formatMinutes(minutesUntilDue)}`
+          : "Next window",
+    dueLabel: `Due ${formatTimestamp(dueAt.toISOString())}`,
+    badgeClass: overdue
+      ? "border-rose-400/30 bg-rose-500/16 text-rose-100"
+      : isCall
+        ? "border-rose-400/30 bg-rose-500/16 text-rose-100"
+        : "border-violet-400/25 bg-violet-500/12 text-violet-100",
+    score: null as number | null,
+  };
+};
+
+export const getLeadIntentPresentation = (lead: LeadTaskLead) => {
+  if (lead.isMetaOriginated && !lead.latestRollup) {
+    return {
+      tableLabel: "Meta lead",
+      tableClass: "border-sky-400/20 bg-sky-500/10 text-sky-200",
+      valueLabel: "Meta form only",
+      helper: "This lead came from Meta directly, so website behaviour scoring is not available yet.",
+    };
+  }
+
+  return {
+    tableLabel: `${lead.displayIntentScore}/100`,
+    tableClass: "border-white/10 bg-white/5 text-slate-200",
+    valueLabel: `${lead.displayIntentScore}/100`,
+    helper: lead.latestRollup ? "Based on tracked website behaviour." : "Using the current CRM fallback score.",
+  };
+};
+
 const buildSourceGroup = (lead: LeadRow) => {
   const sourceText = [lead.source_platform, lead.utm_source, lead.utm_medium, lead.landing_page_variant, lead.lead_source_type]
     .join(" ")
@@ -544,9 +792,39 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
 };
 
 const baseLeadSelect =
-  "id, primary_session_id, full_name, phone, email, vehicle_make, vehicle_model, vehicle_year, vehicle_label, source_platform, landing_page_variant, funnel_name, lead_source_type, status, quality_label, intent_score, latest_quote_estimate, utm_source, utm_medium, utm_campaign, external_campaign_name, external_ad_name, gclid, fbclid, ttclid, notes_summary, import_metadata, expected_delivery_at, assigned_to, first_captured_at, last_activity_at, submitted_at, whatsapp_clicked_at, source_received_at, created_at";
+  "id, primary_session_id, visitor_id, full_name, phone, email, vehicle_make, vehicle_model, vehicle_year, vehicle_label, source_platform, landing_page_variant, funnel_name, lead_source_type, status, quality_label, intent_score, latest_quote_estimate, utm_source, utm_medium, utm_campaign, external_campaign_name, external_adset_name, external_ad_name, utm_content, utm_term, gclid, fbclid, ttclid, notes_summary, import_metadata, expected_delivery_at, assigned_to, first_captured_at, last_activity_at, submitted_at, whatsapp_clicked_at, source_received_at, created_at";
 const responseTrackingLeadSelect =
-  `${baseLeadSelect}, first_whatsapp_contacted_at, first_called_at`;
+  `${baseLeadSelect}, first_whatsapp_contacted_at, first_whatsapp_contacted_by, first_called_at, first_called_by`;
+
+const normalizeFeedbackRow = (row: Record<string, unknown>): AdPlatformFeedbackRow => ({
+  id: String(row.id),
+  lead_id: String(row.lead_id),
+  platform: row.platform as AdPlatformFeedbackRow["platform"],
+  feedback_type: row.feedback_type as FeedbackType,
+  feedback_status: row.feedback_status as AdPlatformFeedbackRow["feedback_status"],
+  external_identifier_type: (row.external_identifier_type as string | null | undefined) ?? null,
+  external_identifier_value: (row.external_identifier_value as string | null | undefined) ?? null,
+  payload: (row.payload as Record<string, unknown> | undefined) ?? {},
+  response_payload: (row.response_payload as Record<string, unknown> | undefined) ?? {},
+  sent_at: (row.sent_at as string | null | undefined) ?? null,
+  created_at: String(row.created_at),
+  updated_at: String(row.updated_at ?? row.created_at),
+});
+
+const withLeadRowDefaults = (lead: Partial<LeadRow>): LeadRow =>
+  ({
+    visitor_id: null,
+    external_adset_name: null,
+    utm_content: null,
+    utm_term: null,
+    first_whatsapp_contacted_by: null,
+    first_called_by: null,
+    first_whatsapp_contacted_at: null,
+    first_called_at: null,
+    source_received_at: null,
+    created_at: "",
+    ...lead,
+  }) as LeadRow;
 
 export const useLeadTaskBoardData = () => {
   const { adminProfile } = useAdminAuth();
@@ -556,11 +834,14 @@ export const useLeadTaskBoardData = () => {
   const [sessionRollups, setSessionRollups] = useState<SessionRollupRow[]>([]);
   const [notes, setNotes] = useState<LeadNoteRow[]>([]);
   const [followups, setFollowups] = useState<LeadFollowupRow[]>([]);
+  const [statusHistory, setStatusHistory] = useState<LeadStatusHistoryRow[]>([]);
   const [feedbackRows, setFeedbackRows] = useState<AdPlatformFeedbackRow[]>([]);
   const [adminUsers, setAdminUsers] = useState<AdminUserOption[]>([]);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [followupDrafts, setFollowupDrafts] = useState<Record<string, FollowupDraft>>({});
   const [leadScheduleDrafts, setLeadScheduleDrafts] = useState<Record<string, LeadScheduleDraft>>({});
+  const [estimateDrafts, setEstimateDrafts] = useState<Record<string, string>>({});
+  const [leadDetailsDrafts, setLeadDetailsDrafts] = useState<Record<string, LeadDetailsDraft>>({});
   const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -586,21 +867,32 @@ export const useLeadTaskBoardData = () => {
     const loadLeads = (selectClause: string) =>
       supabase.from("leads").select(selectClause).order("last_activity_at", { ascending: false, nullsFirst: false }).limit(150);
 
-    let [leadsResult, rollupsResult, notesResult, followupsResult, feedbackResult, adminUsersResult] = await Promise.all([
+    const statusHistoryQuery = supabase
+      .from("lead_status_history")
+      .select("id, lead_id, changed_by, from_status, to_status, reason, created_at")
+      .order("created_at", { ascending: false })
+      .limit(700);
+
+    const feedbackSelect =
+      "id, lead_id, platform, feedback_type, feedback_status, external_identifier_type, external_identifier_value, payload, response_payload, sent_at, created_at, updated_at";
+
+    let [leadsResult, rollupsResult, notesResult, followupsResult, statusHistoryResult, feedbackResult, adminUsersResult] = await Promise.all([
       loadLeads(responseTrackingLeadSelect),
       supabase.from("admin_session_rollups").select("session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at").order("ended_at", { ascending: false }).limit(700),
       supabase.from("lead_notes").select("id, lead_id, author_admin_user_id, body, created_at").order("created_at", { ascending: false }).limit(700),
       supabase.from("lead_followups").select("id, lead_id, assigned_to, status, channel, due_at, completed_at, notes, created_at, updated_at").order("created_at", { ascending: false }).limit(700),
-      supabase.from("ad_platform_feedback").select("id, lead_id, platform, feedback_type, feedback_status").order("created_at", { ascending: false }).limit(700),
+      statusHistoryQuery,
+      supabase.from("ad_platform_feedback").select(feedbackSelect).order("created_at", { ascending: false }).limit(700),
       supabase.from("admin_users").select("id, email, full_name, role, is_active, owner_color").eq("is_active", true).order("full_name", { ascending: true, nullsFirst: false }),
     ]);
 
     if (leadsResult.error?.code === "42703") {
-      [leadsResult, rollupsResult, notesResult, followupsResult, feedbackResult, adminUsersResult] = await Promise.all([
+      [leadsResult, rollupsResult, notesResult, followupsResult, statusHistoryResult, feedbackResult, adminUsersResult] = await Promise.all([
         loadLeads(baseLeadSelect),
         supabase.from("admin_session_rollups").select("session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at").order("ended_at", { ascending: false }).limit(700),
         supabase.from("lead_notes").select("id, lead_id, author_admin_user_id, body, created_at").order("created_at", { ascending: false }).limit(700),
         supabase.from("lead_followups").select("id, lead_id, assigned_to, status, channel, due_at, completed_at, notes, created_at, updated_at").order("created_at", { ascending: false }).limit(700),
+        statusHistoryQuery,
         supabase.from("ad_platform_feedback").select("id, lead_id, platform, feedback_type, feedback_status").order("created_at", { ascending: false }).limit(700),
         supabase.from("admin_users").select("id, email, full_name, role, is_active, owner_color").eq("is_active", true).order("full_name", { ascending: true, nullsFirst: false }),
       ]);
@@ -610,14 +902,20 @@ export const useLeadTaskBoardData = () => {
     if (rollupsResult.error) console.warn("Failed to load session rollups", rollupsResult.error);
     if (notesResult.error) console.warn("Failed to load lead notes", notesResult.error);
     if (followupsResult.error) console.warn("Failed to load lead followups", followupsResult.error);
+    if (statusHistoryResult.error) console.warn("Failed to load status history", statusHistoryResult.error);
     if (feedbackResult.error) console.warn("Failed to load feedback rows", feedbackResult.error);
     if (adminUsersResult.error) console.warn("Failed to load admin users", adminUsersResult.error);
 
-    setLeads((((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => ({ first_whatsapp_contacted_at: null, first_called_at: null, source_received_at: null, created_at: "", ...lead })) as LeadRow[]) ?? []);
+    setLeads((((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => withLeadRowDefaults(lead))) ?? []);
     setSessionRollups((rollupsResult.data as SessionRollupRow[]) ?? []);
     setNotes((notesResult.data as LeadNoteRow[]) ?? []);
     setFollowups((followupsResult.data as LeadFollowupRow[]) ?? []);
-    setFeedbackRows((feedbackResult.data as AdPlatformFeedbackRow[]) ?? []);
+    setStatusHistory((statusHistoryResult.data as LeadStatusHistoryRow[]) ?? []);
+    setFeedbackRows(
+      ((feedbackResult.data as Record<string, unknown>[]) ?? []).map((row) =>
+        "response_payload" in row ? (row as unknown as AdPlatformFeedbackRow) : normalizeFeedbackRow(row),
+      ),
+    );
     setAdminUsers((adminUsersResult.data as AdminUserOption[]) ?? []);
     setIsLoading(false);
     setIsRefreshing(false);
@@ -659,6 +957,25 @@ export const useLeadTaskBoardData = () => {
     return map;
   }, [feedbackRows]);
 
+  const statusHistoryByLeadId = useMemo(() => {
+    const map = new Map<string, LeadStatusHistoryRow[]>();
+    for (const entry of statusHistory) {
+      const bucket = map.get(entry.lead_id) ?? [];
+      bucket.push(entry);
+      map.set(entry.lead_id, bucket);
+    }
+    for (const bucket of map.values()) {
+      bucket.sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime());
+    }
+    return map;
+  }, [statusHistory]);
+
+  const adminUsersById = useMemo(() => {
+    const map = new Map<string, AdminUserOption>();
+    for (const user of adminUsers) map.set(user.id, user);
+    return map;
+  }, [adminUsers]);
+
   const taskLeads = useMemo<LeadTaskLead[]>(() => {
     return leads
       .filter((lead) => !["lost", "junk"].includes(lead.status))
@@ -695,24 +1012,55 @@ export const useLeadTaskBoardData = () => {
           return Math.max(highest, nextScore);
         }, 0);
 
+        const fallbackIntentScore = getIntentScore({
+          leadSubmitted: Boolean(lead.submitted_at),
+          whatsappClicked: Boolean(lead.whatsapp_clicked_at),
+          leadName: lead.full_name || "",
+          leadPhone: lead.phone || "",
+          vehicleMake: lead.vehicle_make || "",
+          vehicleModel: lead.vehicle_model || "",
+          vehicleYear: lead.vehicle_year || "",
+          quoteModalOpened: false,
+          unlockRequested: false,
+          quoteEstimate: lead.latest_quote_estimate,
+          packageName: "",
+          vehicleSize: "",
+          finish: "",
+          coverage: "",
+          durationMs: 0,
+          maxScrollPercent: 0,
+          videoMaxProgressPercent: 0,
+          videoStarted: false,
+          sectionsViewed: [],
+          faqOpenCount: 0,
+        });
+
         const leadFollowups = followupsByLeadId.get(lead.id) ?? [];
         const openFollowups = leadFollowups.filter((item) => item.status === "open");
+        const openFollowupsWithDueDates = openFollowups.filter((item) => item.due_at);
+        const nextOpenFollowup = openFollowupsWithDueDates[0] ?? openFollowups[0] ?? null;
         const hasOverdueFollowup = openFollowups.some((item) => item.due_at && new Date(item.due_at).getTime() < Date.now());
         const hasTodayFollowup = openFollowups.some((item) => item.due_at && isSameDubaiDay(new Date(item.due_at), new Date()));
 
         return {
           ...lead,
-          intent_score: Math.max(lead.intent_score, computedIntentScore),
+          intent_score: Math.max(lead.intent_score, computedIntentScore, fallbackIntentScore),
+          assignedAdmin: lead.assigned_to ? adminUsersById.get(lead.assigned_to) ?? null : null,
+          displayIntentScore: Math.max(lead.intent_score, computedIntentScore, fallbackIntentScore),
           latestRollup: matchingRollups[0] ?? null,
+          matchingSessions: matchingRollups.length,
           sourceGroup: buildSourceGroup(lead),
           isMetaOriginated: buildSourceGroup(lead) === "meta",
+          lifecycleLabel: lead.submitted_at ? "submitted" : "partial",
           notes: notesByLeadId.get(lead.id) ?? [],
           followups: leadFollowups,
+          statusHistory: statusHistoryByLeadId.get(lead.id) ?? [],
           feedback: feedbackByLeadId.get(lead.id) ?? [],
+          nextOpenFollowup,
           followupState: hasOverdueFollowup ? "overdue" : hasTodayFollowup ? "due_today" : openFollowups.length ? "open" : leadFollowups.some((item) => item.status === "done") ? "done" : "none",
         };
       });
-  }, [feedbackByLeadId, followupsByLeadId, leads, notesByLeadId, sessionRollups]);
+  }, [adminUsersById, feedbackByLeadId, followupsByLeadId, leads, notesByLeadId, sessionRollups, statusHistoryByLeadId]);
 
   const taskItems = useMemo(() => buildLeadTasks(taskLeads), [taskLeads]);
   const stagingLeads = useMemo(
@@ -777,9 +1125,29 @@ export const useLeadTaskBoardData = () => {
     if (!supabase || !adminProfile?.id) return;
     const saveKey = `${channel}:${lead.id}`;
     setSaving(saveKey, true);
-    const updatePayload: Record<string, string> = channel === "whatsapp" ? { first_whatsapp_contacted_at: new Date().toISOString() } : { first_called_at: new Date().toISOString() };
+    const completedColumn = channel === "whatsapp" ? "first_whatsapp_contacted_at" : "first_called_at";
+    const byColumn = channel === "whatsapp" ? "first_whatsapp_contacted_by" : "first_called_by";
+    const completedAt = new Date().toISOString();
+    const updatePayload: Record<string, string> = {
+      [completedColumn]: completedAt,
+      [byColumn]: adminProfile.id,
+    };
     if (lead.status === "new") updatePayload.status = "contacted";
     const { error } = await supabase.from("leads").update(updatePayload).eq("id", lead.id);
+    if (!error && lead.status === "new") {
+      const reason =
+        channel === "whatsapp"
+          ? "Marked contacted when WhatsApp outreach was logged"
+          : "Marked contacted when customer call was logged";
+      const { error: historyError } = await supabase.from("lead_status_history").insert({
+        lead_id: lead.id,
+        changed_by: adminProfile.id,
+        from_status: lead.status,
+        to_status: "contacted",
+        reason,
+      });
+      if (historyError) console.warn("Failed to write outreach contact history", historyError);
+    }
     setSaving(saveKey, false);
     if (error) {
       toast({ title: `Could not log ${channel === "whatsapp" ? "WhatsApp" : "call"}`, description: error.message, variant: "destructive" });
@@ -789,20 +1157,144 @@ export const useLeadTaskBoardData = () => {
     void loadLeadDesk(true);
   }, [adminProfile?.id, loadLeadDesk, setSaving, toast]);
 
-  const handleStatusChange = useCallback(async (lead: LeadTaskLead, nextStatus: LeadStatus) => {
-    if (!supabase || nextStatus === lead.status) return;
-    const saveKey = `status:${lead.id}`;
-    setSaving(saveKey, true);
-    const { error } = await supabase.from("leads").update({ status: nextStatus }).eq("id", lead.id);
-    if (!error) await queueRecommendedMetaFeedback(lead, { status: nextStatus, quality_label: lead.quality_label });
-    setSaving(saveKey, false);
-    if (error) {
-      toast({ title: "Status update failed", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Lead status updated", description: `This lead is now marked ${formatTokenLabel(nextStatus).toLowerCase()}.` });
-    void loadLeadDesk(true);
-  }, [loadLeadDesk, queueRecommendedMetaFeedback, setSaving, toast]);
+  const handleStatusChange = useCallback(
+    async (lead: LeadTaskLead, nextStatus: LeadStatus, reason?: string) => {
+      if (!supabase || nextStatus === lead.status) return;
+      const saveKey = `status:${lead.id}`;
+      setSaving(saveKey, true);
+      const { error } = await supabase.from("leads").update({ status: nextStatus }).eq("id", lead.id);
+      if (!error) {
+        const { error: historyError } = await supabase.from("lead_status_history").insert({
+          lead_id: lead.id,
+          changed_by: adminProfile?.id ?? null,
+          from_status: lead.status,
+          to_status: nextStatus,
+          reason: reason ?? null,
+        });
+        if (historyError) console.warn("Failed to write status history", historyError);
+        await queueRecommendedMetaFeedback(lead, { status: nextStatus, quality_label: lead.quality_label });
+      }
+      setSaving(saveKey, false);
+      if (error) {
+        toast({ title: "Status update failed", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Lead status updated", description: `This lead is now marked ${formatTokenLabel(nextStatus).toLowerCase()}.` });
+      void loadLeadDesk(true);
+    },
+    [adminProfile?.id, loadLeadDesk, queueRecommendedMetaFeedback, setSaving, toast],
+  );
+
+  const handleQualityChange = useCallback(
+    async (lead: LeadTaskLead, nextQuality: LeadQuality) => {
+      if (!supabase || nextQuality === lead.quality_label) return;
+      const saveKey = `quality:${lead.id}`;
+      setSaving(saveKey, true);
+      const { error } = await supabase.from("leads").update({ quality_label: nextQuality }).eq("id", lead.id);
+      if (!error) await queueRecommendedMetaFeedback(lead, { status: lead.status, quality_label: nextQuality });
+      setSaving(saveKey, false);
+      if (error) {
+        toast({ title: "Quality update failed", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Quality label updated", description: `This lead is now marked ${formatTokenLabel(nextQuality).toLowerCase()}.` });
+      void loadLeadDesk(true);
+    },
+    [loadLeadDesk, queueRecommendedMetaFeedback, setSaving, toast],
+  );
+
+  const handleEstimateSave = useCallback(
+    async (lead: LeadTaskLead) => {
+      if (!supabase) return;
+      const rawValue = (estimateDrafts[lead.id] ?? "").trim();
+      const nextEstimate = rawValue ? Number(rawValue.replace(/,/g, "")) : null;
+      if (rawValue && Number.isNaN(nextEstimate)) {
+        toast({ title: "Quoted amount is invalid", description: "Enter a valid AED amount before saving.", variant: "destructive" });
+        return;
+      }
+      const saveKey = `estimate:${lead.id}`;
+      setSaving(saveKey, true);
+      const { error } = await supabase.from("leads").update({ latest_quote_estimate: nextEstimate }).eq("id", lead.id);
+      setSaving(saveKey, false);
+      if (error) {
+        toast({ title: "Estimate update failed", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({
+        title: "Quoted amount updated",
+        description: nextEstimate === null ? "The quoted amount was cleared." : `Estimate saved as AED ${Math.round(nextEstimate).toLocaleString("en-AE")}.`,
+      });
+      void loadLeadDesk(true);
+    },
+    [estimateDrafts, loadLeadDesk, setSaving, toast],
+  );
+
+  const updateLeadDetailsDraft = useCallback((lead: LeadRow, patch: Partial<LeadDetailsDraft>) => {
+    setLeadDetailsDrafts((current) => ({
+      ...current,
+      [lead.id]: { ...(current[lead.id] ?? makeLeadDetailsDraft(lead)), ...patch },
+    }));
+  }, []);
+
+  const handleLeadDetailsSave = useCallback(
+    async (lead: LeadTaskLead) => {
+      if (!supabase) return;
+      const draft = leadDetailsDrafts[lead.id] ?? makeLeadDetailsDraft(lead);
+      const fullName = draft.fullName.trim() || null;
+      const phone = draft.phone.trim() ? normalizePhone(draft.phone.trim()) : null;
+      const email = draft.email.trim() || null;
+      const vehicleMake = draft.vehicleMake.trim() || null;
+      const vehicleModel = draft.vehicleModel.trim() || null;
+      const vehicleYear = draft.vehicleYear.trim() || null;
+      const manualVehicleLabel = draft.vehicleLabel.trim();
+      const derivedVehicleLabel = [vehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(" ");
+      const vehicleLabel = manualVehicleLabel || derivedVehicleLabel || null;
+      const saveKey = `details:${lead.id}`;
+      setSaving(saveKey, true);
+      const { error } = await supabase
+        .from("leads")
+        .update({
+          full_name: fullName,
+          phone,
+          email,
+          vehicle_make: vehicleMake,
+          vehicle_model: vehicleModel,
+          vehicle_year: vehicleYear,
+          vehicle_label: vehicleLabel,
+        })
+        .eq("id", lead.id);
+      setSaving(saveKey, false);
+      if (error) {
+        toast({ title: "Customer details update failed", description: error.message, variant: "destructive" });
+        return;
+      }
+      setLeadDetailsDrafts((current) => {
+        const next = { ...current };
+        delete next[lead.id];
+        return next;
+      });
+      toast({ title: "Customer details updated", description: "The lead name, contact details, and vehicle info were saved." });
+      void loadLeadDesk(true);
+    },
+    [leadDetailsDrafts, loadLeadDesk, setSaving, toast],
+  );
+
+  const handleDeleteLead = useCallback(
+    async (lead: LeadTaskLead) => {
+      if (!supabase) return;
+      const saveKey = `delete:${lead.id}`;
+      setSaving(saveKey, true);
+      const { error } = await supabase.from("leads").delete().eq("id", lead.id);
+      setSaving(saveKey, false);
+      if (error) {
+        toast({ title: "Lead delete failed", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Lead deleted", description: "The lead and its linked CRM records were removed." });
+      void loadLeadDesk(true);
+    },
+    [loadLeadDesk, setSaving, toast],
+  );
 
   const handleAddNote = useCallback(async (lead: LeadTaskLead) => {
     if (!supabase || !adminProfile?.id) return;
@@ -892,12 +1384,19 @@ export const useLeadTaskBoardData = () => {
   }, [loadLeadDesk, setSaving, toast]);
 
   return {
+    adminProfile,
     adminUsers,
+    adminUsersById,
     stagingLeads,
     isLoading,
     isRefreshing,
     leadScheduleDrafts,
+    setLeadScheduleDrafts,
     noteDrafts,
+    estimateDrafts,
+    setEstimateDrafts,
+    leadDetailsDrafts,
+    setLeadDetailsDrafts,
     savingKeys,
     taskItems,
     taskLeads,
@@ -906,6 +1405,7 @@ export const useLeadTaskBoardData = () => {
     setNoteDrafts,
     updateFollowupDraft,
     updateLeadScheduleDraft,
+    updateLeadDetailsDraft,
     loadLeadDesk,
     handleAddNote,
     handleCreateFollowup,
@@ -914,5 +1414,9 @@ export const useLeadTaskBoardData = () => {
     handleLeadAssignment,
     handleLogOutreach,
     handleStatusChange,
+    handleQualityChange,
+    handleEstimateSave,
+    handleLeadDetailsSave,
+    handleDeleteLead,
   };
 };
