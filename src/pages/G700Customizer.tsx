@@ -54,6 +54,13 @@ type PresetBuild = {
   trimPackage: TrimPackage;
 };
 
+type AccessoryItem = {
+  title: string;
+  description: string;
+  image: string;
+  imageClassName?: string;
+};
+
 const WHATSAPP_NUMBER = "971567191045";
 
 const colorOptions: ColorOption[] = [
@@ -119,6 +126,136 @@ const faqItems = [
   {
     question: "How do I get pricing for my build?",
     answer: "Use the configurator to choose the colour, finish, and trim package you like, then send it through for a quote. We will reply with the right recommendation, pricing direction, and the next step.",
+  },
+];
+
+const accessoryItems: AccessoryItem[] = [
+  {
+    title: "G700 Rear Roof Spoiler",
+    description:
+      "Rear roof spoiler upgrade that gives the G700 a sportier silhouette with vehicle-specific fitment.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-rear-roof-spoiler.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 LED Roof Lights (4 Lenses)",
+    description:
+      "Roofline LED light module trim with 4-lens design for a stronger off-road aesthetic.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-front-led-light-bar-trim.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 2 Lens Front Roof Light Bar",
+    description:
+      "Gloss black lighting trim panel with integrated lens-style detailing on the front end.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-gloss-black-front-grille-light-trim.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Side Ladder Panel",
+    description:
+      "Side ladder style accessory for utility-focused builds with a rugged OEM-inspired look.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-locking-side-ladder-panel.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Side Tool Box",
+    description:
+      "Compact side tool box accessory for secure storage and quick access to essentials.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-jetour-key-cover.jpg", import.meta.url).href,
+    imageClassName: "object-cover scale-100",
+  },
+  {
+    title: "G700 Mudflaps + Wheel Arch Liner Kit",
+    description:
+      "Mud flap and wheel-arch protection kit that helps reduce road spray and stone chips.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-mud-flaps-wheel-arch-liners-kit.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Widebody Fender Flare Kit",
+    description:
+      "Wide arch over-fender kit designed to give the G700 a tougher stance with broader wheel-arch coverage.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-widebody-fender-flare-kit.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Roof Rack",
+    description:
+      "Roof rack panel accessory designed to add practical cargo utility with a clean OEM-style look.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-tailgate-storage-rack-panel.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Bull Bar",
+    description:
+      "Small bull bar with hitch points, designed for a rugged rear setup and recovery-ready styling.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-roof-rack-crossbar-frame.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Lower Skid Plate",
+    description:
+      "Heavy-duty lower skid plate designed to protect the underside while keeping an aggressive off-road look.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-lower-skid-plate.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Side Steps (Set)",
+    description:
+      "Running board side step set that improves entry and exit comfort while enhancing side profile.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-side-steps-running-boards.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Hood Scoop + Vent Trim Set",
+    description:
+      "Gloss black trim package for hood and vent detailing for a bolder front-end appearance.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-gloss-black-hood-scoop-vent-trims.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Rear Bumper Sill Guard Set",
+    description:
+      "Rear entry sill guard trim pieces to help protect loading zones from scratches and scuffs.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-rear-bumper-sill-guard-set.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Door Sill Scuff Plate Set",
+    description:
+      "Door sill scuff plate kit to protect threshold paintwork and keep entry zones cleaner.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-door-sill-scuff-plate-set.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Floor Mats (Rubber + Fabric) 5 Seats",
+    description:
+      "Premium 3D rubber floor mat set designed for full-cabin coverage and easy cleaning.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-3d-rubber-floor-mats-full-set.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Double Layer Floor Mats 5 Seats",
+    description:
+      "Double-layer floor mat set for 5-seat G700 layout, combining durable coverage with a premium carpet finish.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-3d-carpet-floor-mats-set.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Floor Mats Full Set (6 Seats)",
+    description:
+      "Textured full-coverage floor liner set for practical interior protection in daily use.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-textured-floor-liner-full-set.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Cup Holder Silicone Inserts",
+    description:
+      "Multi-piece center console insert kit that adds color-accent styling and surface protection.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-center-console-cup-holder-inserts.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Seat Back Folding Table Trays",
+    description:
+      "Foldable seat-back table trays for rear-passenger utility on daily drives and long trips.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-seat-back-folding-table-trays.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Wireless Charging Silicone Pads",
+    description:
+      "Seat-back protector panel set designed to reduce scuffing from rear passengers and cargo.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-seat-back-kick-protector-panels.jpg", import.meta.url).href,
+  },
+  {
+    title: "G700 Key Cover",
+    description:
+      "Protective key cover accessory designed for a cleaner look and everyday key protection.",
+    image: new URL("../../G700 Accessories/web/jetour-g700-keychain-set.jpg", import.meta.url).href,
   },
 ];
 
@@ -216,6 +353,8 @@ const ReviewVideoCard = ({
 
 const G700Customizer = () => {
   const configuratorRef = useRef<HTMLElement | null>(null);
+  const accessoriesSectionRef = useRef<HTMLElement | null>(null);
+  const accessoriesQuoteRef = useRef<HTMLDivElement | null>(null);
   const imageSwapRequestRef = useRef(0);
   const [selectedColorId, setSelectedColorId] = useState<ColorOption["id"] | null>(null);
   const [selectedFinish, setSelectedFinish] = useState<Finish | null>(null);
@@ -230,6 +369,9 @@ const G700Customizer = () => {
   const [vehicle, setVehicle] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
+  const [isAccessoriesSectionInView, setIsAccessoriesSectionInView] = useState(false);
+  const [isAccessoriesQuoteInView, setIsAccessoriesQuoteInView] = useState(false);
 
   const hasConfiguredBuild = Boolean(selectedColorId && selectedFinish && selectedTrimPackage);
   const activeColor = getColor(selectedColorId ?? "black");
@@ -257,6 +399,13 @@ const G700Customizer = () => {
     hasConfiguredBuild
       ? `Hi Sean, I am interested in customizing a G700 with PPF and trim options.\n\nCurrent build: ${summary}\n\nPlease send pricing and the best next step.`
       : "Hi Sean, I am interested in customizing a G700 with PPF and trim options. Please send pricing and the best next step.",
+  );
+  const accessoriesWhatsappUrl = buildWhatsAppUrl(
+    selectedAccessories.length
+      ? `Hi Sean, I want pricing for these G700 accessories:\n\n${selectedAccessories
+          .map((item, index) => `${index + 1}. ${item}`)
+          .join("\n\n")}\n\nPlease share price and availability.`
+      : "Hi Sean, I want pricing for G700 accessories. Please share available options.",
   );
 
   useEffect(() => {
@@ -328,9 +477,34 @@ const G700Customizer = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const sectionNode = accessoriesSectionRef.current;
+    const quoteNode = accessoriesQuoteRef.current;
+    if (!sectionNode || !quoteNode) return;
+
+    const sectionObserver = new IntersectionObserver(
+      ([entry]) => setIsAccessoriesSectionInView(entry.isIntersecting),
+      { threshold: 0.15 },
+    );
+    const quoteObserver = new IntersectionObserver(
+      ([entry]) => setIsAccessoriesQuoteInView(entry.isIntersecting),
+      { threshold: 0.25 },
+    );
+
+    sectionObserver.observe(sectionNode);
+    quoteObserver.observe(quoteNode);
+
+    return () => {
+      sectionObserver.disconnect();
+      quoteObserver.disconnect();
+    };
+  }, []);
+
   const scrollToConfigurator = () =>
     configuratorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   const openQuoteModal = () => setQuoteOpen(true);
+  const scrollToAccessoriesQuote = () =>
+    accessoriesQuoteRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   const startConfigurator = () => {
     setSelectedColorId("black");
     setSelectedFinish("gloss");
@@ -378,6 +552,13 @@ const G700Customizer = () => {
     }
     setError("");
     window.open(quoteUrl, "_blank", "noopener,noreferrer");
+  };
+  const toggleAccessorySelection = (title: string) => {
+    setSelectedAccessories((current) =>
+      current.includes(title)
+        ? current.filter((item) => item !== title)
+        : [...current, title],
+    );
   };
 
   return (
@@ -566,6 +747,143 @@ const G700Customizer = () => {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section ref={accessoriesSectionRef} className="relative px-4 py-8 sm:px-6 lg:px-8">
+          <div className="container mx-auto max-w-7xl">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-white/45">Accessories</p>
+                <h2 className="mt-2 text-3xl font-bold text-white sm:text-4xl">
+                  G700 accessory catalogue
+                </h2>
+              </div>
+              <a href={quickWhatsappUrl} target="_blank" rel="noreferrer">
+                <Button
+                  variant="outline"
+                  className="rounded-2xl border-[#25D366]/35 bg-[#25D366]/10 text-white hover:bg-[#25D366]/20"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Ask About Accessories
+                </Button>
+              </a>
+            </div>
+
+            <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {accessoryItems.map((item) => (
+                <Card
+                  key={item.title}
+                  className={cn(
+                    "overflow-hidden rounded-[24px] border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(8,8,8,0.98))] text-white transition",
+                    selectedAccessories.includes(item.title)
+                      ? "border-primary/60 shadow-[0_12px_30px_rgba(245,181,43,0.18)]"
+                      : "",
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleAccessorySelection(item.title)}
+                    className="block w-full text-left"
+                    aria-pressed={selectedAccessories.includes(item.title)}
+                  >
+                    <div className="aspect-video overflow-hidden bg-black/30 p-2">
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className={cn(
+                          "h-full w-full rounded-xl object-contain",
+                          item.imageClassName,
+                        )}
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-base font-semibold leading-tight">{item.title}</h3>
+                      <div
+                        className={cn(
+                          "mt-3 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition",
+                          selectedAccessories.includes(item.title)
+                            ? "border-primary/50 bg-primary/15 text-primary"
+                            : "border-white/15 bg-white/5 text-white/70",
+                        )}
+                      >
+                        {selectedAccessories.includes(item.title) ? (
+                          <>
+                            <Check className="h-3.5 w-3.5" />
+                            Selected
+                          </>
+                        ) : (
+                          "Tap to select"
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                </Card>
+              ))}
+            </div>
+
+            <div ref={accessoriesQuoteRef}>
+              <Card className="mt-6 rounded-[24px] border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(8,8,8,0.98))] p-4 text-white sm:p-5">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                    My accessories quote
+                  </p>
+                  <h3 className="mt-1 text-xl font-semibold">
+                    {selectedAccessories.length
+                      ? `${selectedAccessories.length} item${selectedAccessories.length > 1 ? "s" : ""} selected`
+                      : "No accessories selected yet"}
+                  </h3>
+                  <p className="mt-1 text-sm text-white/60">
+                    Select accessories above, then get pricing on WhatsApp with one tap.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+                <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-white/65">
+                  <span>Accessory</span>
+                  <span>Action</span>
+                </div>
+                {selectedAccessories.length ? (
+                  <div className="divide-y divide-white/10">
+                    {selectedAccessories.map((item) => (
+                      <div
+                        key={item}
+                        className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 text-sm"
+                      >
+                        <span className="text-white/90">{item}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleAccessorySelection(item)}
+                          className="rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-white/75 hover:bg-white/10"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-4 py-4 text-sm text-white/60">
+                    No items selected. Tap any accessory card to add it to your quote summary.
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <a href={accessoriesWhatsappUrl} target="_blank" rel="noreferrer">
+                  <Button
+                    className="h-11 rounded-2xl bg-[#25D366] px-5 text-white hover:bg-[#1ebe5d]"
+                    disabled={!selectedAccessories.length}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Get Pricing on WhatsApp
+                  </Button>
+                </a>
+              </div>
+              </Card>
             </div>
           </div>
         </section>
@@ -860,20 +1178,19 @@ const G700Customizer = () => {
           </div>
         </section>
       </main>
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[rgba(8,8,8,0.88)] p-2.5 backdrop-blur-xl md:hidden">
-        <div className="flex gap-2">
-          <Button className="h-11 flex-1 rounded-xl bg-white text-black hover:bg-white/90" onClick={openQuoteModal}>
-            <SlidersHorizontal className="mr-2 h-4 w-4" />
-            Get a Quote
-          </Button>
-          <a href={quickWhatsappUrl} target="_blank" rel="noreferrer" className="flex-1">
-            <Button className="h-11 w-full rounded-xl bg-[#25D366] text-white hover:bg-[#1ebe5d]">
-              <MessageCircle className="mr-2 h-4 w-4" />
-              WhatsApp
+      {isAccessoriesSectionInView && !isAccessoriesQuoteInView && selectedAccessories.length > 0 ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[rgba(8,8,8,0.88)] p-2.5 backdrop-blur-xl">
+          <div className="mx-auto w-full max-w-7xl">
+            <Button
+              className="h-11 w-full rounded-xl bg-white text-black hover:bg-white/90"
+              onClick={scrollToAccessoriesQuote}
+            >
+              <SlidersHorizontal className="mr-2 h-4 w-4" />
+              See My Accessories
             </Button>
-          </a>
+          </div>
         </div>
-      </div>
+      ) : null}
       <Dialog open={quoteOpen} onOpenChange={setQuoteOpen}>
         <DialogContent className="w-[min(92vw,520px)] max-w-none rounded-[24px] border-white/10 bg-[linear-gradient(180deg,rgba(30,30,30,0.96),rgba(8,8,8,0.98))] p-0 text-white shadow-[0_32px_100px_rgba(0,0,0,0.55)]">
           <div className="p-6 sm:p-7">
