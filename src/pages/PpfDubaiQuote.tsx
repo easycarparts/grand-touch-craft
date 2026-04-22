@@ -105,7 +105,7 @@ const EMAILJS_PUBLIC_KEY = "PBrHmtX3m6KZRrwiC";
 const TRUST_SECTION_VIDEO =
   "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/f_auto/v1775906544/Customer_Hand_Over_phxbyt.mp4";
 const WHY_STEK_VIDEO =
-  "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/f_auto/v1775639271/0408_3_gjnsep.mp4";
+  "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto:eco,vc_auto,w_720,c_limit/v1775639271/0408_3_gjnsep.mp4";
 /** Custom poster (public/) — replaces the browser’s default first-frame thumbnail. */
 const WHY_STEK_POSTER = encodeURI("/Screenshot 2026-04-11 162409.png");
 
@@ -2259,6 +2259,14 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const handleWhyStekPlay = () => {
     const video = whyStekVideoRef.current;
     if (!video) return;
+    // Keep this video zero-bandwidth until explicit user intent.
+    if (!video.getAttribute("src")) {
+      const deferredSrc = video.dataset.src;
+      if (deferredSrc) {
+        video.setAttribute("src", deferredSrc);
+        video.load();
+      }
+    }
     const isAtEnd =
       video.ended ||
       (Number.isFinite(video.duration) && video.duration > 0 && video.currentTime >= video.duration - 0.2);
@@ -2992,10 +3000,10 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         "aspect-[4/5] h-auto w-full object-cover",
                         isWhyStekPlaying ? "cursor-pointer touch-pan-y" : "pointer-events-none"
                       )}
-                      src={WHY_STEK_VIDEO}
+                      data-src={WHY_STEK_VIDEO}
                       poster={WHY_STEK_POSTER}
                       playsInline
-                      preload="metadata"
+                      preload="none"
                       loop={false}
                       controls={false}
                       onPointerDown={handleWhyStekVideoPointerDown}
