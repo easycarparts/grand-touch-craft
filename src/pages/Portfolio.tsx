@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import HomeHandovers from "@/components/HomeHandovers";
 import { Card } from "@/components/ui/card";
 import { Camera } from "lucide-react";
 import { updatePageSEO } from "@/lib/seo";
@@ -50,6 +51,8 @@ const Portfolio = () => {
           </p>
         </div>
       </section>
+
+      <HomeHandovers />
 
       {/* Portfolio Grid */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">

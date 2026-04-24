@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import footerLogo from "@/assets/logo-footer.svg";
 
 const Footer = () => {
+  const googleMapsUrl = "https://maps.app.goo.gl/QYYAMcW8TiEETeHs8";
+
   return (
     <footer className="bg-card border-t border-border/50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="container mx-auto">
@@ -44,7 +46,7 @@ const Footer = () => {
               <li className="flex items-start space-x-3">
                 <MapPin className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
                 <a
-                  href="https://maps.app.goo.gl/j6CZCqFX2bDYtCLf7"
+                  href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors"
@@ -106,7 +108,17 @@ const Footer = () => {
               Terms & Conditions
             </Link>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-3">
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary shadow-[0_0_28px_rgba(247,181,43,0.22)] transition hover:bg-primary hover:text-primary-foreground"
+              aria-label="Open Grand Touch location on Google Maps"
+            >
+              <MapPin className="h-4 w-4" />
+              Open Location
+            </a>
             <a
               href="https://www.instagram.com/grandtouchauto/"
               target="_blank"

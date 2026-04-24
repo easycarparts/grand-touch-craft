@@ -27,9 +27,7 @@ const Navbar = ({ sticky = true }: NavbarProps) => {
 
   const navLinks = [
     { name: "Home", path: "/" },
-    { name: "Services", path: "/services" },
     { name: "Portfolio", path: "/portfolio" },
-    { name: "Contact", path: "/contact" },
   ];
 
   return (
