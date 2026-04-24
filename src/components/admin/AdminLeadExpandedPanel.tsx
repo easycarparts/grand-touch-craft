@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { CheckCircle2, Trash2 } from "lucide-react";
 
+import { G700BuildSummaryCard } from "@/components/admin/G700BuildSummaryCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -585,6 +586,8 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                       </div>
                                     </Card>
                                   </div>
+
+                                  <G700BuildSummaryCard lead={lead} />
 
                                   <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
                                     <Card className="border-white/10 bg-black/20 p-4">

@@ -17,6 +17,7 @@ type LeadAlertRow = {
   vehicle_label: string | null;
   source_platform: string | null;
   landing_page_variant: string | null;
+  funnel_name: string | null;
   lead_source_type: string;
   status: string;
   quality_label: string;
@@ -44,6 +45,7 @@ type LeadSummaryRow = {
   phone: string | null;
   vehicle_label: string | null;
   source_platform: string | null;
+  funnel_name: string | null;
   quality_label: string;
   latest_quote_estimate: number | null;
   created_at: string | null;
@@ -168,12 +170,33 @@ const getWhatsAppLink = (phone: string | null) => {
   return `https://wa.me/${normalized}`;
 };
 
-const formatSourceLabel = (sourcePlatform: string | null, leadSourceType?: string | null) => {
-  const source = sourcePlatform || leadSourceType || "website";
-  return source
-    .split("_")
+const FUNNEL_DISPLAY_LABELS: Record<string, string> = {
+  g700_customizer: "G700 Customizer",
+};
+
+const titleCase = (value: string) =>
+  value
+    .split(/[_\s-]+/)
+    .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+
+const formatSourceLabel = (
+  sourcePlatform: string | null,
+  leadSourceType?: string | null,
+  funnelName?: string | null,
+) => {
+  const funnelLabel = funnelName ? FUNNEL_DISPLAY_LABELS[funnelName] : null;
+
+  if (funnelLabel) {
+    const platform = sourcePlatform && sourcePlatform !== "direct"
+      ? ` · ${titleCase(sourcePlatform)}`
+      : "";
+    return `${funnelLabel}${platform}`;
+  }
+
+  const source = sourcePlatform || leadSourceType || "website";
+  return titleCase(source);
 };
 
 const getCampaignLabel = (lead: Pick<LeadAlertRow, "external_ad_name" | "utm_campaign" | "external_campaign_name">) =>
@@ -246,7 +269,7 @@ const fetchLeadAlertDetails = async (leadId: string) => {
   const { data, error } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign, external_ad_name, external_campaign_name",
+      "id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, funnel_name, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign, external_ad_name, external_campaign_name",
     )
     .eq("id", leadId)
     .maybeSingle();
@@ -259,7 +282,7 @@ const fetchFollowupAlertDetails = async (followupId: string) => {
   const { data, error } = await supabase
     .from("lead_followups")
     .select(
-      "id, due_at, channel, notes, leads:lead_id(id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign, external_ad_name, external_campaign_name)",
+      "id, due_at, channel, notes, leads:lead_id(id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, funnel_name, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign, external_ad_name, external_campaign_name)",
     )
     .eq("id", followupId)
     .maybeSingle();
@@ -278,7 +301,7 @@ const buildNewLeadMessage = (lead: LeadAlertRow, titleFallback: string) => {
   const phone = escapeHtml(lead.phone || "No phone captured");
   const email = escapeHtml(lead.email || "No email captured");
   const vehicle = escapeHtml(collapseRepeatedPhrase(lead.vehicle_label) || "Vehicle not captured yet");
-  const source = escapeHtml(formatSourceLabel(lead.source_platform, lead.lead_source_type));
+  const source = escapeHtml(formatSourceLabel(lead.source_platform, lead.lead_source_type, lead.funnel_name));
   const estimate = escapeHtml(formatCurrency(lead.latest_quote_estimate));
   const campaign = escapeHtml(getCampaignLabel(lead));
   const leadState = lead.submitted_at ? "✅ Submitted lead" : "📝 Partial / manual lead";
@@ -312,7 +335,9 @@ const buildFollowupCreatedMessage = (followup: FollowupAlertRow, titleFallback: 
   const leadName = escapeHtml(lead?.full_name || lead?.phone || "Unnamed lead");
   const phone = escapeHtml(lead?.phone || "No phone captured");
   const vehicle = escapeHtml(collapseRepeatedPhrase(lead?.vehicle_label) || "Vehicle not captured yet");
-  const source = escapeHtml(formatSourceLabel(lead?.source_platform || null, lead?.lead_source_type || null));
+  const source = escapeHtml(
+    formatSourceLabel(lead?.source_platform || null, lead?.lead_source_type || null, lead?.funnel_name || null),
+  );
   const notes = escapeHtml(followup.notes || "No follow-up notes");
 
   return [
@@ -374,7 +399,7 @@ const fetchUncontactedLeads = async () => {
   const { data, error } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, vehicle_label, source_platform, quality_label, latest_quote_estimate, created_at, last_activity_at",
+      "id, full_name, phone, vehicle_label, source_platform, funnel_name, quality_label, latest_quote_estimate, created_at, last_activity_at",
     )
     .eq("status", "new")
     .order("last_activity_at", { ascending: false, nullsFirst: false })
@@ -391,7 +416,7 @@ const fetchFollowupWindow = async (window: "overdue" | "today" | "tomorrow") => 
   let query = supabase
     .from("lead_followups")
     .select(
-      "id, due_at, channel, notes, leads:lead_id(id, full_name, phone, vehicle_label, source_platform, quality_label, latest_quote_estimate, created_at, last_activity_at)",
+      "id, due_at, channel, notes, leads:lead_id(id, full_name, phone, vehicle_label, source_platform, funnel_name, quality_label, latest_quote_estimate, created_at, last_activity_at)",
     )
     .eq("status", "open")
     .not("due_at", "is", null);
@@ -413,7 +438,7 @@ const renderLeadLine = (lead: LeadSummaryRow, index: number) => {
   const name = escapeHtml(lead.full_name || lead.phone || "Unnamed lead");
   const phone = escapeHtml(lead.phone || "No phone");
   const vehicle = escapeHtml(collapseRepeatedPhrase(lead.vehicle_label) || "No vehicle");
-  const source = escapeHtml(formatSourceLabel(lead.source_platform, null));
+  const source = escapeHtml(formatSourceLabel(lead.source_platform, null, lead.funnel_name));
   const estimate = escapeHtml(formatCurrency(lead.latest_quote_estimate));
   const whatsapp = getWhatsAppLink(lead.phone);
 
@@ -432,7 +457,7 @@ const renderFollowupLine = (followup: DigestFollowupRow, index: number, emoji: s
   const lead = followup.leads;
   const name = escapeHtml(lead?.full_name || lead?.phone || "Unnamed lead");
   const vehicle = escapeHtml(collapseRepeatedPhrase(lead?.vehicle_label) || "No vehicle");
-  const source = escapeHtml(formatSourceLabel(lead?.source_platform || null, null));
+  const source = escapeHtml(formatSourceLabel(lead?.source_platform || null, null, lead?.funnel_name || null));
   const notes = escapeHtml(followup.notes || "No notes");
   const whatsapp = getWhatsAppLink(lead?.phone || null);
 
