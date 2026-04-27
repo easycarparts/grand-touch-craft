@@ -836,7 +836,7 @@ const QuoteUnlockForm = ({
                   className="mt-2.5 h-auto w-full whitespace-normal px-3 py-2.5 text-center text-[0.95rem] leading-snug rounded-xl border border-[#25D366]/35 bg-[#25D366]/10 text-[#d7ffe9] hover:bg-[#25D366]/20 hover:text-white sm:whitespace-nowrap"
                   onClick={onSkipToWhatsApp}
                 >
-                  In a hurry? Skip and talk to Sean on WhatsApp
+                  Prefer WhatsApp? Talk to Sean now
                 </Button>
               ) : null}
             </div>
@@ -948,7 +948,7 @@ const QuoteUnlockForm = ({
                 className="h-auto w-full whitespace-normal px-3 py-2.5 text-center text-[0.95rem] leading-snug rounded-xl border border-[#25D366]/35 bg-[#25D366]/10 text-[#d7ffe9] hover:bg-[#25D366]/20 hover:text-white sm:whitespace-nowrap"
                 onClick={onSkipToWhatsApp}
               >
-                In a hurry? Skip and talk to Sean on WhatsApp
+                Prefer WhatsApp? Talk to Sean now
               </Button>
             ) : null}
           </div>
@@ -2562,14 +2562,16 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     </DialogContent>
                   </Dialog>
 
-                  <button
+                  <Button
                     type="button"
-                    className="self-start text-sm text-slate-400 transition hover:text-slate-200 sm:hidden"
+                    variant="default"
+                    className={cn(heroWhatsAppButtonClass, "sm:hidden")}
+                    size="lg"
                     onClick={() => handleWhatsAppClick("hero")}
                   >
-                    <span>Want to chat instead? </span>
-                    <span className="font-medium text-white underline underline-offset-4">Ask Sean on WhatsApp</span>
-                  </button>
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Ask Sean on WhatsApp
+                  </Button>
 
                   <div className="grid grid-cols-3 gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:hidden">
                     {[
