@@ -2483,6 +2483,10 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                         event.preventDefault();
                       }}
                     >
+                      <DialogTitle className="sr-only">PPF quote form</DialogTitle>
+                      <DialogDescription className="sr-only">
+                        Enter your contact and vehicle details to unlock your Grand Touch PPF quote.
+                      </DialogDescription>
                       <div
                         data-quote-modal-scroll
                         className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-auto [-webkit-overflow-scrolling:touch]"
