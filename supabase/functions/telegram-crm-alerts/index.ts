@@ -548,6 +548,7 @@ const deliverQueuedAlerts = async () => {
   const alerts = (data as QueueRow[]) ?? [];
   let sent = 0;
   let failed = 0;
+  let skipped = 0;
 
   for (const alert of alerts) {
     try {
@@ -610,7 +611,7 @@ const deliverQueuedAlerts = async () => {
     }
   }
 
-  return { processed: alerts.length, sent, failed };
+  return { processed: alerts.length, sent, failed, skipped };
 };
 
 const sendMorningDigest = async () => {

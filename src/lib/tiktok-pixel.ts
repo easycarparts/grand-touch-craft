@@ -132,3 +132,19 @@ export const trackTikTokSubmitForm = (payload: Record<string, unknown>) => {
     ttq.instance?.(pixelId).track?.("SubmitForm", payload);
   }
 };
+
+export const trackTikTokEvent = (eventName: string, payload: Record<string, unknown> = {}) => {
+  const ttq = ensureTikTokStub();
+  if (!ttq) return;
+
+  const pixelIds = getPixelIds();
+  for (const pixelId of pixelIds) {
+    if (!ttq._t?.[pixelId]) {
+      ttq.load?.(pixelId);
+    }
+  }
+
+  for (const pixelId of pixelIds) {
+    ttq.instance?.(pixelId).track?.(eventName, payload);
+  }
+};

@@ -29,6 +29,8 @@ import PpfCostDubaiPricingGuide from "./pages/articles/PpfCostDubaiPricingGuide"
 import MatteVsGlossPpfDubai from "./pages/articles/MatteVsGlossPpfDubai";
 import PpfDubaiQuote from "./pages/PpfDubaiQuote";
 import PpfDubaiQuoteV1 from "./pages/PpfDubaiQuoteV1";
+import PpfTikTokGuidedQuote from "./pages/PpfTikTokGuidedQuote";
+import PpfTikTokGuidedFunnel from "./pages/PpfTikTokGuidedFunnel";
 import AdminFunnelDashboard from "./pages/AdminFunnelDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminLeads from "./pages/AdminLeads";
@@ -88,6 +90,8 @@ function App() {
             <Route path="/ppf-tiktok-quote" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote-v2" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote_2" element={<PpfDubaiQuote variant="tiktok" />} />
+            <Route path="/ppf-tiktok-quote-guided" element={<PpfTikTokGuidedQuote />} />
+            <Route path="/ppf-tiktok-quote-guided/funnel" element={<PpfTikTokGuidedFunnel />} />
             <Route path="/ppf-dubai-quote-v1" element={<PpfDubaiQuoteV1 />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route

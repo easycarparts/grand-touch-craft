@@ -30,6 +30,12 @@ import {
   trackFunnelEvent,
 } from "@/lib/funnel-analytics";
 import { initTikTokPixel, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
+import {
+  hasUsableTikTokGuidedDraft,
+  readTikTokGuidedDraft,
+  saveTikTokGuidedDraft,
+  type TikTokGuidedDraft,
+} from "@/lib/tiktok-guided-draft";
 import { updatePageSEO } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
@@ -60,7 +66,7 @@ type CalculatorSelection = {
 };
 
 type QuoteModalFlow = "standard" | "calculator";
-type LandingPageVariant = "google" | "tiktok";
+type LandingPageVariant = "google" | "tiktok" | "tiktok_guided";
 type StoredLeadProfile = {
   submitted: boolean;
   name: string;
@@ -243,72 +249,26 @@ const getCalculatorPackageLabel = (calculatorSelection: CalculatorSelection) => 
 
 const buildWhatsAppUrl = (message: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-const buildWhatsAppAppUrl = (message: string) =>
-  `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
-const extractWhatsAppMessage = (url: string) => {
-  try {
-    return new URL(url).searchParams.get("text") ?? "";
-  } catch {
-    return "";
-  }
-};
-const isProbablyMobileDevice = () => {
-  if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia?.("(pointer: coarse)").matches === true ||
-    /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent)
-  );
-};
 const openWhatsAppUrl = (url: string) => {
   if (typeof window === "undefined") return;
-
-  if (isProbablyMobileDevice()) {
-    const appUrl = buildWhatsAppAppUrl(extractWhatsAppMessage(url));
-    let fallbackTimer = 0;
-    let cleanedUp = false;
-
-    const cleanup = () => {
-      if (cleanedUp) return;
-      cleanedUp = true;
-      if (fallbackTimer) {
-        window.clearTimeout(fallbackTimer);
-      }
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("pagehide", cleanup);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        cleanup();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("pagehide", cleanup, { once: true });
-
-    fallbackTimer = window.setTimeout(() => {
-      const shouldFallback = document.visibilityState === "visible";
-      cleanup();
-      if (shouldFallback) {
-        window.location.assign(url);
-      }
-    }, 900);
-
-    try {
-      window.location.assign(appUrl);
-      return;
-    } catch {
-      cleanup();
-      window.location.assign(url);
-      return;
-    }
-  }
-
-  const popup = window.open(url, "_blank", "noopener,noreferrer");
-  if (!popup) {
-    window.location.assign(url);
-  }
+  window.open(url, "_blank", "noopener,noreferrer");
 };
+
+const getGuidedCaptureUrl = () => {
+  if (typeof window === "undefined") return "/ppf-tiktok-quote-guided";
+  return `/ppf-tiktok-quote-guided${window.location.search || ""}`;
+};
+
+const isCompleteGuidedDraft = (draft: TikTokGuidedDraft | null) =>
+  Boolean(
+    draft &&
+      hasUsableTikTokGuidedDraft(draft) &&
+      draft.fullName.trim() &&
+      isValidPhoneNumber(draft.phone) &&
+      draft.vehicleMake.trim() &&
+      draft.vehicleModel.trim() &&
+      /^\d{4}$/.test(draft.vehicleYear.trim()),
+  );
 
 const landingPageCopy = {
   google: {
@@ -340,6 +300,21 @@ const landingPageCopy = {
       "TikTok-first PPF quote funnel for Dubai drivers with quick qualification, visual proof, and fast WhatsApp handoff.",
     seoUrl: "https://www.grandtouchauto.ae/ppf-tiktok-quote_2",
     tikTokContentName: "PPF TikTok Quote Funnel",
+  },
+  tiktok_guided: {
+    funnelName: "ppf_tiktok_guided_quote",
+    landingPageVariant: "tiktok_guided" as const,
+    defaultSourcePlatform: "tiktok",
+    seoKey: "ppf-tiktok-guided-funnel",
+    seoTitle: "Guided PPF Funnel | Grand Touch",
+    seoDescription:
+      "Continue from the guided TikTok PPF quote flow into the full Grand Touch PPF funnel without restarting your quote.",
+    seoKeywords:
+      "guided PPF funnel Dubai, TikTok PPF quote Dubai, STEK PPF Dubai, Grand Touch PPF quote",
+    seoOgDescription:
+      "Guided TikTok PPF continuation funnel with saved quote context, calculator, and WhatsApp handoff.",
+    seoUrl: "https://www.grandtouchauto.ae/ppf-tiktok-quote-guided/funnel",
+    tikTokContentName: "PPF TikTok Guided Quote Funnel",
   },
 } satisfies Record<
   LandingPageVariant,
@@ -405,6 +380,7 @@ const SectionCta = ({
   stacked?: boolean;
   }) => {
   const showSecondary = Boolean(onSecondaryClick);
+  const showPrimary = Boolean(primaryLabel);
   const secondaryButton = (
     <Button
       type="button"
@@ -431,19 +407,21 @@ const SectionCta = ({
           showSecondary && !stacked && (align === "center" ? "sm:justify-center" : "sm:justify-start")
         )}
       >
-        <Button
-          size="lg"
-          variant="default"
-            className={cn(
-            primaryPpfCtaButtonClass,
-            "w-full",
-            stacked ? "h-auto min-h-11 whitespace-normal py-3 sm:py-3" : showSecondary ? "sm:w-auto" : "sm:max-w-md"
-          )}
-          onClick={onPrimaryClick}
-          >
-            {primaryLabel}
-            <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
-          </Button>
+        {showPrimary ? (
+          <Button
+            size="lg"
+            variant="default"
+              className={cn(
+              primaryPpfCtaButtonClass,
+              "w-full",
+              stacked ? "h-auto min-h-11 whitespace-normal py-3 sm:py-3" : showSecondary ? "sm:w-auto" : "sm:max-w-md"
+            )}
+            onClick={onPrimaryClick}
+            >
+              {primaryLabel}
+              <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+            </Button>
+        ) : null}
           {showSecondary ? (
             secondaryHref ? (
               <a
@@ -1000,7 +978,7 @@ const QuoteUnlockForm = ({
                   Open PPF Price Calculator
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
+                <div className="w-full sm:w-auto">
                   <Button
                     type="button"
                     variant="default"
@@ -1011,7 +989,7 @@ const QuoteUnlockForm = ({
                     <MessageCircle className="mr-2 h-4 w-4" />
                     Ask Sean on WhatsApp
                   </Button>
-                </a>
+                </div>
               </div>
             </div>
           )
@@ -1021,27 +999,35 @@ const QuoteUnlockForm = ({
   );
 };
 
-const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant }) => {
+const PpfTikTokGuidedFunnel = ({ variant = "tiktok_guided" }: { variant?: LandingPageVariant }) => {
   const variantConfig = landingPageCopy[variant];
   const leadProfileStorageKey = `${LEAD_PROFILE_STORAGE_KEY_BASE}-${variantConfig.landingPageVariant}`;
+  const guidedDraft = useMemo(() => readTikTokGuidedDraft(), []);
+  const parsedGuidedPhone = useMemo(
+    () => parseIntlPhoneNumber(guidedDraft?.phone || `+${DEFAULT_PHONE_COUNTRY_CODE}`),
+    [guidedDraft],
+  );
+  const hasCompletedGuidedDraft = isCompleteGuidedDraft(guidedDraft);
   const [heroFormOpen, setHeroFormOpen] = useState(false);
   const [quoteModalFlow, setQuoteModalFlow] = useState<QuoteModalFlow>("standard");
   const [formStep, setFormStep] = useState<1 | 2 | 3>(1);
-  const [name, setName] = useState("");
-  const [phoneCountryCode, setPhoneCountryCode] = useState(DEFAULT_PHONE_COUNTRY_CODE);
-  const [phoneCountryCodeCustom, setPhoneCountryCodeCustom] = useState("");
-  const [phoneLocalNumber, setPhoneLocalNumber] = useState("");
-  const [vehicleMake, setVehicleMake] = useState("");
-  const [vehicleModel, setVehicleModel] = useState("");
-  const [vehicleYear, setVehicleYear] = useState("");
+  const [name, setName] = useState(guidedDraft?.fullName || "");
+  const [phoneCountryCode, setPhoneCountryCode] = useState(parsedGuidedPhone.countryCode);
+  const [phoneCountryCodeCustom, setPhoneCountryCodeCustom] = useState(
+    isPresetPhoneCountryCode(parsedGuidedPhone.countryCode) ? "" : parsedGuidedPhone.countryCode,
+  );
+  const [phoneLocalNumber, setPhoneLocalNumber] = useState(parsedGuidedPhone.localNumber);
+  const [vehicleMake, setVehicleMake] = useState(guidedDraft?.vehicleMake || "");
+  const [vehicleModel, setVehicleModel] = useState(guidedDraft?.vehicleModel || "");
+  const [vehicleYear, setVehicleYear] = useState(guidedDraft?.vehicleYear || "");
   const [phoneError, setPhoneError] = useState("");
   const [vehicleError, setVehicleError] = useState("");
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState(hasCompletedGuidedDraft);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingCalculatorLead, setIsSendingCalculatorLead] = useState(false);
   const [isWhyStekPlaying, setIsWhyStekPlaying] = useState(false);
-  const [selection, setSelection] = useState<CalculatorSelection | null>(null);
-  const [calculatorPriceUnlocked, setCalculatorPriceUnlocked] = useState(false);
+  const [selection, setSelection] = useState<CalculatorSelection | null>(guidedDraft?.calculatorSelection ?? null);
+  const [calculatorPriceUnlocked, setCalculatorPriceUnlocked] = useState(Boolean(guidedDraft?.calculatorSelection?.priceRevealed));
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [showMobileStickyCta, setShowMobileStickyCta] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -1054,6 +1040,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const lastTrackedQuoteSignature = useRef<string | null>(null);
   const lastTrackedContactSignature = useRef<string | null>(null);
   const lastTrackedVehicleSignature = useRef<string | null>(null);
+  const hasAutoOpenedGuidedReveal = useRef(false);
   const calculatorRef = useRef<HTMLElement | null>(null);
   /**
    * Lead notifications go through Telegram/backend now; EmailJS is opt-in for debugging.
@@ -1129,6 +1116,9 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       /^\d{4}$/.test(vehicleYear.trim()),
     [vehicleMake, vehicleModel, vehicleYear]
   );
+  const isGuidedFunnel = variantConfig.landingPageVariant === "tiktok_guided";
+  const hasGuidedKnownLead = isGuidedFunnel && (formSubmitted || hasCompletedGuidedDraft || (hasValidContactDetails && hasValidVehicleDetails));
+  const shouldShowQuotePrimaryCta = variantConfig.landingPageVariant !== "tiktok_guided" || !formSubmitted;
   const getResumeFormStep = useCallback((): 1 | 2 | 3 => {
     if (formSubmitted) return 3;
     if (hasValidContactDetails) return 2;
@@ -1150,7 +1140,18 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   }, [hasValidContactDetails, hasValidVehicleDetails, mobile, name, vehicleMake, vehicleModel, vehicleYear]);
 
   useEffect(() => {
+    if (!hasCompletedGuidedDraft) return;
+    if (contactSignature) {
+      lastTrackedContactSignature.current = contactSignature;
+    }
+    if (vehicleSignature) {
+      lastTrackedVehicleSignature.current = vehicleSignature;
+    }
+  }, [contactSignature, hasCompletedGuidedDraft, vehicleSignature]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
+    if (isGuidedFunnel && hasCompletedGuidedDraft) return;
     const stored = window.localStorage.getItem(leadProfileStorageKey);
     if (!stored) return;
 
@@ -1186,7 +1187,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     } catch (error) {
       console.warn("Failed to restore stored PPF lead profile", error);
     }
-  }, [leadProfileStorageKey]);
+  }, [hasCompletedGuidedDraft, isGuidedFunnel, leadProfileStorageKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1277,6 +1278,45 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       });
     },
     [funnelContext]
+  );
+
+  const saveCalculatorDraft = useCallback(
+    (calculatorSelection: CalculatorSelection, priceRevealed = calculatorPriceUnlocked) => {
+      saveTikTokGuidedDraft({
+        flowVariant: guidedDraft?.flowVariant ?? "intent_first",
+        fullName: name.trim(),
+        phone: mobile.trim(),
+        countryCode: phoneCountryCode,
+        localPhone: phoneLocalNumber,
+        vehicleMake: vehicleMake.trim(),
+        vehicleModel: vehicleModel.trim(),
+        vehicleYear: vehicleYear.trim(),
+        vehicleLabel: vehicleSummary,
+        finishPreference: guidedDraft?.finishPreference ?? "",
+        sessionId: funnelContext.sessionId,
+        attribution: funnelContext.attribution,
+        calculatorSelection: {
+          ...calculatorSelection,
+          priceRevealed,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    },
+    [
+      calculatorPriceUnlocked,
+      funnelContext.attribution,
+      funnelContext.sessionId,
+      guidedDraft?.finishPreference,
+      guidedDraft?.flowVariant,
+      mobile,
+      name,
+      phoneCountryCode,
+      phoneLocalNumber,
+      vehicleMake,
+      vehicleModel,
+      vehicleSummary,
+      vehicleYear,
+    ],
   );
 
   const openTrackedWhatsApp = useCallback(
@@ -1424,7 +1464,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   };
 
   const trackTikTokLeadConversion = () => {
-    if (variant !== "tiktok") return;
+    if (variant !== "tiktok" && variant !== "tiktok_guided") return;
 
     trackTikTokSubmitForm({
       content_name: variantConfig.tikTokContentName,
@@ -1527,6 +1567,40 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   }, [trackEvent, variantConfig]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const scrollToHashTarget = () => {
+      const hash = window.location.hash.replace(/^#/, "");
+      if (!hash) return;
+
+      if (hash === "quote-calculator") {
+        const calculator = document.getElementById("quote-calculator");
+        if (calculator) {
+          calculator.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          scrollToCalculatorSection();
+        }
+        return;
+      }
+
+      const target = document.getElementById(hash);
+      if (!target) return;
+
+      requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    };
+
+    window.setTimeout(scrollToHashTarget, 80);
+    window.setTimeout(scrollToHashTarget, 260);
+    window.setTimeout(scrollToHashTarget, 700);
+    window.setTimeout(scrollToHashTarget, 1300);
+    window.addEventListener("hashchange", scrollToHashTarget);
+
+    return () => window.removeEventListener("hashchange", scrollToHashTarget);
+  }, [scrollToCalculatorSection]);
+
+  useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
 
     const viewport = window.visualViewport;
@@ -1571,13 +1645,20 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     lastTrackedQuoteSignature.current = signature;
     const packageLabel = `${selection.brand}${selection.stekLine ? ` ${selection.stekLine}` : ""} ${selection.warrantyYears}-year`;
     trackEvent("quote_unlocked", {
+      lead_name: name.trim(),
+      lead_phone: mobile.trim(),
       package_name: packageLabel,
       size: selection.size,
       coverage: selection.coverage,
       finish: selection.finish,
       estimate_value: selection.estimateMin,
+      vehicle_make: vehicleMake.trim(),
+      vehicle_model: vehicleModel.trim(),
+      vehicle_year: vehicleYear.trim(),
+      vehicle_label: vehicleSummary,
+      protection_level: `${selection.coverage} | ${selection.finish} | ${packageLabel}`,
     });
-  }, [formStep, heroFormOpen, quoteModalFlow, selection, trackEvent]);
+  }, [formStep, heroFormOpen, mobile, name, quoteModalFlow, selection, trackEvent, vehicleMake, vehicleModel, vehicleSummary, vehicleYear]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
@@ -1874,6 +1955,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         setFormSubmitted(true);
         if (quoteModalFlow === "calculator" && selection) {
           setCalculatorPriceUnlocked(true);
+          saveCalculatorDraft(selection, true);
         }
         setFormStep(3);
 
@@ -2071,6 +2153,20 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     trackEvent(placement === "hero" ? "hero_cta_click" : "quote_cta_click", {
       cta_location: placement,
     });
+
+    if (isGuidedFunnel) {
+      if (hasGuidedKnownLead) {
+        setFormSubmitted(true);
+        scrollToCalculatorSection();
+        return;
+      }
+
+      if (typeof window !== "undefined") {
+        window.location.href = getGuidedCaptureUrl();
+      }
+      return;
+    }
+
     trackEvent("quote_modal_opened", {
       flow: "standard",
       cta_location: placement,
@@ -2095,10 +2191,46 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     });
     setQuoteModalFlow("calculator");
 
-    if (formSubmitted) {
+    if (isGuidedFunnel && !hasGuidedKnownLead) {
+      if (typeof window !== "undefined") {
+        window.location.href = getGuidedCaptureUrl();
+      }
+      return;
+    }
+
+    if (formSubmitted || hasGuidedKnownLead) {
+      setFormSubmitted(true);
       setCalculatorPriceUnlocked(true);
       setFormStep(3);
       setHeroFormOpen(true);
+      const packageLabel = getCalculatorPackageLabel(selection);
+      saveCalculatorDraft(selection, true);
+      const persistResult = await captureLeadSnapshot({
+        snapshotType: "vehicle",
+        context: funnelContext,
+        fullName: name.trim(),
+        phone: mobile.trim(),
+        vehicleMake: vehicleMake.trim(),
+        vehicleModel: vehicleModel.trim(),
+        vehicleYear: vehicleYear.trim(),
+        payload: {
+          flow: "calculator",
+          vehicle: vehicleSummary,
+          calculator_revealed: true,
+          package_name: packageLabel,
+          vehicle_size: selection.size,
+          coverage: selection.coverage,
+          finish: selection.finish,
+          estimate_value: selection.estimateMin,
+          protection_level: `${selection.coverage} | ${selection.finish} | ${packageLabel}`,
+        },
+      });
+      if (!persistResult.ok) {
+        const suffix = persistResult.code ? ` (${persistResult.code})` : "";
+        setLeadSnapshotSaveError(`${persistResult.reason}${suffix}`);
+      } else {
+        setLeadSnapshotSaveError(null);
+      }
       try {
         await sendCalculatorRevealEmail(selection);
       } catch (error) {
@@ -2143,6 +2275,20 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     });
     scrollToCalculatorSection();
   }, [scrollToCalculatorSection, trackEvent, variantConfig.landingPageVariant]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (hasAutoOpenedGuidedReveal.current) return;
+    if (!isGuidedFunnel || !selection || !hasGuidedKnownLead) return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("guided_reveal") !== "1") return;
+
+    hasAutoOpenedGuidedReveal.current = true;
+    window.setTimeout(() => {
+      void openCalculatorQuoteModal();
+    }, 350);
+  }, [hasGuidedKnownLead, isGuidedFunnel, selection]);
 
   const faqItems = [
     {
@@ -2462,18 +2608,31 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
                 <div className="mt-5 flex flex-col gap-3">
                   <Dialog open={heroFormOpen} onOpenChange={handleModalOpenChange}>
-                    <DialogTrigger asChild>
+                    {variantConfig.landingPageVariant === "tiktok_guided" ? (
                       <Button
                         size="lg"
                         variant="default"
-                        className={cn(primaryPpfCtaButtonClass, "w-full")}
+                        className={cn(primaryPpfCtaButtonClass, "w-full", !shouldShowQuotePrimaryCta && "hidden")}
                         onClick={() => openHeroForm("hero")}
                       >
                         <span className="sm:hidden">Get My PPF Estimate</span>
                         <span className="hidden sm:inline">Get My PPF Quote</span>
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
-                    </DialogTrigger>
+                    ) : (
+                      <DialogTrigger asChild>
+                        <Button
+                          size="lg"
+                          variant="default"
+                          className={cn(primaryPpfCtaButtonClass, "w-full", !shouldShowQuotePrimaryCta && "hidden")}
+                          onClick={() => openHeroForm("hero")}
+                        >
+                          <span className="sm:hidden">Get My PPF Estimate</span>
+                          <span className="hidden sm:inline">Get My PPF Quote</span>
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                    )}
                     <DialogContent
                       className={cn(
                         "flex max-h-[min(92dvh,820px)] min-h-0 w-[calc(100vw-1rem)] flex-col overflow-hidden overflow-x-hidden border-0 bg-transparent p-0 shadow-none outline-none focus-visible:outline-none sm:w-full [&>button]:hidden",
@@ -2840,7 +2999,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       type="button"
                       size="lg"
                       variant="default"
-                      className={cn(primaryPpfCtaButtonClass, "w-full sm:w-auto")}
+                      className={cn(primaryPpfCtaButtonClass, "w-full sm:w-auto", !shouldShowQuotePrimaryCta && "hidden")}
                       onClick={() => openHeroForm("serious_buyer_risks")}
                     >
                       Get My PPF Estimate
@@ -3250,7 +3409,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
             </div>
 
               <SectionCta
-                primaryLabel="Get My PPF Quote"
+                primaryLabel={shouldShowQuotePrimaryCta ? "Get My PPF Quote" : ""}
                 secondaryLabel="Ask Sean on WhatsApp"
                 onPrimaryClick={() => openHeroForm("mid_page")}
                 onSecondaryClick={() => handleWhatsAppClick("mid_page")}
@@ -3421,6 +3580,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       <SectionCta
                         stacked
                         className="mt-5"
+                        primaryLabel={shouldShowQuotePrimaryCta ? "Get My PPF Quote" : ""}
                         onPrimaryClick={() => openHeroForm("warranty_section")}
                         note="When you are ready, open Get My PPF Quote — same action as at the top of the page."
                       />
@@ -3487,8 +3647,17 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                   priceUnlocked={calculatorPriceUnlocked}
                   brandOptions={["STEK"]}
                   defaultBrand="STEK"
+                  defaultWarrantyYears={guidedDraft?.calculatorSelection?.warrantyYears ?? 10}
+                  defaultSize={guidedDraft?.calculatorSelection?.size ?? null}
+                  defaultFinish={guidedDraft?.calculatorSelection?.finish ?? null}
+                  defaultCoverage={guidedDraft?.calculatorSelection?.coverage ?? null}
                   vehicleSummary={vehicleSummary}
-                  onSelectionChange={(nextSelection) => setSelection(nextSelection)}
+                  onSelectionChange={(nextSelection) => {
+                    setSelection(nextSelection);
+                    if (nextSelection) {
+                      saveCalculatorDraft(nextSelection, calculatorPriceUnlocked);
+                    }
+                  }}
                   onWarrantyYearsChange={(warrantyYears) => {
                     trackConfiguratorStartIfNeeded();
                     trackEvent("package_selected", {
@@ -3682,7 +3851,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                       <Button
                         size="lg"
                         variant="default"
-                        className={cn(primaryPpfCtaButtonClass, "mt-6 w-full")}
+                        className={cn(primaryPpfCtaButtonClass, "mt-6 w-full", !shouldShowQuotePrimaryCta && "hidden")}
                         onClick={() => openHeroForm("warranty_card")}
                       >
                         Get My PPF Quote
@@ -3777,7 +3946,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                 </p>
 
                   <SectionCta
-                    primaryLabel="Get My PPF Quote"
+                    primaryLabel={shouldShowQuotePrimaryCta ? "Get My PPF Quote" : ""}
                     secondaryLabel="Ask Sean on WhatsApp"
                     onPrimaryClick={() => openHeroForm("final_cta")}
                     onSecondaryClick={() => handleWhatsAppClick("final_cta")}
@@ -3828,4 +3997,4 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   );
 };
 
-export default PpfDubaiQuote;
+export default PpfTikTokGuidedFunnel;

@@ -120,6 +120,14 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
 
   const vehicle = getLeadVehicleText(lead);
   const requestedProtection = readImportMetadataValue(lead.import_metadata, "protection_level");
+  const calculatorProtection = [
+    lead.latestRollup?.coverage,
+    lead.latestRollup?.finish,
+    lead.latestRollup?.package_name,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  const protectionLabel = calculatorProtection || (requestedProtection ? formatMetaLeadChoice(requestedProtection) : "");
   const deliveryStatus = readImportMetadataValue(lead.import_metadata, "delivery_status");
   const whatsappUrl = buildWhatsAppUrl(lead.phone);
   const latestNote = lead.notes[0] ?? null;
@@ -560,7 +568,13 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                         <p>
                                           <span className="text-slate-500">Protection:</span>{" "}
                                           <span className="text-white">
-                                            {requestedProtection ? formatMetaLeadChoice(requestedProtection) : "Not captured"}
+                                            {protectionLabel || "Not captured"}
+                                          </span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">Car size:</span>{" "}
+                                          <span className="text-white">
+                                            {lead.latestRollup?.vehicle_size || "Not captured"}
                                           </span>
                                         </p>
                                         <p>

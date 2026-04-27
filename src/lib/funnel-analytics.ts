@@ -103,6 +103,23 @@ const normalizeHash = (value: string) => value.replace(/^#/, "").trim();
 const sanitizePayload = (payload: Record<string, unknown> = {}) =>
   Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
 
+const normalizePhoneForIdentity = (value: string | undefined) => (value ?? "").replace(/\D/g, "");
+
+const getLeadScopedIdentity = (context: FunnelTrackingContext, phone: string | undefined) => {
+  const normalizedPhone = normalizePhoneForIdentity(phone);
+  if (!normalizedPhone) {
+    return {
+      sessionId: context.sessionId,
+      visitorId: context.visitorId,
+    };
+  }
+
+  return {
+    sessionId: `${context.sessionId}_phone_${normalizedPhone}`,
+    visitorId: `${context.visitorId}_phone_${normalizedPhone}`,
+  };
+};
+
 const getLocalStorageRef = (): Storage | null => {
   if (typeof window === "undefined") return null;
 
@@ -341,9 +358,11 @@ export const captureLeadSnapshot = async ({
   }
 
   try {
+    const scopedIdentity = getLeadScopedIdentity(context, phone);
+
     const { error } = await supabase.from("lead_contact_snapshots").insert({
-      session_id: context.sessionId,
-      visitor_id: context.visitorId,
+      session_id: scopedIdentity.sessionId,
+      visitor_id: scopedIdentity.visitorId,
       snapshot_type: snapshotType,
       full_name: fullName || null,
       phone: phone || null,

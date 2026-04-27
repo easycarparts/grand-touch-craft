@@ -87,6 +87,9 @@ export type PpfCostCalculatorWidgetProps = {
   brandOptions?: Brand[];
   defaultBrand?: Brand;
   defaultWarrantyYears?: number;
+  defaultSize?: CarSize | null;
+  defaultFinish?: Finish | null;
+  defaultCoverage?: Coverage | null;
   onSelectionChange?: (selection: CalculatorSelection | null) => void;
   onWhatsAppRequest?: (selection: CalculatorSelection) => void;
   onPriceUnlockRequest?: () => void;
@@ -114,6 +117,10 @@ const PpfCostCalculatorWidget = ({
   priceUnlocked = true,
   brandOptions = ["STEK", "GYEON"],
   defaultBrand = "STEK",
+  defaultWarrantyYears,
+  defaultSize = null,
+  defaultFinish = null,
+  defaultCoverage = null,
   onSelectionChange,
   onWhatsAppRequest,
   onPriceUnlockRequest,
@@ -127,11 +134,13 @@ const PpfCostCalculatorWidget = ({
   const isEmbeddedInPage = variant === "embedded" && !showIntro;
 
   const [brand, setBrand] = useState<Brand>(defaultBrand);
-  const [warrantyYears, setWarrantyYears] = useState<number | null>(null);
-  const [size, setSize] = useState<CarSize | null>(null);
-  const [finish, setFinish] = useState<Finish | null>(null);
-  const [coverage, setCoverage] = useState<Coverage | null>(null);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [warrantyYears, setWarrantyYears] = useState<number | null>(defaultWarrantyYears ?? null);
+  const [size, setSize] = useState<CarSize | null>(defaultSize);
+  const [finish, setFinish] = useState<Finish | null>(defaultFinish);
+  const [coverage, setCoverage] = useState<Coverage | null>(defaultCoverage);
+  const [hasInteracted, setHasInteracted] = useState(
+    Boolean(defaultWarrantyYears && defaultSize && defaultFinish && defaultCoverage),
+  );
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
 
   const stageTwoRef = useRef<HTMLDivElement | null>(null);

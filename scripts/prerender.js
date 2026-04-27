@@ -254,6 +254,58 @@ const pages = [
       "<p><strong>Enable JavaScript</strong> to use the short quote form, estimate controls, and WhatsApp handoff.</p>",
   },
   {
+    path: "/ppf-tiktok-quote-guided",
+    title: "Guided PPF Quote Dubai | Grand Touch",
+    description:
+      "Answer a few quick questions and let Sean point you to the right PPF finish, film setup, and next step in Dubai.",
+    keywords:
+      "guided PPF quote Dubai, TikTok PPF quote Dubai, STEK PPF Dubai, gloss matte colour PPF Dubai",
+    ogTitle: "Guided PPF Quote Dubai | Grand Touch",
+    ogDescription:
+      "A focused TikTok-first quote path for Dubai drivers who want fast PPF advice without reading a full landing page first.",
+    seoBody: `
+        <h1>Guided PPF quote for Dubai drivers</h1>
+        <p>Answer a few quick questions so Grand Touch can recommend the right paint protection film setup for your car.</p>
+        <h2>What this guided flow captures</h2>
+        <ul>
+          <li>Name and mobile number for fast follow-up</li>
+          <li>Vehicle make, model, and year</li>
+          <li>Gloss, matte, colour PPF, or not sure yet</li>
+          <li>Direct WhatsApp or calculator next step</li>
+        </ul>
+        <h2>Why it exists</h2>
+        <p>This route is designed for cold TikTok traffic that needs a simpler, more guided mobile quote experience before reading the full PPF page.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the guided quote flow and WhatsApp handoff.</p>",
+  },
+  {
+    path: "/ppf-tiktok-quote-guided/funnel",
+    title: "Guided PPF Funnel | Grand Touch",
+    description:
+      "Continue from the TikTok guided PPF quote flow into the full Grand Touch PPF funnel without restarting your quote.",
+    keywords:
+      "guided PPF funnel Dubai, TikTok PPF quote details, STEK PPF calculator Dubai, Grand Touch PPF quote",
+    ogTitle: "Guided PPF Funnel | Grand Touch",
+    ogDescription:
+      "A guided continuation copy of the TikTok PPF funnel with saved setup, calculator, and WhatsApp follow-up.",
+    seoBody: `
+        <h1>Guided PPF funnel</h1>
+        <p>Continue from the Grand Touch TikTok guided quote flow into the full funnel without restarting the old form.</p>
+        <h2>What this page shows</h2>
+        <ul>
+          <li>Your saved vehicle, finish preference, and contact details from the quick quote flow</li>
+          <li>Compact full body and front protection PPF options</li>
+          <li>Gloss, matte, and colour PPF next steps</li>
+          <li>Direct WhatsApp handoff to Sean with your details included</li>
+        </ul>
+        <h2>Why it exists</h2>
+        <p>This route keeps TikTok guided quote users in a dedicated copy of the full funnel instead of sending them into the older live TikTok route.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to load your saved guided quote details and message Sean on WhatsApp.</p>",
+  },
+  {
     path: "/ppf-dubai-quote-v1",
     title: "PPF Dubai Quote V1 | Grand Touch",
     description:
