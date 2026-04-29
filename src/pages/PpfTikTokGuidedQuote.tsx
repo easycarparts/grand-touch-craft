@@ -64,6 +64,21 @@ const getFlowOrder = (variant: FlowVariant): GuidedStage[] =>
 
 const normalizeLocalNumber = (value: string) => value.replace(/\D/g, "").replace(/^0+/, "");
 
+const parseVehicleText = (value: string) => {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  const yearMatch = normalized.match(/\b(19|20)\d{2}\b/);
+  const vehicleYear = yearMatch?.[0] ?? "";
+  const withoutYear = vehicleYear ? normalized.replace(vehicleYear, "").replace(/\s+/g, " ").trim() : normalized;
+  const parts = withoutYear.split(" ").filter(Boolean);
+
+  return {
+    vehicleYear,
+    vehicleMake: parts[0] ?? "",
+    vehicleModel: parts.slice(1).join(" "),
+    vehicleLabel: normalized,
+  };
+};
+
 const buildPhoneNumber = (countryCode: string, localNumber: string) => {
   const cleanCountry = countryCode.replace(/\D/g, "") || DEFAULT_PHONE_COUNTRY_CODE;
   const cleanLocal = normalizeLocalNumber(localNumber);
@@ -140,9 +155,13 @@ export default function PpfTikTokGuidedQuote() {
   const [name, setName] = useState(storedDraft?.fullName ?? "");
   const [countryCode, setCountryCode] = useState(storedDraft?.countryCode || DEFAULT_PHONE_COUNTRY_CODE);
   const [localPhone, setLocalPhone] = useState(storedDraft?.localPhone ?? "");
-  const [vehicleMake, setVehicleMake] = useState(storedDraft?.vehicleMake ?? "");
-  const [vehicleModel, setVehicleModel] = useState(storedDraft?.vehicleModel ?? "");
-  const [vehicleYear, setVehicleYear] = useState(storedDraft?.vehicleYear ?? "");
+  const [vehicleText, setVehicleText] = useState(
+    storedDraft?.vehicleLabel ||
+      [storedDraft?.vehicleYear, storedDraft?.vehicleMake, storedDraft?.vehicleModel]
+        .map((part) => part?.trim())
+        .filter(Boolean)
+        .join(" "),
+  );
   const [finishPreference, setFinishPreference] = useState<FinishPreference | "">(storedDraft?.finishPreference ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
@@ -159,14 +178,11 @@ export default function PpfTikTokGuidedQuote() {
   );
 
   const phone = useMemo(() => buildPhoneNumber(countryCode, localPhone), [countryCode, localPhone]);
-  const vehicleLabel = useMemo(
-    () => [vehicleYear, vehicleMake, vehicleModel].map((part) => part.trim()).filter(Boolean).join(" "),
-    [vehicleMake, vehicleModel, vehicleYear],
-  );
+  const parsedVehicle = useMemo(() => parseVehicleText(vehicleText), [vehicleText]);
+  const { vehicleMake, vehicleModel, vehicleYear, vehicleLabel } = parsedVehicle;
   const firstName = useMemo(() => name.trim().split(/\s+/)[0] ?? "", [name]);
   const canContinueContact = name.trim().length >= 2 && isValidPhoneNumber(phone);
-  const canContinueVehicle =
-    vehicleMake.trim().length >= 2 && vehicleModel.trim().length >= 1 && /^[12][0-9]{3}$/.test(vehicleYear.trim());
+  const canContinueVehicle = vehicleText.trim().length >= 4;
   const hasContactDetails = canContinueContact;
 
   const finalDataStage = flowOrder[flowOrder.length - 2];
@@ -690,39 +706,19 @@ export default function PpfTikTokGuidedQuote() {
                   <p className="mt-1 text-sm leading-5 text-white/58">So the quote is not vague.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="col-span-1 block">
-                    <span className="mb-1.5 block text-sm font-bold text-white">Make</span>
-                    <Input
-                      value={vehicleMake}
-                      onChange={(event) => setVehicleMake(event.target.value)}
-                      placeholder="Nissan"
-                      autoComplete="off"
-                      className={compactInputClass}
-                    />
-                  </label>
-                  <label className="col-span-1 block">
-                    <span className="mb-1.5 block text-sm font-bold text-white">Year</span>
-                    <Input
-                      value={vehicleYear}
-                      onChange={(event) => setVehicleYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
-                      placeholder="2024"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      className={compactInputClass}
-                    />
-                  </label>
-                  <label className="col-span-2 block">
-                    <span className="mb-1.5 block text-sm font-bold text-white">Model</span>
-                    <Input
-                      value={vehicleModel}
-                      onChange={(event) => setVehicleModel(event.target.value)}
-                      placeholder="Patrol, G700, Cullinan..."
-                      autoComplete="off"
-                      className={compactInputClass}
-                    />
-                  </label>
-                </div>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-white">Car</span>
+                  <Input
+                    value={vehicleText}
+                    onChange={(event) => setVehicleText(event.target.value)}
+                    placeholder="2022 Nissan Patrol"
+                    autoComplete="off"
+                    className={compactInputClass}
+                  />
+                  <span className="mt-2 block text-xs leading-5 text-white/48">
+                    Year, make and model is enough.
+                  </span>
+                </label>
 
                 <Button
                   type="submit"
