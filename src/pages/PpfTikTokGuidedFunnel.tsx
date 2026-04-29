@@ -29,7 +29,7 @@ import {
   createFunnelTrackingContext,
   trackFunnelEvent,
 } from "@/lib/funnel-analytics";
-import { initTikTokPixel, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
+import { initTikTokPixel, trackTikTokEvent, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
 import {
   hasUsableTikTokGuidedDraft,
   readTikTokGuidedDraft,
@@ -1340,6 +1340,14 @@ const PpfTikTokGuidedFunnel = ({ variant = "tiktok_guided" }: { variant?: Landin
           whatsapp_state: whatsappState,
         },
       });
+      trackTikTokEvent("Contact", {
+        contact_channel: "whatsapp",
+        cta_location: placement,
+        whatsapp_state: whatsappState,
+        content_name: variantConfig.tikTokContentName,
+        currency: "AED",
+        value: 1,
+      });
 
       if (placement === "hero") {
         trackEvent("hero_whatsapp_click", {
@@ -2142,6 +2150,15 @@ const PpfTikTokGuidedFunnel = ({ variant = "tiktok_guided" }: { variant?: Landin
             value: calculatorSelection.estimateMin,
             currency: "AED",
           },
+        });
+        trackTikTokEvent("Contact", {
+          contact_channel: "whatsapp",
+          cta_location: "calculator_quote",
+          whatsapp_state: "calculator_quote",
+          content_name: variantConfig.tikTokContentName,
+          package_name: packageLabel,
+          value: calculatorSelection.estimateMin,
+          currency: "AED",
         });
         openWhatsAppUrl(buildWhatsAppUrl(message));
       }
