@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { FocusEvent, FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Check, MessageCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,6 +146,7 @@ export default function PpfTikTokGuidedQuote() {
   const [finishPreference, setFinishPreference] = useState<FinishPreference | "">(storedDraft?.finishPreference ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  const [isKeyboardLikelyOpen, setIsKeyboardLikelyOpen] = useState(false);
 
   const context = useMemo(
     () =>
@@ -254,6 +255,43 @@ export default function PpfTikTokGuidedQuote() {
     initTikTokPixel();
     trackEvent("lp_view", { page_type: "guided_quote" }, { metaStandardEvent: "PageView" });
   }, [trackEvent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const root = document.documentElement;
+    const updateKeyboardViewport = () => {
+      const visualHeight = window.visualViewport?.height ?? window.innerHeight;
+      const keyboardInset = window.innerHeight - visualHeight;
+      root.style.setProperty("--tiktok-guided-vh", `${visualHeight}px`);
+      setIsKeyboardLikelyOpen(keyboardInset > 120);
+    };
+
+    updateKeyboardViewport();
+    window.visualViewport?.addEventListener("resize", updateKeyboardViewport);
+    window.visualViewport?.addEventListener("scroll", updateKeyboardViewport);
+    window.addEventListener("resize", updateKeyboardViewport);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateKeyboardViewport);
+      window.visualViewport?.removeEventListener("scroll", updateKeyboardViewport);
+      window.removeEventListener("resize", updateKeyboardViewport);
+      root.style.removeProperty("--tiktok-guided-vh");
+    };
+  }, []);
+
+  const keepFocusedFieldVisible = useCallback((event: FocusEvent<HTMLElement>) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    window.setTimeout(() => {
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    }, 180);
+  }, []);
 
   const recordSnapshot = async (
     snapshotType: "contact" | "vehicle" | "submit",
@@ -508,44 +546,66 @@ export default function PpfTikTokGuidedQuote() {
         .filter(Boolean)
         .join(" | ")
     : "";
+  const compactInputClass =
+    "h-12 rounded-xl border-white/12 bg-white/[0.06] text-base font-semibold text-white placeholder:text-white/32";
+  const primaryButtonClass =
+    "h-12 w-full rounded-xl bg-[#f6ad1b] text-base font-black text-black shadow-[0_14px_34px_rgba(246,173,27,0.22)] hover:bg-[#ffc34a]";
+  const secondaryButtonClass = "h-auto min-h-12 w-full rounded-xl px-4 py-3 text-sm font-black leading-5";
 
   return (
-    <main className="min-h-screen bg-[#070705] text-white">
+    <main className="min-h-[100svh] bg-[#070705] text-white">
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute left-1/2 top-0 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[#f6ad1b]/16 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-[420px] w-[420px] rounded-full bg-emerald-500/10 blur-3xl" />
       </div>
 
-      <section className="relative mx-auto flex min-h-screen w-full max-w-[460px] flex-col px-4 py-5">
-        <div className="mb-7 flex items-center justify-between gap-4">
+      <section
+        className={cn(
+          "relative mx-auto flex w-full max-w-[460px] flex-col overflow-x-hidden px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4",
+          isKeyboardLikelyOpen ? "justify-start" : "min-h-[100svh]",
+        )}
+        style={{ minHeight: "var(--tiktok-guided-vh, 100svh)" }}
+      >
+        <div className={cn("flex items-center justify-between gap-4", isKeyboardLikelyOpen ? "mb-3" : "mb-5")}>
           <img src={logo} alt="Grand Touch" className="h-auto w-44 max-w-[58vw]" />
           <ProgressDots stage={stage} flowOrder={flowOrder} />
         </div>
 
-        <div className="mb-5 flex flex-wrap items-center gap-2">
+        <div className={cn("flex flex-wrap items-center gap-2", isKeyboardLikelyOpen ? "sr-only" : "mb-4")}>
           <TrustPill>
             <ShieldCheck className="h-3.5 w-3.5 text-[#f6ad1b]" />
             <span>Warranty-registered STEK film</span>
           </TrustPill>
         </div>
 
-        <div className="mb-5">
-          <h1 className="text-[2.1rem] font-black leading-[0.96] tracking-[-0.055em] text-white">
+        <div className={cn(isKeyboardLikelyOpen ? "mb-3" : "mb-4")}>
+          <h1
+            className={cn(
+              "font-black leading-[0.96] tracking-[-0.055em] text-white",
+              isKeyboardLikelyOpen ? "text-[1.65rem]" : "text-[2rem]",
+            )}
+          >
             {flowVariant === "phone_first" ? "Quick PPF quote." : "Pick a finish."}
           </h1>
-          <p className="mt-3 max-w-sm text-[15px] font-medium leading-6 text-white/64">
+          <p className={cn("max-w-sm font-medium text-white/64", isKeyboardLikelyOpen ? "mt-2 text-xs leading-5" : "mt-3 text-sm leading-6")}>
             {flowVariant === "phone_first"
               ? "Name, number, car. Sean replies with the right setup."
               : "Two taps. Then your car. Sean replies with a real quote — not a brochure."}
           </p>
         </div>
 
-        <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(14,14,12,0.94))] p-4 shadow-[0_28px_80px_rgba(0,0,0,0.48)]">
+        <div
+          onFocusCapture={keepFocusedFieldVisible}
+          className={cn(
+            "relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(14,14,12,0.94))] shadow-[0_24px_64px_rgba(0,0,0,0.44)]",
+            isKeyboardLikelyOpen ? "rounded-2xl p-3" : "rounded-[1.5rem] p-4",
+          )}
+        >
           <div className="relative">
             {stage === "contact" ? (
-              <form onSubmit={handleContactSubmit} className="space-y-4">
+              <form onSubmit={handleContactSubmit} className={cn(isKeyboardLikelyOpen ? "space-y-3" : "space-y-4")}>
                 <div>
-                  <h2 className="text-2xl font-black tracking-[-0.045em]">
+                  <h2 className={cn("font-black tracking-[-0.045em]", isKeyboardLikelyOpen ? "text-xl" : "text-2xl")}>
                     {isContactFinal ? "Last step — where do we send the quote?" : "Name and number"}
                   </h2>
                   <p className="mt-1 text-sm leading-5 text-white/58">
@@ -554,23 +614,23 @@ export default function PpfTikTokGuidedQuote() {
                 </div>
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-bold text-white">Name</span>
+                  <span className="mb-1.5 block text-sm font-bold text-white">Name</span>
                   <Input
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Your name"
                     autoComplete="name"
-                    className="h-14 rounded-2xl border-white/12 bg-white/[0.06] text-base font-semibold text-white placeholder:text-white/32"
+                    className={compactInputClass}
                   />
                 </label>
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-bold text-white">Mobile</span>
-                  <div className="grid grid-cols-[118px_1fr] gap-2">
+                  <span className="mb-1.5 block text-sm font-bold text-white">Mobile</span>
+                  <div className="grid grid-cols-[106px_1fr] gap-2">
                     <select
                       value={countryCode}
                       onChange={(event) => setCountryCode(event.target.value)}
-                      className="h-14 rounded-2xl border border-white/12 bg-[#171713] px-3 text-sm font-black text-white outline-none focus:border-[#f6ad1b]"
+                      className="h-12 rounded-xl border border-white/12 bg-[#171713] px-2.5 text-xs font-black text-white outline-none focus:border-[#f6ad1b]"
                     >
                       {PHONE_COUNTRY_OPTIONS.map((option) => (
                         <option key={option.dialCode} value={option.dialCode}>
@@ -584,7 +644,7 @@ export default function PpfTikTokGuidedQuote() {
                       placeholder="50 123 4567"
                       inputMode="tel"
                       autoComplete="tel-national"
-                      className="h-14 rounded-2xl border-white/12 bg-white/[0.06] text-base font-semibold text-white placeholder:text-white/32"
+                      className={compactInputClass}
                     />
                   </div>
                   <span className="mt-2 block text-xs leading-5 text-white/48">
@@ -595,7 +655,7 @@ export default function PpfTikTokGuidedQuote() {
                 <Button
                   type="submit"
                   disabled={!canContinueContact || isSaving}
-                  className="h-14 w-full rounded-2xl bg-[#f6ad1b] text-base font-black text-black shadow-[0_18px_45px_rgba(246,173,27,0.26)] hover:bg-[#ffc34a]"
+                  className={primaryButtonClass}
                 >
                   {isSaving ? "Saving..." : isContactFinal ? "Get my quote" : "Continue"}
                   <ArrowRight className="h-4 w-4" />
@@ -605,7 +665,7 @@ export default function PpfTikTokGuidedQuote() {
                   type="button"
                   variant="outline"
                   onClick={() => handleWhatsAppClick("guided_contact_skip")}
-                  className="h-auto min-h-14 w-full rounded-2xl border-emerald-400/40 bg-emerald-500/8 px-4 py-3 text-sm font-black leading-5 text-emerald-50 hover:bg-emerald-500/18 hover:text-white"
+                  className={cn(secondaryButtonClass, "border-emerald-400/40 bg-emerald-500/8 text-emerald-50 hover:bg-emerald-500/18 hover:text-white")}
                 >
                   <MessageCircle className="h-4 w-4" />
                   Prefer WhatsApp? Talk to Sean now
@@ -624,42 +684,42 @@ export default function PpfTikTokGuidedQuote() {
             ) : null}
 
             {stage === "vehicle" ? (
-              <form onSubmit={handleVehicleSubmit} className="space-y-4">
+              <form onSubmit={handleVehicleSubmit} className={cn(isKeyboardLikelyOpen ? "space-y-3" : "space-y-4")}>
                 <div>
-                  <h2 className="text-2xl font-black tracking-[-0.045em]">Which car?</h2>
+                  <h2 className={cn("font-black tracking-[-0.045em]", isKeyboardLikelyOpen ? "text-xl" : "text-2xl")}>Which car?</h2>
                   <p className="mt-1 text-sm leading-5 text-white/58">So the quote is not vague.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <label className="col-span-1 block">
-                    <span className="mb-2 block text-sm font-bold text-white">Make</span>
+                    <span className="mb-1.5 block text-sm font-bold text-white">Make</span>
                     <Input
                       value={vehicleMake}
                       onChange={(event) => setVehicleMake(event.target.value)}
                       placeholder="Nissan"
                       autoComplete="off"
-                      className="h-14 rounded-2xl border-white/12 bg-white/[0.06] text-base font-semibold text-white placeholder:text-white/32"
+                      className={compactInputClass}
                     />
                   </label>
                   <label className="col-span-1 block">
-                    <span className="mb-2 block text-sm font-bold text-white">Year</span>
+                    <span className="mb-1.5 block text-sm font-bold text-white">Year</span>
                     <Input
                       value={vehicleYear}
                       onChange={(event) => setVehicleYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
                       placeholder="2024"
                       inputMode="numeric"
                       autoComplete="off"
-                      className="h-14 rounded-2xl border-white/12 bg-white/[0.06] text-base font-semibold text-white placeholder:text-white/32"
+                      className={compactInputClass}
                     />
                   </label>
                   <label className="col-span-2 block">
-                    <span className="mb-2 block text-sm font-bold text-white">Model</span>
+                    <span className="mb-1.5 block text-sm font-bold text-white">Model</span>
                     <Input
                       value={vehicleModel}
                       onChange={(event) => setVehicleModel(event.target.value)}
                       placeholder="Patrol, G700, Cullinan..."
                       autoComplete="off"
-                      className="h-14 rounded-2xl border-white/12 bg-white/[0.06] text-base font-semibold text-white placeholder:text-white/32"
+                      className={compactInputClass}
                     />
                   </label>
                 </div>
@@ -667,7 +727,7 @@ export default function PpfTikTokGuidedQuote() {
                 <Button
                   type="submit"
                   disabled={!canContinueVehicle || isSaving}
-                  className="h-14 w-full rounded-2xl bg-[#f6ad1b] text-base font-black text-black shadow-[0_18px_45px_rgba(246,173,27,0.26)] hover:bg-[#ffc34a]"
+                  className={primaryButtonClass}
                 >
                   {isSaving ? "Saving..." : "Next"}
                   <ArrowRight className="h-4 w-4" />
@@ -680,9 +740,9 @@ export default function PpfTikTokGuidedQuote() {
             ) : null}
 
             {stage === "finish" ? (
-              <form onSubmit={handleFinishSubmit} className="space-y-4">
+              <form onSubmit={handleFinishSubmit} className={cn(isKeyboardLikelyOpen ? "space-y-3" : "space-y-4")}>
                 <div>
-                  <h2 className="text-2xl font-black tracking-[-0.045em]">Which finish?</h2>
+                  <h2 className={cn("font-black tracking-[-0.045em]", isKeyboardLikelyOpen ? "text-xl" : "text-2xl")}>Which finish?</h2>
                   <p className="mt-1 text-sm leading-5 text-white/58">
                     {isFinishFinal ? "Pick one. Sean can adjust it later." : "Tap the look you want. Sean can swap it later."}
                   </p>
@@ -695,7 +755,8 @@ export default function PpfTikTokGuidedQuote() {
                       type="button"
                       onClick={() => setFinishPreference(option.value)}
                       className={cn(
-                        "rounded-2xl border p-4 text-left transition",
+                        "rounded-xl border text-left transition",
+                        isKeyboardLikelyOpen ? "p-3" : "p-4",
                         finishPreference === option.value
                           ? "border-[#f6ad1b] bg-[#f6ad1b]/14 shadow-[0_14px_34px_rgba(246,173,27,0.16)]"
                           : "border-white/12 bg-white/[0.055] hover:border-white/28",
@@ -713,7 +774,7 @@ export default function PpfTikTokGuidedQuote() {
                 <Button
                   type="submit"
                   disabled={!finishPreference || isSaving}
-                  className="h-14 w-full rounded-2xl bg-[#f6ad1b] text-base font-black text-black shadow-[0_18px_45px_rgba(246,173,27,0.26)] hover:bg-[#ffc34a]"
+                  className={primaryButtonClass}
                 >
                   {isSaving ? "Sending..." : isFinishFinal ? "Show my options" : "Continue"}
                   <ArrowRight className="h-4 w-4" />
@@ -794,14 +855,19 @@ export default function PpfTikTokGuidedQuote() {
         </div>
 
         {stage !== "result" ? (
-          <div className="mt-4 flex flex-col items-center gap-3 text-center font-bold">
+          <div className={cn("flex flex-col items-center text-center font-bold", isKeyboardLikelyOpen ? "mt-3 gap-2" : "mt-4 gap-3")}>
             <button
               type="button"
               onClick={() => handleWhatsAppClick("persistent_below_card")}
-              className="w-full rounded-2xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-base leading-5 text-white shadow-[0_14px_36px_rgba(16,185,129,0.12)]"
+              className={cn(
+                "w-full rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 text-white shadow-[0_14px_36px_rgba(16,185,129,0.12)]",
+                isKeyboardLikelyOpen ? "py-2.5 text-sm leading-5" : "py-3 text-base leading-5",
+              )}
             >
               Rather just chat?<br />
-              <span className="text-lg text-emerald-300 underline underline-offset-4">Message Sean on WhatsApp</span>
+              <span className={cn("text-emerald-300 underline underline-offset-4", isKeyboardLikelyOpen ? "text-base" : "text-lg")}>
+                Message Sean on WhatsApp
+              </span>
             </button>
             <button
               type="button"
@@ -813,7 +879,9 @@ export default function PpfTikTokGuidedQuote() {
           </div>
         ) : null}
 
-        <p className="mt-auto pt-6 text-center text-[11px] leading-5 text-white/30">Grand Touch Auto Dubai</p>
+        <p className={cn("mt-auto pt-6 text-center text-[11px] leading-5 text-white/30", isKeyboardLikelyOpen && "hidden")}>
+          Grand Touch Auto Dubai
+        </p>
       </section>
     </main>
   );
