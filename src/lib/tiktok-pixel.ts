@@ -128,8 +128,10 @@ export const trackTikTokSubmitForm = (payload: Record<string, unknown>) => {
     }
   }
 
+  const leadPayload = cleanLeadEventPayload(payload);
+
   for (const pixelId of pixelIds) {
-    ttq.instance?.(pixelId).track?.("SubmitForm", payload);
+    ttq.instance?.(pixelId).track?.("SubmitForm", leadPayload);
   }
 };
 
@@ -144,7 +146,24 @@ export const trackTikTokEvent = (eventName: string, payload: Record<string, unkn
     }
   }
 
+  const eventPayload = shouldCleanLeadPayload(eventName) ? cleanLeadEventPayload(payload) : payload;
+
   for (const pixelId of pixelIds) {
-    ttq.instance?.(pixelId).track?.(eventName, payload);
+    ttq.instance?.(pixelId).track?.(eventName, eventPayload);
   }
+};
+
+const shouldCleanLeadPayload = (eventName: string) =>
+  ["SubmitForm", "Lead", "Contact", "ClickButton"].includes(eventName);
+
+const cleanLeadEventPayload = (payload: Record<string, unknown>) => {
+  const {
+    content_type: _contentType,
+    content_id: _contentId,
+    content_ids: _contentIds,
+    contents: _contents,
+    ...leadPayload
+  } = payload;
+
+  return leadPayload;
 };
