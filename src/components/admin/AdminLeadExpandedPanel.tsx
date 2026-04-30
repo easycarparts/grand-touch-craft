@@ -55,6 +55,47 @@ const compactInputClass = "h-9 border-white/10 bg-black/20 px-3 text-sm text-whi
 const compactTextareaClass = "min-h-[96px] border-white/10 bg-black/20 text-sm text-white placeholder:text-slate-500";
 const compactButtonClass = "h-9 border-white/10 bg-black/20 px-3 text-sm text-white hover:bg-white/10";
 
+const buildCrmActivityItems = (lead: LeadTaskLead, adminUsersById: Map<string, AdminUserOption>) => [
+  ...lead.notes.map((note) => {
+    const author = adminUsersById.get(note.author_admin_user_id);
+    return {
+      id: `note:${note.id}`,
+      at: note.created_at,
+      label: "Internal note",
+      body: note.body,
+      meta: `${author?.full_name || author?.email || "Admin"} - ${formatTimestamp(note.created_at)}`,
+      badgeClass: "border-sky-400/20 bg-sky-500/10 text-sky-200",
+    };
+  }),
+  ...lead.followups.map((followup) => {
+    const assignee = followup.assigned_to ? adminUsersById.get(followup.assigned_to) ?? null : null;
+    return {
+      id: `followup:${followup.id}`,
+      at: followup.updated_at || followup.created_at,
+      label: `${formatTokenLabel(followup.channel)} follow-up`,
+      body: followup.notes || "No follow-up notes added.",
+      meta: `${formatTokenLabel(followup.status)} - Due ${formatDueLabel(followup)} - ${assignee?.full_name || assignee?.email || "Unassigned"}`,
+      badgeClass:
+        followup.status === "done"
+          ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+          : followup.status === "cancelled"
+            ? "border-slate-400/20 bg-slate-500/10 text-slate-300"
+            : "border-primary/25 bg-primary/10 text-primary",
+    };
+  }),
+  ...lead.statusHistory.map((entry) => {
+    const author = entry.changed_by ? adminUsersById.get(entry.changed_by) ?? null : null;
+    return {
+      id: `status:${entry.id}`,
+      at: entry.created_at,
+      label: "Status change",
+      body: entry.reason || `${entry.from_status ? formatTokenLabel(entry.from_status) : "No status"} to ${formatTokenLabel(entry.to_status)}`,
+      meta: `${author?.full_name || author?.email || "Admin"} - ${formatTimestamp(entry.created_at)}`,
+      badgeClass: getStatusBadgeClass(entry.to_status),
+    };
+  }),
+].sort((left, right) => new Date(right.at).getTime() - new Date(left.at).getTime());
+
 export type AdminLeadExpandedPanelProps = {
   lead: LeadTaskLead;
   adminUsers: AdminUserOption[];
@@ -138,6 +179,7 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
   const whatsappSla = getResponseSlaState(lead, "whatsapp");
   const callSla = getResponseSlaState(lead, "call");
   const intentPresentation = getLeadIntentPresentation(lead);
+  const crmActivityItems = buildCrmActivityItems(lead, adminUsersById);
   const followupLabel =
     lead.followupState === "overdue"
       ? "Overdue"
@@ -1600,8 +1642,33 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                     </Card>
 
                                     <Card className="border-white/10 bg-black/20 p-4">
+                                      <p className="text-sm uppercase tracking-[0.18em] text-slate-400">CRM Activity</p>
+                                      <ScrollArea className="mt-4 h-[320px] pr-4">
+                                        <div className="space-y-3">
+                                          {crmActivityItems.length ? (
+                                            crmActivityItems.map((item) => (
+                                              <div key={item.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                                <div className="flex flex-wrap gap-2">
+                                                  <Badge variant="outline" className={item.badgeClass}>
+                                                    {item.label}
+                                                  </Badge>
+                                                </div>
+                                                <p className="mt-3 text-sm leading-6 text-white">{item.body}</p>
+                                                <p className="mt-3 text-xs text-slate-500">{item.meta}</p>
+                                              </div>
+                                            ))
+                                          ) : (
+                                            <p className="text-sm text-slate-400">
+                                              No notes, follow-ups, or status changes recorded yet.
+                                            </p>
+                                          )}
+                                        </div>
+                                      </ScrollArea>
+                                    </Card>
+
+                                    <Card className="border-white/10 bg-black/20 p-4">
                                       <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
-                                        Status & Follow-up Log
+                                        Status Log
                                       </p>
                                       <ScrollArea className="mt-4 h-[320px] pr-4">
                                         <div className="space-y-3">

@@ -634,6 +634,32 @@ const getRecommendedFeedbackType = (nextState: Pick<LeadRow, "status" | "quality
 };
 
 const fromDateTimeInputValue = (value: string) => (value ? new Date(value).toISOString() : null);
+const fetchLeadScopedRows = async <T,>(
+  table: string,
+  selectClause: string,
+  leadIds: string[],
+  orderColumn = "created_at",
+) => {
+  if (!supabase || !leadIds.length) return { data: [] as T[], error: null };
+
+  const pageSize = 1000;
+  const rows: T[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(selectClause)
+      .in("lead_id", leadIds)
+      .order(orderColumn, { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) return { data: rows, error };
+    rows.push(...((data as T[] | null) ?? []));
+    if (!data || data.length < pageSize) break;
+  }
+
+  return { data: rows, error: null };
+};
 const truncateText = (value: string | null | undefined, maxLength = 140) => {
   const normalized = (value ?? "").trim().replace(/\s+/g, " ");
   if (!normalized) return "";
@@ -867,36 +893,39 @@ export const useLeadTaskBoardData = () => {
     const loadLeads = (selectClause: string) =>
       supabase.from("leads").select(selectClause).order("last_activity_at", { ascending: false, nullsFirst: false }).limit(150);
 
-    const statusHistoryQuery = supabase
-      .from("lead_status_history")
-      .select("id, lead_id, changed_by, from_status, to_status, reason, created_at")
-      .order("created_at", { ascending: false })
-      .limit(700);
-
     const feedbackSelect =
       "id, lead_id, platform, feedback_type, feedback_status, external_identifier_type, external_identifier_value, payload, response_payload, sent_at, created_at, updated_at";
 
-    let [leadsResult, rollupsResult, notesResult, followupsResult, statusHistoryResult, feedbackResult, adminUsersResult] = await Promise.all([
+    let [leadsResult, rollupsResult, adminUsersResult] = await Promise.all([
       loadLeads(responseTrackingLeadSelect),
       supabase.from("admin_session_rollups").select("session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at").order("ended_at", { ascending: false }).limit(700),
-      supabase.from("lead_notes").select("id, lead_id, author_admin_user_id, body, created_at").order("created_at", { ascending: false }).limit(700),
-      supabase.from("lead_followups").select("id, lead_id, assigned_to, status, channel, due_at, completed_at, notes, created_at, updated_at").order("created_at", { ascending: false }).limit(700),
-      statusHistoryQuery,
-      supabase.from("ad_platform_feedback").select(feedbackSelect).order("created_at", { ascending: false }).limit(700),
       supabase.from("admin_users").select("id, email, full_name, role, is_active, owner_color").eq("is_active", true).order("full_name", { ascending: true, nullsFirst: false }),
     ]);
 
     if (leadsResult.error?.code === "42703") {
-      [leadsResult, rollupsResult, notesResult, followupsResult, statusHistoryResult, feedbackResult, adminUsersResult] = await Promise.all([
+      [leadsResult, rollupsResult, adminUsersResult] = await Promise.all([
         loadLeads(baseLeadSelect),
         supabase.from("admin_session_rollups").select("session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at").order("ended_at", { ascending: false }).limit(700),
-        supabase.from("lead_notes").select("id, lead_id, author_admin_user_id, body, created_at").order("created_at", { ascending: false }).limit(700),
-        supabase.from("lead_followups").select("id, lead_id, assigned_to, status, channel, due_at, completed_at, notes, created_at, updated_at").order("created_at", { ascending: false }).limit(700),
-        statusHistoryQuery,
-        supabase.from("ad_platform_feedback").select("id, lead_id, platform, feedback_type, feedback_status").order("created_at", { ascending: false }).limit(700),
         supabase.from("admin_users").select("id, email, full_name, role, is_active, owner_color").eq("is_active", true).order("full_name", { ascending: true, nullsFirst: false }),
       ]);
     }
+
+    const loadedLeads = (((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => withLeadRowDefaults(lead))) ?? [];
+    const leadIds = loadedLeads.map((lead) => lead.id).filter(Boolean);
+    const [notesResult, followupsResult, statusHistoryResult, feedbackResult] = await Promise.all([
+      fetchLeadScopedRows<LeadNoteRow>("lead_notes", "id, lead_id, author_admin_user_id, body, created_at", leadIds),
+      fetchLeadScopedRows<LeadFollowupRow>(
+        "lead_followups",
+        "id, lead_id, assigned_to, status, channel, due_at, completed_at, notes, created_at, updated_at",
+        leadIds,
+      ),
+      fetchLeadScopedRows<LeadStatusHistoryRow>(
+        "lead_status_history",
+        "id, lead_id, changed_by, from_status, to_status, reason, created_at",
+        leadIds,
+      ),
+      fetchLeadScopedRows<AdPlatformFeedbackRow>("ad_platform_feedback", feedbackSelect, leadIds),
+    ]);
 
     if (leadsResult.error) console.warn("Failed to load leads", leadsResult.error);
     if (rollupsResult.error) console.warn("Failed to load session rollups", rollupsResult.error);
@@ -906,16 +935,12 @@ export const useLeadTaskBoardData = () => {
     if (feedbackResult.error) console.warn("Failed to load feedback rows", feedbackResult.error);
     if (adminUsersResult.error) console.warn("Failed to load admin users", adminUsersResult.error);
 
-    setLeads((((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => withLeadRowDefaults(lead))) ?? []);
+    setLeads(loadedLeads);
     setSessionRollups((rollupsResult.data as SessionRollupRow[]) ?? []);
     setNotes((notesResult.data as LeadNoteRow[]) ?? []);
     setFollowups((followupsResult.data as LeadFollowupRow[]) ?? []);
     setStatusHistory((statusHistoryResult.data as LeadStatusHistoryRow[]) ?? []);
-    setFeedbackRows(
-      ((feedbackResult.data as Record<string, unknown>[]) ?? []).map((row) =>
-        "response_payload" in row ? (row as unknown as AdPlatformFeedbackRow) : normalizeFeedbackRow(row),
-      ),
-    );
+    setFeedbackRows((feedbackResult.data ?? []).map((row) => normalizeFeedbackRow(row as unknown as Record<string, unknown>)));
     setAdminUsers((adminUsersResult.data as AdminUserOption[]) ?? []);
     setIsLoading(false);
     setIsRefreshing(false);
@@ -1302,8 +1327,9 @@ export const useLeadTaskBoardData = () => {
     if (!noteBody) return;
     const saveKey = `note:${lead.id}`;
     setSaving(saveKey, true);
+    const now = new Date().toISOString();
     const { error } = await supabase.from("lead_notes").insert({ lead_id: lead.id, author_admin_user_id: adminProfile.id, body: noteBody });
-    if (!error) await supabase.from("leads").update({ notes_summary: noteBody.slice(0, 180) }).eq("id", lead.id);
+    if (!error) await supabase.from("leads").update({ notes_summary: noteBody.slice(0, 180), last_activity_at: now }).eq("id", lead.id);
     setSaving(saveKey, false);
     if (error) {
       toast({ title: "Note not saved", description: error.message, variant: "destructive" });
@@ -1319,7 +1345,9 @@ export const useLeadTaskBoardData = () => {
     const draft = followupDrafts[lead.id] ?? makeDefaultFollowupDraft(lead.assigned_to, adminProfile?.id);
     const saveKey = `followup-create:${lead.id}`;
     setSaving(saveKey, true);
+    const now = new Date().toISOString();
     const { error } = await supabase.from("lead_followups").insert({ lead_id: lead.id, assigned_to: draft.assignedTo === "unassigned" ? null : draft.assignedTo, channel: draft.channel, due_at: fromDateTimeInputValue(draft.dueAt), notes: draft.notes.trim() || null });
+    if (!error) await supabase.from("leads").update({ last_activity_at: now }).eq("id", lead.id);
     setSaving(saveKey, false);
     if (error) {
       toast({ title: "Follow-up not created", description: error.message, variant: "destructive" });
@@ -1355,7 +1383,9 @@ export const useLeadTaskBoardData = () => {
     if (!supabase) return;
     const saveKey = `followup-status:${followupId}`;
     setSaving(saveKey, true);
-    const { error } = await supabase.from("lead_followups").update({ status: nextStatus, completed_at: nextStatus === "done" ? new Date().toISOString() : null }).eq("id", followupId).eq("lead_id", leadId);
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("lead_followups").update({ status: nextStatus, completed_at: nextStatus === "done" ? now : null }).eq("id", followupId).eq("lead_id", leadId);
+    if (!error) await supabase.from("leads").update({ last_activity_at: now }).eq("id", leadId);
     setSaving(saveKey, false);
     if (error) {
       toast({ title: "Follow-up update failed", description: error.message, variant: "destructive" });

@@ -825,6 +825,33 @@ const getRecommendedFeedbackType = (
 
 const fromDateTimeInputValue = (value: string) => (value ? new Date(value).toISOString() : null);
 
+const fetchLeadScopedRows = async <T,>(
+  table: string,
+  selectClause: string,
+  leadIds: string[],
+  orderColumn = "created_at",
+) => {
+  if (!supabase || !leadIds.length) return { data: [] as T[], error: null };
+
+  const pageSize = 1000;
+  const rows: T[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(selectClause)
+      .in("lead_id", leadIds)
+      .order(orderColumn, { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) return { data: rows, error };
+    rows.push(...((data as T[] | null) ?? []));
+    if (!data || data.length < pageSize) break;
+  }
+
+  return { data: rows, error: null };
+};
+
 const formatDueLabel = (followup: LeadFollowupRow | null) => {
   if (!followup) return "No follow-up set";
   if (!followup.due_at) return "Open without deadline";
@@ -1044,31 +1071,8 @@ const AdminLeads = () => {
         .order("ended_at", { ascending: false })
         .limit(700);
 
-      const notesQuery = supabase
-        .from("lead_notes")
-        .select("id, lead_id, author_admin_user_id, body, created_at")
-        .order("created_at", { ascending: false })
-        .limit(700);
-
-      const followupsQuery = supabase
-        .from("lead_followups")
-        .select("id, lead_id, assigned_to, status, channel, due_at, completed_at, notes, created_at, updated_at")
-        .order("created_at", { ascending: false })
-        .limit(700);
-
-      const statusHistoryQuery = supabase
-        .from("lead_status_history")
-        .select("id, lead_id, changed_by, from_status, to_status, reason, created_at")
-        .order("created_at", { ascending: false })
-        .limit(700);
-
-      const feedbackQuery = supabase
-        .from("ad_platform_feedback")
-        .select(
-          "id, lead_id, platform, feedback_type, feedback_status, external_identifier_type, external_identifier_value, payload, response_payload, sent_at, created_at, updated_at",
-        )
-        .order("created_at", { ascending: false })
-        .limit(700);
+      const feedbackSelect =
+        "id, lead_id, platform, feedback_type, feedback_status, external_identifier_type, external_identifier_value, payload, response_payload, sent_at, created_at, updated_at";
 
       const alertQueueQuery = supabase
         .from("crm_alert_queue")
@@ -1082,19 +1086,11 @@ const AdminLeads = () => {
         adminUsersResult,
         leadsResult,
         rollupsResult,
-        notesResult,
-        followupsResult,
-        statusHistoryResult,
-        feedbackResult,
         alertQueueResult,
       ] = await Promise.all([
         adminUsersQuery,
         loadLeads(responseTrackingLeadSelect),
         rollupsQuery,
-        notesQuery,
-        followupsQuery,
-        statusHistoryQuery,
-        feedbackQuery,
         alertQueueQuery,
       ]);
 
@@ -1104,22 +1100,40 @@ const AdminLeads = () => {
           adminUsersResult,
           leadsResult,
           rollupsResult,
-          notesResult,
-          followupsResult,
-          statusHistoryResult,
-          feedbackResult,
           alertQueueResult,
         ] = await Promise.all([
           adminUsersQuery,
           loadLeads(baseLeadSelect),
           rollupsQuery,
-          notesQuery,
-          followupsQuery,
-          statusHistoryQuery,
-          feedbackQuery,
           alertQueueQuery,
         ]);
       }
+
+      const loadedLeads =
+        (((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => ({
+          first_whatsapp_contacted_at: null,
+          first_whatsapp_contacted_by: null,
+          first_called_at: null,
+          first_called_by: null,
+          source_received_at: null,
+          created_at: "",
+          ...lead,
+        })) as LeadRow[]) ?? [];
+      const leadIds = loadedLeads.map((lead) => lead.id).filter(Boolean);
+      const [notesResult, followupsResult, statusHistoryResult, feedbackResult] = await Promise.all([
+        fetchLeadScopedRows<LeadNoteRow>("lead_notes", "id, lead_id, author_admin_user_id, body, created_at", leadIds),
+        fetchLeadScopedRows<LeadFollowupRow>(
+          "lead_followups",
+          "id, lead_id, assigned_to, status, channel, due_at, completed_at, notes, created_at, updated_at",
+          leadIds,
+        ),
+        fetchLeadScopedRows<LeadStatusHistoryRow>(
+          "lead_status_history",
+          "id, lead_id, changed_by, from_status, to_status, reason, created_at",
+          leadIds,
+        ),
+        fetchLeadScopedRows<AdPlatformFeedbackRow>("ad_platform_feedback", feedbackSelect, leadIds),
+      ]);
 
       if (adminUsersResult.error) {
         console.warn("Failed to load admin users", adminUsersResult.error);
@@ -1132,17 +1146,7 @@ const AdminLeads = () => {
         console.warn("Failed to load leads", leadsResult.error);
         setLeads([]);
       } else {
-        setLeads(
-          (((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => ({
-            first_whatsapp_contacted_at: null,
-            first_whatsapp_contacted_by: null,
-            first_called_at: null,
-            first_called_by: null,
-            source_received_at: null,
-            created_at: "",
-            ...lead,
-          })) as LeadRow[]) ?? [],
-        );
+        setLeads(loadedLeads);
       }
 
       if (rollupsResult.error) {
@@ -1873,6 +1877,7 @@ const AdminLeads = () => {
 
     const saveKey = `note:${lead.id}`;
     setSaving(saveKey, true);
+    const now = new Date().toISOString();
 
     const { error } = await supabase.from("lead_notes").insert({
       lead_id: lead.id,
@@ -1883,7 +1888,7 @@ const AdminLeads = () => {
     if (!error) {
       const { error: summaryError } = await supabase
         .from("leads")
-        .update({ notes_summary: noteBody.slice(0, 180) })
+        .update({ notes_summary: noteBody.slice(0, 180), last_activity_at: now })
         .eq("id", lead.id);
 
       if (summaryError) {
@@ -1921,6 +1926,7 @@ const AdminLeads = () => {
     const draft = followupDrafts[lead.id] ?? makeDefaultFollowupDraft(lead.assigned_to, adminProfile?.id);
     const saveKey = `followup-create:${lead.id}`;
     setSaving(saveKey, true);
+    const now = new Date().toISOString();
 
     const { error } = await supabase.from("lead_followups").insert({
       lead_id: lead.id,
@@ -1929,6 +1935,10 @@ const AdminLeads = () => {
       due_at: fromDateTimeInputValue(draft.dueAt),
       notes: draft.notes.trim() || null,
     });
+    if (!error) {
+      const { error: activityError } = await supabase.from("leads").update({ last_activity_at: now }).eq("id", lead.id);
+      if (activityError) console.warn("Failed to update lead activity timestamp", activityError);
+    }
 
     setSaving(saveKey, false);
 
@@ -1963,15 +1973,20 @@ const AdminLeads = () => {
 
     const saveKey = `followup-status:${followupId}`;
     setSaving(saveKey, true);
+    const now = new Date().toISOString();
 
     const { error } = await supabase
       .from("lead_followups")
       .update({
         status: nextStatus,
-        completed_at: nextStatus === "done" ? new Date().toISOString() : null,
+        completed_at: nextStatus === "done" ? now : null,
       })
       .eq("id", followupId)
       .eq("lead_id", leadId);
+    if (!error) {
+      const { error: activityError } = await supabase.from("leads").update({ last_activity_at: now }).eq("id", leadId);
+      if (activityError) console.warn("Failed to update lead activity timestamp", activityError);
+    }
 
     setSaving(saveKey, false);
 

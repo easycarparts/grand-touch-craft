@@ -82,6 +82,47 @@ const isDubaiToday = (value: string) => {
   return formatter.format(new Date(value)) === formatter.format(new Date());
 };
 
+const buildQuickActivityItems = (lead: LeadTaskLead, adminUsersById: Map<string, AdminUserOption>) => [
+  ...lead.notes.map((note) => {
+    const author = adminUsersById.get(note.author_admin_user_id);
+    return {
+      id: `note:${note.id}`,
+      at: note.created_at,
+      label: "Internal note",
+      body: note.body,
+      meta: `${author?.full_name || author?.email || "Admin"} - ${formatTimestamp(note.created_at)}`,
+      badgeClass: "border-sky-400/20 bg-sky-500/10 text-sky-200",
+    };
+  }),
+  ...lead.followups.map((followup) => {
+    const assignee = followup.assigned_to ? adminUsersById.get(followup.assigned_to) : null;
+    return {
+      id: `followup:${followup.id}`,
+      at: followup.updated_at || followup.created_at,
+      label: `${formatTokenLabel(followup.channel)} follow-up`,
+      body: followup.notes || "No follow-up notes added.",
+      meta: `${formatTokenLabel(followup.status)} - Due ${formatTimestamp(followup.due_at)} - ${assignee?.full_name || assignee?.email || "Unassigned"}`,
+      badgeClass:
+        followup.status === "done"
+          ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+          : followup.status === "cancelled"
+            ? "border-slate-400/20 bg-slate-500/10 text-slate-300"
+            : "border-primary/25 bg-primary/10 text-primary",
+    };
+  }),
+  ...lead.statusHistory.map((entry) => {
+    const author = entry.changed_by ? adminUsersById.get(entry.changed_by) : null;
+    return {
+      id: `status:${entry.id}`,
+      at: entry.created_at,
+      label: "Status change",
+      body: entry.reason || `${entry.from_status ? formatTokenLabel(entry.from_status) : "No status"} to ${formatTokenLabel(entry.to_status)}`,
+      meta: `${author?.full_name || author?.email || "Admin"} - ${formatTimestamp(entry.created_at)}`,
+      badgeClass: getStatusBadgeClass(entry.to_status),
+    };
+  }),
+].sort((left, right) => new Date(right.at).getTime() - new Date(left.at).getTime());
+
 const TaskCard = ({
   task,
   isExpanded,
@@ -104,6 +145,7 @@ const TaskCard = ({
   onMarkDone,
   savingKeys,
   adminUsers,
+  adminUsersById,
 }: {
   task: LeadTaskItem;
   isExpanded: boolean;
@@ -126,12 +168,14 @@ const TaskCard = ({
   onMarkDone: (() => void) | null;
   savingKeys: Record<string, boolean>;
   adminUsers: AdminUserOption[];
+  adminUsersById: Map<string, AdminUserOption>;
 }) => {
   const whatsappUrl = buildWhatsAppUrl(task.phone);
   const lead = task.lead;
   const canUsePhoneActions = Boolean(task.phone);
   const assignedUser = lead.assigned_to ? adminUsers.find((user) => user.id === lead.assigned_to) ?? null : null;
   const assignedLabel = assignedUser ? assignedUser.full_name || assignedUser.email : "Unassigned";
+  const quickActivityItems = buildQuickActivityItems(lead, adminUsersById);
 
   const followupDueInputRef = useRef<HTMLInputElement | null>(null);
   const followupDueAtValid = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(followupDraft.dueAt);
@@ -341,6 +385,34 @@ const TaskCard = ({
                   Create follow-up
                 </Button>
               </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Activity history</p>
+              <p className="text-xs text-slate-500">
+                {quickActivityItems.length} saved item{quickActivityItems.length === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="mt-3 max-h-[320px] space-y-3 overflow-y-auto pr-2">
+              {quickActivityItems.length ? (
+                quickActivityItems.map((item) => (
+                  <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className={item.badgeClass}>
+                        {item.label}
+                      </Badge>
+                      <span className="text-xs text-slate-500">{item.meta}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-white">{item.body}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-400">
+                  No internal notes, follow-ups, or status changes saved yet.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -675,6 +747,7 @@ const AdminLeadTasks = () => {
                   onMarkDone={task.followup ? () => void handleFollowupStatusChange(task.lead.id, task.followup.id, "done") : null}
                   savingKeys={savingKeys}
                   adminUsers={adminUsers}
+                  adminUsersById={adminUsersById}
                 />
               );
             })
