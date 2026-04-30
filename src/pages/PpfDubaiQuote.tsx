@@ -199,6 +199,12 @@ const VideoModalCard = ({
 
 const formatAED = (value: number) => `AED ${value.toLocaleString("en-AE")}`;
 const isValidPhoneNumber = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  if (digits.startsWith(DEFAULT_PHONE_COUNTRY_CODE)) {
+    const localDigits = digits.slice(DEFAULT_PHONE_COUNTRY_CODE.length);
+    return /^5\d{8}$/.test(localDigits);
+  }
+
   const cleaned = value.replace(/[\s-]/g, "");
   return /^\+[0-9]{9,}$/.test(cleaned) && cleaned.length >= 10;
 };
