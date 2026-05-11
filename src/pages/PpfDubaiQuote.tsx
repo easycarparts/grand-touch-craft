@@ -29,7 +29,7 @@ import {
   createFunnelTrackingContext,
   trackFunnelEvent,
 } from "@/lib/funnel-analytics";
-import { initTikTokPixel, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
+import { initTikTokPixel, trackTikTokEvent, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
 import { updatePageSEO } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
@@ -1285,6 +1285,37 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     [funnelContext]
   );
 
+  const trackTikTokContactConversion = useCallback(
+    (payload: Record<string, unknown>) => {
+      if (variant !== "tiktok") return;
+
+      trackTikTokEvent("Contact", {
+        content_name: variantConfig.tikTokContentName,
+        contact_channel: "whatsapp",
+        source: "ppf_tiktok_quote_2",
+        utm_source: utmParams.utm_source,
+        utm_medium: utmParams.utm_medium,
+        utm_campaign: utmParams.utm_campaign,
+        utm_content: utmParams.utm_content,
+        utm_term: utmParams.utm_term,
+        utm_id: utmParams.utm_id,
+        ttclid: utmParams.ttclid,
+        ...payload,
+      });
+    },
+    [
+      utmParams.ttclid,
+      utmParams.utm_campaign,
+      utmParams.utm_content,
+      utmParams.utm_id,
+      utmParams.utm_medium,
+      utmParams.utm_source,
+      utmParams.utm_term,
+      variant,
+      variantConfig.tikTokContentName,
+    ]
+  );
+
   const openTrackedWhatsApp = useCallback(
     ({
       placement,
@@ -1306,6 +1337,10 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           whatsapp_state: whatsappState,
         },
       });
+      trackTikTokContactConversion({
+        cta_location: placement,
+        whatsapp_state: whatsappState,
+      });
 
       if (placement === "hero") {
         trackEvent("hero_whatsapp_click", {
@@ -1315,7 +1350,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
       openWhatsAppUrl(url);
     },
-    [trackEvent]
+    [trackEvent, trackTikTokContactConversion]
   );
 
   const clearPendingWhatsAppGate = useCallback(() => {
@@ -2066,6 +2101,16 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
             value: calculatorSelection.estimateMin,
             currency: "AED",
           },
+        });
+        trackTikTokContactConversion({
+          cta_location: "calculator_quote",
+          whatsapp_state: "calculator_quote",
+          package_name: packageLabel,
+          vehicle_size: calculatorSelection.size,
+          coverage: calculatorSelection.coverage,
+          finish: calculatorSelection.finish,
+          value: calculatorSelection.estimateMin,
+          currency: "AED",
         });
         openWhatsAppUrl(buildWhatsAppUrl(message));
       }
