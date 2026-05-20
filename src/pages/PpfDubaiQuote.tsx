@@ -266,8 +266,13 @@ const isProbablyMobileDevice = () => {
     /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent)
   );
 };
-const openWhatsAppUrl = (url: string) => {
+const openWhatsAppUrl = (url: string, options: { forceNewTab?: boolean } = {}) => {
   if (typeof window === "undefined") return;
+
+  if (options.forceNewTab) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
 
   if (isProbablyMobileDevice()) {
     const appUrl = buildWhatsAppAppUrl(extractWhatsAppMessage(url));
@@ -1007,18 +1012,16 @@ const QuoteUnlockForm = ({
                   Open PPF Price Calculator
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <a href={whatsAppUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
-                  <Button
-                    type="button"
-                    variant="default"
-                    className={cn(whatsappCtaButtonClass, "w-full")}
-                    size="lg"
-                    onClick={onWhatsAppClick}
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Ask Sean on WhatsApp
-                  </Button>
-                </a>
+                <Button
+                  type="button"
+                  variant="default"
+                  className={cn(whatsappCtaButtonClass, "w-full sm:w-auto")}
+                  size="lg"
+                  onClick={onWhatsAppClick}
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Ask Sean on WhatsApp
+                </Button>
               </div>
             </div>
           )
@@ -1360,9 +1363,9 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         });
       }
 
-      openWhatsAppUrl(url);
+      openWhatsAppUrl(url, { forceNewTab: variant === "google" });
     },
-    [trackEvent, trackGoogleAdsWhatsAppContactConversion, trackTikTokContactConversion]
+    [trackEvent, trackGoogleAdsWhatsAppContactConversion, trackTikTokContactConversion, variant]
   );
 
   const clearPendingWhatsAppGate = useCallback(() => {
@@ -2142,7 +2145,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           currency: "AED",
         });
         trackGoogleAdsWhatsAppContactConversion();
-        openWhatsAppUrl(buildWhatsAppUrl(message));
+        openWhatsAppUrl(buildWhatsAppUrl(message), { forceNewTab: variant === "google" });
       }
     };
 
