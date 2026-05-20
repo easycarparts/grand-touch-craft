@@ -83,6 +83,7 @@ type PhoneCountryOption = {
 const LEAD_PROFILE_STORAGE_KEY_BASE = "ppf-quote-lead-v1";
 const WHATSAPP_NUMBER = "971567191045";
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
+const GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO = "AW-17684563059/KqOWCJfDoLAcEPOI1PBB";
 const DEFAULT_PHONE_COUNTRY_CODE = "971";
 const CUSTOM_PHONE_COUNTRY_CODE_VALUE = "__custom_country_code__";
 const PHONE_COUNTRY_OPTIONS: PhoneCountryOption[] = [
@@ -1316,6 +1317,16 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     ]
   );
 
+  const trackGoogleAdsWhatsAppContactConversion = useCallback(() => {
+    if (variant !== "google" || typeof window === "undefined" || !window.gtag) return;
+
+    window.gtag("event", "conversion", {
+      send_to: GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO,
+      value: 1.0,
+      currency: "AED",
+    });
+  }, [variant]);
+
   const openTrackedWhatsApp = useCallback(
     ({
       placement,
@@ -1341,6 +1352,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         cta_location: placement,
         whatsapp_state: whatsappState,
       });
+      trackGoogleAdsWhatsAppContactConversion();
 
       if (placement === "hero") {
         trackEvent("hero_whatsapp_click", {
@@ -1350,7 +1362,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
       openWhatsAppUrl(url);
     },
-    [trackEvent, trackTikTokContactConversion]
+    [trackEvent, trackGoogleAdsWhatsAppContactConversion, trackTikTokContactConversion]
   );
 
   const clearPendingWhatsAppGate = useCallback(() => {
@@ -1976,6 +1988,23 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
     };
 
   const handleWhatsAppClick = (placement: string = "unknown") => {
+    if (variant === "google") {
+      const whatsappState = selection
+        ? calculatorPriceUnlocked
+          ? "calculator_quote"
+          : "calculator_setup"
+        : formSubmitted
+          ? "known_lead"
+          : "direct_whatsapp";
+
+      openTrackedWhatsApp({
+        placement,
+        url: whatsAppUrl,
+        whatsappState,
+      });
+      return;
+    }
+
     if (!formSubmitted) {
       pendingWhatsAppPlacementRef.current = placement;
       setPendingWhatsAppPlacement(placement);
@@ -2112,6 +2141,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
           value: calculatorSelection.estimateMin,
           currency: "AED",
         });
+        trackGoogleAdsWhatsAppContactConversion();
         openWhatsAppUrl(buildWhatsAppUrl(message));
       }
     };

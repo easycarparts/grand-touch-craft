@@ -1,6 +1,6 @@
 # Google Ads Handoff And Operating Notes
 
-Last updated: `2026-04-12` (Asia/Dubai)
+Last updated: `2026-05-14` (Asia/Dubai)
 
 This document is the practical handoff for the Google Ads setup in this repo.
 It is meant to let a future Codex session recover the current state quickly without re-discovering:
@@ -57,12 +57,15 @@ The live Google Ads conversion action is wired in [src/pages/PpfDubaiQuote.tsx](
 Important markers:
 
 - `GOOGLE_ADS_SUBMIT_LEAD_SEND_TO` is defined in the live page
+- `GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO` is defined in the live page
 - `trackGoogleAdsLeadConversion()` fires on successful lead submit
+- `trackGoogleAdsWhatsAppContactConversion()` fires on WhatsApp clicks for the Google variant
 - `gclid` and `utm_*` are captured and passed through the lead payload
 
 Important lines in the live page:
 
-- send_to constant: line `60`
+- submit lead send_to constant: line `85`
+- WhatsApp contact send_to constant: line `86`
 - `gclid` capture: line `713`
 - conversion fire helper: line `804`
 - standard lead payload includes `gclid`: line `952`
@@ -180,6 +183,13 @@ Important conversion facts already verified through the API:
 - it is the primary goal action
 - the live page send_to was corrected earlier to:
   - `AW-17684563059/5R6tCPbqo5kcEPOI1PBB`
+- the WhatsApp contact conversion action is `WhatsApp contact click`
+- it exists and is enabled
+- it is a website contact action
+- it is included in conversions
+- it counts `ONE_PER_CLICK`
+- the live page send_to is:
+  - `AW-17684563059/KqOWCJfDoLAcEPOI1PBB`
 
 Important note:
 
@@ -382,7 +392,308 @@ That would likely help:
 - headline fit
 - search-term control
 
-## 14. Non-secret reminders
+## 14. May 2026 PPC restart plan
+
+This is the current recommended Google PPC restart plan after reviewing:
+
+- the old Google Ads data
+- the current V2 / Google landing-page route
+- the user's concern that the first test was too fragmented
+- the user's note that "full body" is not language he normally uses with customers
+
+### Budget
+
+Start with:
+
+- `AED 150/day`
+- run for `10 days` unless tracking is broken or search terms are clearly irrelevant
+- total first learning budget: about `AED 1,500`
+
+Do not start with the full `AED 5,000/month` allocation on day one.
+Use the first `AED 1,500` to prove that Google Search can produce serious PPF enquiries, then scale.
+
+### Campaign setup
+
+Recommended campaign:
+
+- name: `PPF Search Dubai - High Intent - May 2026`
+- type: `Search`
+- objective: `Leads`
+- networks: `Google Search only`
+- turn off: `Display Network`
+- location: start with `Dubai + nearby UAE / serviceable UAE`, not people merely interested in the UAE from abroad
+- language: `All`
+- ad schedule: `8 AM - midnight` to start
+- landing page:
+  - `https://www.grandtouchauto.ae/ppf-dubai-quote?utm_source=google&utm_medium=paid_search&utm_campaign=ppf_search_may_2026`
+
+Implementation note:
+
+- created through `npm run ads:setup-ppf-search-may-2026 -- --env=.env.google-ads`
+- created as `PAUSED` so it can be reviewed in Google Ads before spend starts
+- ad schedule applied for every day from `08:00-24:00`
+
+### Bidding
+
+Start with:
+
+- `Maximize clicks`
+- CPC cap: `AED 18`
+
+Do not start with Target CPA unless there is enough clean recent Google conversion data.
+The account does not currently have enough recent Google Search conversion volume to trust Smart Bidding from cold.
+
+### First-test structure
+
+For `AED 150/day`, do **not** start with five or more ad groups.
+The expected click volume may only be around `7-15 clicks/day`, so too many ad groups will fragment the learning.
+
+Start with exactly three ad groups:
+
+#### 1. PPF Dubai Core
+
+Keywords:
+
+- `[ppf dubai]`
+- `"ppf dubai"`
+- `[car ppf dubai]`
+- `"car ppf dubai"`
+
+#### 2. Paint Protection Film Dubai
+
+Keywords:
+
+- `[paint protection film dubai]`
+- `"paint protection film dubai"`
+- `[car paint protection dubai]`
+- `"car paint protection dubai"`
+
+#### 3. PPF Price / Quote
+
+Keywords:
+
+- `[ppf price dubai]`
+- `"ppf price dubai"`
+- `[ppf cost dubai]`
+- `"ppf cost dubai"`
+- `[ppf quote dubai]`
+- `"ppf quote dubai"`
+
+### What not to include in the first test
+
+Do not include these in the first `AED 150/day` structure:
+
+- `full body ppf`
+- `full car ppf`
+- `front ppf`
+- `STEK`
+- vehicle-specific keywords
+- competitor keywords
+- broad match
+- Performance Max
+
+Reason:
+
+- these may be useful later, but they fragment the first learning pass
+- "full body" is not a term the user naturally uses with customers
+- the first test should prove the core PPF / paint protection / price quote market first
+
+### Negatives to add before launch
+
+Add baseline negatives:
+
+- `free`
+- `cheap`
+- `cheapest`
+- `diy`
+- `do it yourself`
+- `training`
+- `course`
+- `job`
+- `jobs`
+- `salary`
+- `supplier`
+- `wholesale`
+- `roll`
+- `film roll`
+- `amazon`
+- `temu`
+- `aliexpress`
+- `sticker`
+- `vinyl roll`
+- `car wash`
+- `mobile car wash`
+- `interior cleaning`
+- `window tint only`
+- `wrap only`
+
+Keep competitor names negative at first, including:
+
+- `modcare`
+- `apex`
+- `nvn`
+- `zguard`
+- `dluxe`
+- `cars studio`
+- `motorworks`
+- `district autocare`
+- `wrp`
+- `7 detail inn`
+
+Competitor traffic can be tested later in a separate campaign if the core campaign works.
+
+### First cleanup negatives applied on 2026-05-15
+
+After the first live spend, the campaign had early positive signal:
+
+- `172` impressions
+- `10` clicks
+- `AED 135.61` spend
+- `1` conversion
+- `AED 13.56` average CPC
+
+The first cleanup added campaign-level phrase negatives for competitor, detailing, ceramic, tinting, wrapping, and review-style searches that were already appearing in search terms.
+
+Applied with:
+
+- `npm run ads:add-may-2026-cleanup-negatives -- --env=.env.google-ads`
+
+Negatives added:
+
+- `ceramic coating`
+- `car detailing`
+- `tinting`
+- `wrapping`
+- `reviews`
+- `aar luxe`
+- `mkn garage`
+- `warehouse 6 street 25`
+- `maxguard`
+- `wrapsters`
+- `the detailing experts`
+- `system x`
+- `elite shine`
+- `nanoz`
+- `union delta`
+- `carpi`
+
+### Second cleanup negatives applied on 2026-05-16
+
+After another read-only health check, new irrelevant service-center / detailing / tinting terms appeared, including a paid click for a Topaz-style local/navigation query.
+
+Applied through the same script:
+
+- `npm run ads:add-may-2026-cleanup-negatives -- --env=.env.google-ads`
+
+Additional negatives added:
+
+- `detailing`
+- `window tint`
+- `car storage`
+- `topaz`
+- `topaz detailing`
+- `origin8`
+- `jem auto`
+- `xpel`
+
+### Third cleanup negatives applied on 2026-05-18
+
+After the May 18 health check, the campaign had `30` clicks, `AED 451.94` spend, and `2` conversions.
+The weakest pocket was `Paint Protection Film Dubai`, which had `AED 206.11` spend and no conversions.
+
+Applied through the same script:
+
+- `npm run ads:add-may-2026-cleanup-negatives -- --env=.env.google-ads`
+
+Additional phrase negatives added:
+
+- `smart repair`
+- `stek uae`
+- `ppf coating`
+- `coating price`
+- `approved detailing`
+- `black diamond ppf`
+- `foilack`
+- `rma ppf`
+
+Important restraint:
+
+- Do **not** blanket-negative `uae`, `ppf price`, `ppf cost`, or `paint protection film price` yet.
+- Those terms are expensive, but they can still represent real commercial buyers. Judge them after more post-cleanup clicks.
+
+### Ad copy direction
+
+Use two responsive search ads per ad group.
+
+The copy should focus on:
+
+- premium PPF in Dubai
+- paint protection film for new cars and luxury SUVs
+- warranty-registered STEK film
+- direct quote via Sean / WhatsApp
+- real install and handover proof
+- not bargain positioning
+
+Avoid making the whole campaign sound like "cheap quote" traffic.
+Price/quote intent matters, but the positioning should remain premium.
+
+### Conversions
+
+Primary actions to care about:
+
+- WhatsApp contact click
+- successful lead form submit as the deeper conversion
+- calls, if call tracking is added
+
+Secondary actions:
+
+- calculator engagement
+- page engagement
+- section engagement
+
+Do not judge Google only by form submits if WhatsApp becomes the dominant conversion path.
+
+### WhatsApp-first landing-page change applied on 2026-05-20
+
+The live Google route at `/ppf-dubai-quote` now treats WhatsApp as a direct contact path:
+
+- `Get My PPF Quote` still opens the quote modal/form
+- `Ask Sean on WhatsApp` opens WhatsApp directly on the Google variant
+- the old contact/vehicle capture gate is preserved for non-Google variants
+- each Google-variant WhatsApp click fires the `WhatsApp contact click` Google Ads conversion
+- calculator WhatsApp requests also fire the same Google Ads contact conversion
+
+Reason:
+
+- PPC behaviour looked WhatsApp-first, not form-first.
+- The prior Google campaign had `32` clicks, `2` form conversions, and no strong WhatsApp optimization signal.
+- Future Google testing should optimize around WhatsApp/contact first, with form submit as a deeper-quality signal.
+
+### Review rules
+
+Review daily, but avoid major edits for the first few days unless something is obviously broken.
+
+Check:
+
+- search terms
+- CPC
+- CTR
+- WhatsApp/contact clicks
+- form submits
+- CRM lead quality
+- location quality
+
+Do not scale budget until:
+
+- search terms are clean
+- at least one primary conversion path is firing
+- lead quality is not obviously poor
+
+If search terms are clean but volume is too low after `3-4 days`, raise the CPC cap before adding lots of new keywords.
+
+If CPC is high and search terms are irrelevant, tighten negatives first.
+
+## 15. Non-secret reminders
 
 - do not commit developer tokens
 - do not commit service-account JSON

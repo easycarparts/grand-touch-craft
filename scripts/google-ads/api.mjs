@@ -18,6 +18,23 @@ function formatGoogleAdsError(errorJson) {
     return "Unknown Google Ads API error.";
   }
 
+  const googleAdsFailure = errorJson.error?.details?.find((detail) =>
+    detail["@type"]?.includes("google.ads.googleads"),
+  );
+
+  if (googleAdsFailure?.errors?.length) {
+    return googleAdsFailure.errors
+      .map((error) => {
+        const code = Object.values(error.errorCode || {}).filter(Boolean).join(".");
+        const fieldPath = error.location?.fieldPathElements
+          ?.map((element) => element.fieldName)
+          .filter(Boolean)
+          .join(".");
+        return [code, fieldPath, error.message].filter(Boolean).join(" | ");
+      })
+      .join("\n");
+  }
+
   if (errorJson.error?.message) {
     return errorJson.error.message;
   }
@@ -161,6 +178,42 @@ export async function listAccessibleCustomers(config) {
   }
 
   return json.resourceNames || [];
+}
+
+export async function googleAdsPost(config, path, body) {
+  const accessToken = await getAccessToken(config);
+  const endpoint = `https://googleads.googleapis.com/${config.apiVersion}/${path}`;
+
+  const headers = {
+    authorization: `Bearer ${accessToken}`,
+    "content-type": "application/json",
+    "developer-token": config.developerToken,
+  };
+
+  if (config.loginCustomerId) {
+    headers["login-customer-id"] = config.loginCustomerId;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  const text = await response.text();
+  let json;
+
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(`Google Ads API returned non-JSON response (${response.status}): ${text}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(formatGoogleAdsError(json));
+  }
+
+  return json;
 }
 
 export async function mutate(config, mutateOperations, options = {}) {
