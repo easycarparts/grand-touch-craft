@@ -1226,6 +1226,7 @@ const PpfTikTokGuidedFunnel = ({ variant = "tiktok_guided" }: { variant?: Landin
 
   const whatsAppUrl = useMemo(() => {
     const cleanVehicleSummary = vehicleSummary.trim();
+    const sourceLine = "I came from TikTok and I am checking PPF for my car.";
 
     if (selection) {
       const packageLabel = getCalculatorPackageLabel(selection);
@@ -1236,14 +1237,14 @@ const PpfTikTokGuidedFunnel = ({ variant = "tiktok_guided" }: { variant?: Landin
 
       const lines = cleanVehicleSummary
         ? [
-            `Hi Sean, I’ve been looking at PPF for my ${cleanVehicleSummary} on the Grand Touch site.`,
+            `Hi Sean, ${sourceLine} My car is a ${cleanVehicleSummary}.`,
             `I’m leaning towards ${packageLabel} with ${setupParts.join(" and ")}.`,
             calculatorPriceUnlocked
               ? `The starting price showed ${formatAED(selection.estimateMin)} plus VAT. Does that look like the right package for my car?`
               : "Could you let me know if that sounds like the right package for my car?",
           ]
         : [
-            "Hi Sean, I’ve been looking at the PPF options on the Grand Touch site.",
+            `Hi Sean, ${sourceLine}`,
             `I’m leaning towards ${packageLabel} with ${setupParts.join(" and ")}.`,
             calculatorPriceUnlocked
               ? `The starting price showed ${formatAED(selection.estimateMin)} plus VAT. Could you help me with the right package?`
@@ -1255,12 +1256,12 @@ const PpfTikTokGuidedFunnel = ({ variant = "tiktok_guided" }: { variant?: Landin
 
     if (formSubmitted && cleanVehicleSummary) {
       return buildWhatsAppUrl(
-        `Hi Sean, I’ve just sent my details through on the Grand Touch website for my ${cleanVehicleSummary}. I’d love your advice on the right PPF package for it when you have a moment.`
+        `Hi Sean, ${sourceLine} I just sent my details for my ${cleanVehicleSummary}. Could you advise the right PPF package when you have a moment?`
       );
     }
 
     return buildWhatsAppUrl(
-      "Hi Sean, I’m looking at PPF for my car and wanted a quote from Grand Touch when you have a moment."
+      `Hi Sean, ${sourceLine} Could you send me a PPF quote when you have a moment?`
     );
   }, [calculatorPriceUnlocked, formSubmitted, selection, vehicleSummary]);
 
@@ -2091,16 +2092,17 @@ const PpfTikTokGuidedFunnel = ({ variant = "tiktok_guided" }: { variant?: Landin
     const packageLabel = getCalculatorPackageLabel(calculatorSelection);
     const estimateLabel = formatAED(calculatorSelection.estimateMin);
     const cleanVehicleSummary = vehicleSummary.trim();
+    const sourceLine = "I came from TikTok and I am checking PPF for my car.";
     const coverageLabel =
       calculatorSelection.coverage === "Full Body" ? "full body coverage" : "front coverage";
     const message = cleanVehicleSummary
       ? [
-          `Hi Sean, I’ve just built a setup on your PPF calculator for my ${cleanVehicleSummary}.`,
+          `Hi Sean, ${sourceLine} I just built a setup on your PPF calculator for my ${cleanVehicleSummary}.`,
           `I’m looking at ${packageLabel} with a ${calculatorSelection.finish.toLowerCase()} finish and ${coverageLabel}.`,
           `The starting price showed ${estimateLabel} plus VAT. Does that look like the right package for my car?`,
         ].join(" ")
       : [
-          "Hi Sean, I’ve just built a setup on your PPF calculator.",
+          `Hi Sean, ${sourceLine} I just built a setup on your PPF calculator.`,
           `I’m looking at ${packageLabel} with a ${calculatorSelection.finish.toLowerCase()} finish and ${coverageLabel}.`,
           `The starting price showed ${estimateLabel} plus VAT. Could you help me with the right package?`,
         ].join(" ");
