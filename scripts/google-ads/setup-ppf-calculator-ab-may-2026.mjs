@@ -1,9 +1,9 @@
 import { loadWorkflowConfig, mutate, searchStream } from "./api.mjs";
 
-const CAMPAIGN_NAME = "PPF Search UAE - WhatsApp - May 2026";
+const CAMPAIGN_NAME = "PPF Search UAE - Calculator AB - May 2026";
 const DAILY_BUDGET_MICROS = "150000000";
 const FINAL_URL =
-  "https://www.grandtouchauto.ae/ppf-dubai-quote?utm_source=google&utm_medium=paid_search&utm_campaign=ppf_whatsapp_search_may_2026";
+  "https://www.grandtouchauto.ae/ppf-full-ppf-calculator?utm_source=google&utm_medium=paid_search&utm_campaign=ppf_calculator_ab_may_2026";
 const UAE_GEO_TARGET_CONSTANT = "geoTargetConstants/2784";
 
 const AD_GROUPS = [
@@ -165,19 +165,19 @@ const SITELINKS = [
     linkText: "PPF Quote",
     description1: "Build the right setup",
     description2: "Get a clear estimate",
-    finalUrl: `${FINAL_URL}#quote-calculator`,
+    finalUrl: `${FINAL_URL}#calculator`,
   },
   {
     linkText: "Why Grand Touch",
     description1: "Proper prep and handover",
     description2: "See why buyers trust us",
-    finalUrl: `${FINAL_URL}#why-grand-touch`,
+    finalUrl: `${FINAL_URL}#owner-standard`,
   },
   {
-    linkText: "Why We Use STEK",
+    linkText: "Save Your Quote",
     description1: "Warranty you can trace",
-    description2: "Genuine film matters",
-    finalUrl: `${FINAL_URL}#why-stek`,
+    description2: "Send setup to Sean",
+    finalUrl: `${FINAL_URL}#save-quote`,
   },
 ];
 
@@ -486,7 +486,7 @@ try {
   console.log(`Sitelinks: ${SITELINKS.length}`);
   console.log(`Callouts: ${CALLOUTS.length}`);
 } catch (error) {
-  console.error("ads:setup-ppf-search-whatsapp-may-2026 failed.");
+  console.error("ads:setup-ppf-calculator-ab-may-2026 failed.");
   console.error(error.message);
   process.exitCode = 1;
 }

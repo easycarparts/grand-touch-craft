@@ -228,6 +228,32 @@ const pages = [
       "<p><strong>Enable JavaScript</strong> to use the short quote form, estimate controls, and WhatsApp handoff.</p>",
   },
   {
+    path: "/ppf-full-ppf-calculator",
+    title: "Full PPF Price Calculator Dubai | Grand Touch Auto",
+    description:
+      "Calculate a full car PPF starting price in Dubai by vehicle size, finish, and warranty package. Send the setup to Grand Touch on WhatsApp.",
+    keywords:
+      "full PPF Dubai calculator, full car PPF price Dubai, PPF price Dubai, paint protection film Dubai price, luxury car PPF Dubai",
+    ogTitle: "Full PPF Price Calculator Dubai | Grand Touch",
+    ogDescription:
+      "Choose your vehicle size, finish, and full PPF package, then message Sean at Grand Touch to confirm exact price and availability.",
+    seoBody: `
+        <h1>Full PPF price calculator in Dubai</h1>
+        <p>Use the Grand Touch full-car PPF calculator to see a starting price by vehicle size, finish, and warranty package before messaging Sean on WhatsApp.</p>
+        <h2>What the calculator covers</h2>
+        <ul>
+          <li>Full-car paint protection film pricing</li>
+          <li>Gloss or matte finish direction</li>
+          <li>Vehicle size examples for small cars, saloons, SUVs, and sports cars</li>
+          <li>Warranty-led package options with Grand Touch installation standards</li>
+        </ul>
+        <h2>Why this page exists</h2>
+        <p>This paid-search calculator gives Dubai PPF buyers a fast starting price while still explaining the value behind Sean-led advice, prep before film, real handovers, and traceable warranty proof.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the interactive full PPF calculator and WhatsApp handoff.</p>",
+  },
+  {
     path: "/ppf-tiktok-quote_2",
     title: "PPF TikTok Quote | Grand Touch",
     description:

@@ -16,6 +16,7 @@ import ThankYouPayment from "./pages/ThankYouPayment";
 import CeramicCoatingGuide from "./pages/articles/CeramicCoatingGuide";
 import PPFvsCeramic from "./pages/articles/PPFvsCeramic";
 import PpfCostCalculator from "./pages/PpfCostCalculator";
+import PpfFullPpfCalculator from "./pages/PpfFullPpfCalculator";
 import PaintCorrectionTechniques from "./pages/articles/PaintCorrectionTechniques";
 import CustomVinylWraps from "./pages/articles/CustomVinylWraps";
 import PerformanceTuning from "./pages/articles/PerformanceTuning";
@@ -86,6 +87,7 @@ function App() {
             <Route path="/g700-customizer" element={<G700Customizer />} />
             <Route path="/ppf-dubai" element={<Navigate to="/ppf-cost-calculator" replace />} />
             <Route path="/ppf-cost-calculator" element={<PpfCostCalculator />} />
+            <Route path="/ppf-full-ppf-calculator" element={<PpfFullPpfCalculator />} />
             <Route path="/ppf-dubai-quote" element={<PpfDubaiQuote />} />
             <Route path="/ppf-tiktok-quote" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote-v2" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
