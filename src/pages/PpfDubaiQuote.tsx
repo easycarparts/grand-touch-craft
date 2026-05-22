@@ -935,7 +935,7 @@ const QuoteUnlockForm = ({
                 <p className="mt-1.5 max-w-xl text-[0.95rem] leading-6 text-slate-300 sm:mt-2 sm:text-base sm:leading-7">
                   {isModal
                     ? "Thanks. Your details have been sent. Would you like to open the calculator and compare the options?"
-                    : "We have your details and the calculator is now ready. You can compare finish, coverage, and warranty without leaving this section."}
+                    : "We have your details and the calculator is now ready. You can compare finish and warranty without leaving this section."}
                 </p>
               </div>
 
@@ -975,6 +975,7 @@ const QuoteUnlockForm = ({
 
 const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant }) => {
   const variantConfig = landingPageCopy[variant];
+  const isCalculatorWhatsAppFirst = variant === "google";
   const leadProfileStorageKey = `${LEAD_PROFILE_STORAGE_KEY_BASE}-${variantConfig.landingPageVariant}`;
   const [heroFormOpen, setHeroFormOpen] = useState(false);
   const [quoteModalFlow, setQuoteModalFlow] = useState<QuoteModalFlow>("standard");
@@ -993,7 +994,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   const [isSendingCalculatorLead, setIsSendingCalculatorLead] = useState(false);
   const [isWhyStekPlaying, setIsWhyStekPlaying] = useState(false);
   const [selection, setSelection] = useState<CalculatorSelection | null>(null);
-  const [calculatorPriceUnlocked, setCalculatorPriceUnlocked] = useState(false);
+  const [calculatorPriceUnlocked, setCalculatorPriceUnlocked] = useState(isCalculatorWhatsAppFirst);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [showMobileStickyCta, setShowMobileStickyCta] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -1012,6 +1013,12 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
    * Set VITE_SEND_FUNNEL_EMAILS=true to re-enable outbound template emails.
    */
   const funnelEmailsEnabled = import.meta.env.VITE_SEND_FUNNEL_EMAILS === "true";
+
+  useEffect(() => {
+    if (isCalculatorWhatsAppFirst) {
+      setCalculatorPriceUnlocked(true);
+    }
+  }, [isCalculatorWhatsAppFirst]);
 
   /** Mobile Safari often ignores smooth scroll or runs before overlay unmount; use measured top + delayed retries. */
   const scrollToCalculatorSection = useCallback(() => {
@@ -1178,26 +1185,14 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
 
     if (selection) {
       const packageLabel = getCalculatorPackageLabel(selection);
-      const setupParts = [
-        `${selection.finish.toLowerCase()} finish`,
-        selection.coverage === "Full Body" ? "full body coverage" : "front coverage",
-      ];
+      const coverageLabel = selection.coverage === "Full Body" ? "full body PPF" : "front PPF";
+      const priceLine = calculatorPriceUnlocked ? `, ${formatAED(selection.estimateMin)} plus VAT` : "";
 
-      const lines = cleanVehicleSummary
-        ? [
-            `Hi Sean, ${sourceLine} My car is a ${cleanVehicleSummary}.`,
-            `I’m leaning towards ${packageLabel} with ${setupParts.join(" and ")}.`,
-            calculatorPriceUnlocked
-              ? `The starting price showed ${formatAED(selection.estimateMin)} plus VAT. Does that look like the right package for my car?`
-              : "Could you let me know if that sounds like the right package for my car?",
-          ]
-        : [
-            `Hi Sean, ${sourceLine}`,
-            `I’m leaning towards ${packageLabel} with ${setupParts.join(" and ")}.`,
-            calculatorPriceUnlocked
-              ? `The starting price showed ${formatAED(selection.estimateMin)} plus VAT. Could you help me with the right package?`
-              : "Could you help me choose the right package?",
-          ];
+      const lines = [
+        `Hi Sean, ${sourceLine}`,
+        `I was looking at ${coverageLabel}: ${selection.size} size, ${packageLabel}, ${selection.finish.toLowerCase()} finish${priceLine}.`,
+        "Can you advise if this is right for my car?",
+      ];
 
       return buildWhatsAppUrl(lines.join(" "));
     }
@@ -1559,7 +1554,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
   }, []);
 
   useEffect(() => {
-    if (!heroFormOpen || quoteModalFlow !== "calculator" || formStep !== 3 || !selection) return;
+    if (!calculatorPriceUnlocked || !selection) return;
     const signature = JSON.stringify([
       selection.brand,
       selection.stekLine,
@@ -1579,7 +1574,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       finish: selection.finish,
       estimate_value: selection.estimateMin,
     });
-  }, [formStep, heroFormOpen, quoteModalFlow, selection, trackEvent]);
+  }, [calculatorPriceUnlocked, selection, trackEvent]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
@@ -2019,18 +2014,12 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
         ? "I found Grand Touch on Google while checking PPF in Dubai."
         : "I came from TikTok and I am checking PPF for my car.";
     const coverageLabel =
-      calculatorSelection.coverage === "Full Body" ? "full body coverage" : "front coverage";
-    const message = cleanVehicleSummary
-      ? [
-          `Hi Sean, ${sourceLine} I just built a setup on your PPF calculator for my ${cleanVehicleSummary}.`,
-          `I’m looking at ${packageLabel} with a ${calculatorSelection.finish.toLowerCase()} finish and ${coverageLabel}.`,
-          `The starting price showed ${estimateLabel} plus VAT. Does that look like the right package for my car?`,
-        ].join(" ")
-      : [
-          `Hi Sean, ${sourceLine} I just built a setup on your PPF calculator.`,
-          `I’m looking at ${packageLabel} with a ${calculatorSelection.finish.toLowerCase()} finish and ${coverageLabel}.`,
-          `The starting price showed ${estimateLabel} plus VAT. Could you help me with the right package?`,
-        ].join(" ");
+      calculatorSelection.coverage === "Full Body" ? "full body PPF" : "front PPF";
+    const message = [
+      `Hi Sean, ${sourceLine}`,
+      `I was looking at ${coverageLabel}: ${calculatorSelection.size} size, ${packageLabel}, ${calculatorSelection.finish.toLowerCase()} finish, ${estimateLabel} plus VAT.`,
+      "Can you advise if this is right for my car?",
+    ].join(" ");
 
     if (funnelEmailsEnabled) {
       setIsSendingCalculatorLead(true);
@@ -3492,10 +3481,10 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                 <span className="hidden sm:inline">Build the right setup for your car</span>
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base sm:leading-7">
-                <span className="sm:hidden">Choose package, finish, and coverage.</span>
+                <span className="sm:hidden">Pick size, finish, warranty, then WhatsApp Sean.</span>
                 <span className="hidden sm:inline">
-                  Choose the package, finish, and coverage that fit your car. Unlock the estimate when
-                  you&apos;re ready.
+                  Pick your car size first, then compare finish and warranty beside the price before
+                  sending the exact setup to Sean on WhatsApp.
                 </span>
               </p>
               <p className="mt-2 text-xs leading-5 text-slate-300 sm:hidden">
@@ -3523,6 +3512,8 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                   showBrandSelector={false}
                   showActionButtons={false}
                   priceUnlocked={calculatorPriceUnlocked}
+                  warrantyPlacement="nearPrice"
+                  allowFrontCoverage={false}
                   brandOptions={["STEK"]}
                   defaultBrand="STEK"
                   vehicleSummary={vehicleSummary}
@@ -3553,6 +3544,7 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
                     });
                   }}
                   onWhatsAppRequest={handleCalculatorWhatsApp}
+                  quoteCtaLabel="Send This Setup to Sean on WhatsApp"
                   onPriceUnlockRequest={() => {
                     void openCalculatorQuoteModal();
                   }}

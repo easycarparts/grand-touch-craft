@@ -98,6 +98,9 @@ export type PpfCostCalculatorWidgetProps = {
   onFinishChange?: (finish: Finish) => void;
   onCoverageChange?: (coverage: Coverage) => void;
   vehicleSummary?: string;
+  quoteCtaLabel?: string;
+  warrantyPlacement?: "top" | "nearPrice";
+  allowFrontCoverage?: boolean;
 };
 
 const panelClass =
@@ -129,9 +132,13 @@ const PpfCostCalculatorWidget = ({
   onFinishChange,
   onCoverageChange,
   vehicleSummary,
+  quoteCtaLabel,
+  warrantyPlacement = "top",
+  allowFrontCoverage = true,
 }: PpfCostCalculatorWidgetProps) => {
   /** Embedded in a page that already uses `container` (e.g. PPF quote) — avoid nested section padding + second container. */
   const isEmbeddedInPage = variant === "embedded" && !showIntro;
+  const isWarrantyNearPrice = warrantyPlacement === "nearPrice";
 
   const [brand, setBrand] = useState<Brand>(defaultBrand);
   const [warrantyYears, setWarrantyYears] = useState<number | null>(defaultWarrantyYears ?? null);
@@ -157,8 +164,10 @@ const PpfCostCalculatorWidget = ({
     () => (effectiveWarrantyYears === null ? false : isFrontCoverageAvailable(brand, effectiveWarrantyYears)),
     [brand, effectiveWarrantyYears]
   );
+  const canChooseFrontCoverage = allowFrontCoverage && frontAvailable;
 
   const isPrimaryReady = effectiveWarrantyYears !== null && size !== null;
+  const isStageTwoReady = isWarrantyNearPrice ? size !== null : isPrimaryReady;
   const isPriceReady = effectiveWarrantyYears !== null && size !== null && finish !== null && coverage !== null;
   const canShowEstimate = isPriceReady && priceUnlocked;
 
@@ -176,7 +185,7 @@ const PpfCostCalculatorWidget = ({
   }, []);
 
   useEffect(() => {
-    if (!isPrimaryReady) {
+    if (!isStageTwoReady) {
       setFinish(null);
       setCoverage(null);
       hasAutoOpenedStageTwo.current = false;
@@ -191,16 +200,16 @@ const PpfCostCalculatorWidget = ({
     if (coverage === null) {
       setCoverage("Full Body");
     }
-  }, [coverage, finish, isPrimaryReady, onFinishChange]);
+  }, [coverage, finish, isStageTwoReady, onFinishChange]);
 
   useEffect(() => {
-    if (!frontAvailable && coverage === "Front") {
+    if ((!allowFrontCoverage || !frontAvailable) && coverage === "Front") {
       setCoverage("Full Body");
     }
-  }, [coverage, frontAvailable]);
+  }, [allowFrontCoverage, coverage, frontAvailable]);
 
   useEffect(() => {
-    if (!isPrimaryReady || hasAutoOpenedStageTwo.current) return;
+    if (!isStageTwoReady || hasAutoOpenedStageTwo.current) return;
     hasAutoOpenedStageTwo.current = true;
     // On touch devices this forced jump can fight natural scrolling and feel like the page is
     // snapping around, so only auto-advance the viewport on non-touch layouts.
@@ -214,7 +223,7 @@ const PpfCostCalculatorWidget = ({
     }, 220);
 
     return () => window.clearTimeout(timer);
-  }, [isCoarsePointer, isPrimaryReady]);
+  }, [isCoarsePointer, isStageTwoReady]);
 
   const scrollToStageTwo = useCallback(() => {
     stageTwoRef.current?.scrollIntoView({
@@ -271,6 +280,98 @@ const PpfCostCalculatorWidget = ({
   useEffect(() => {
     onSelectionChangeRef.current?.(hasInteracted ? currentSelection : null);
   }, [currentSelection, hasInteracted]);
+
+  const warrantySelector = (
+    <div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          {showBrandSelector ? (
+            <p className="text-base font-semibold leading-tight text-white sm:text-[11px] sm:uppercase sm:tracking-[0.22em] sm:text-white/52">
+              Warranty term
+            </p>
+          ) : (
+            <p className="text-[1.7rem] font-bold leading-tight text-white sm:text-[11px] sm:uppercase sm:tracking-[0.22em] sm:text-white/52">
+              <span className="sm:hidden">
+                Choose your{" "}
+                <span className="bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent">
+                  warranty
+                </span>
+              </span>
+              <span className="hidden sm:inline">
+                {isWarrantyNearPrice ? "Choose warranty to compare price" : "Choose protection package"}
+              </span>
+            </p>
+          )}
+          {!showBrandSelector ? (
+            <p className="mt-1 hidden text-sm leading-6 text-slate-300 sm:block">
+              {isWarrantyNearPrice
+                ? "Switch 5, 10, or 12 years here and the price updates below."
+                : "Choose the STEK package for your protection term."}
+            </p>
+          ) : null}
+        </div>
+        {showBrandSelector || isWarrantyNearPrice ? (
+          <p className="text-[11px] leading-snug text-slate-400 sm:max-w-[58%] sm:text-right sm:text-xs">
+            {brand === "STEK"
+              ? "5 yr F3, 10 yr ForceShield, 12 yr DynoShield"
+              : "10 year warranty"}
+          </p>
+        ) : null}
+      </div>
+      <div
+        className={`grid gap-2 sm:gap-3 ${
+          warrantyYearsForBrand(brand).length === 3
+            ? "grid-cols-3 sm:grid-cols-3"
+            : warrantyYearsForBrand(brand).length === 2
+              ? "grid-cols-2 sm:grid-cols-2"
+              : "grid-cols-1 max-w-xs"
+        }`}
+      >
+        {warrantyYearsForBrand(brand).map((years) => {
+          const series = brand === "STEK" ? stekSeriesName(years) : null;
+          const meta = warrantyOptionMeta[years];
+          return (
+            <button
+              key={years}
+              type="button"
+              onClick={() => {
+                setHasInteracted(true);
+                setWarrantyYears(years);
+                onWarrantyYearsChange?.(years, brand);
+              }}
+              className={cn(
+                cardBaseClass,
+                "min-w-0 rounded-[18px] px-2 py-2.5 text-left sm:rounded-[22px] sm:px-4 sm:py-3.5",
+                effectiveWarrantyYears === years ? selectedCardClass : "hover:border-primary/40"
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-2xl font-black leading-none text-white sm:text-3xl">{years}</p>
+                  <p className="mt-0.5 text-[9px] uppercase tracking-[0.14em] text-slate-400 sm:mt-1 sm:text-[10px] sm:tracking-[0.16em]">
+                    Years
+                  </p>
+                </div>
+                {meta?.badge ? (
+                  <span className="hidden rounded-full border border-primary/16 bg-primary/12 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#ffd47a] sm:inline-flex sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.12em]">
+                    {meta.badge}
+                  </span>
+                ) : null}
+              </div>
+              {series ? (
+                <p className="mt-2 hidden text-xs font-semibold uppercase tracking-[0.08em] text-white sm:block sm:mt-3 sm:text-sm sm:tracking-[0.14em]">
+                  {meta?.subtitle ?? series}
+                </p>
+              ) : null}
+              <p className="mt-0.5 hidden text-[11px] leading-tight text-slate-400 sm:block sm:mt-1 sm:text-xs">
+                {meta?.helper ?? "Protection package"}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   const intro = (
     <>
@@ -358,94 +459,27 @@ const PpfCostCalculatorWidget = ({
                     </div>
                   ) : null}
 
-                  <div>
-                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                      <div>
-                        {showBrandSelector ? (
-                          <p className="text-base font-semibold leading-tight text-white sm:text-[11px] sm:uppercase sm:tracking-[0.22em] sm:text-white/52">
-                            Warranty term
-                          </p>
-                        ) : (
-                          <p className="text-[1.7rem] font-bold leading-tight text-white sm:text-[11px] sm:uppercase sm:tracking-[0.22em] sm:text-white/52">
-                            <span className="sm:hidden">
-                              Choose your{" "}
-                              <span className="bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent">
-                                warranty
-                              </span>
-                            </span>
-                            <span className="hidden sm:inline">Choose protection package</span>
-                          </p>
-                        )}
-                        {!showBrandSelector ? (
-                          <p className="mt-1 hidden text-sm leading-6 text-slate-300 sm:block">
-                            Choose the STEK package for your protection term.
-                          </p>
-                        ) : null}
-                      </div>
-                      {showBrandSelector ? (
-                        <p className="text-[11px] leading-snug text-slate-400 sm:max-w-[58%] sm:text-right sm:text-xs">
-                          {brand === "STEK"
-                            ? "5 yr F3, 10 yr ForceShield, 12 yr DynoShield"
-                            : "10 year warranty"}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div
-                      className={`grid gap-2 sm:gap-3 ${
-                        warrantyYearsForBrand(brand).length === 3
-                          ? "grid-cols-3 sm:grid-cols-3"
-                          : warrantyYearsForBrand(brand).length === 2
-                            ? "grid-cols-2 sm:grid-cols-2"
-                            : "grid-cols-1 max-w-xs"
-                      }`}
-                    >
-                      {warrantyYearsForBrand(brand).map((years) => {
-                        const series = brand === "STEK" ? stekSeriesName(years) : null;
-                        const meta = warrantyOptionMeta[years];
-                        return (
-                          <button
-                            key={years}
-                            type="button"
-                            onClick={() => {
-                              setHasInteracted(true);
-                              setWarrantyYears(years);
-                              onWarrantyYearsChange?.(years, brand);
-                            }}
-                            className={cn(
-                              cardBaseClass,
-                              "min-w-0 rounded-[18px] px-2 py-2.5 text-left sm:rounded-[22px] sm:px-4 sm:py-3.5",
-                              effectiveWarrantyYears === years ? selectedCardClass : "hover:border-primary/40"
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <p className="text-2xl font-black leading-none text-white sm:text-3xl">{years}</p>
-                                <p className="mt-0.5 text-[9px] uppercase tracking-[0.14em] text-slate-400 sm:mt-1 sm:text-[10px] sm:tracking-[0.16em]">
-                                  Years
-                                </p>
-                              </div>
-                              {meta?.badge ? (
-                                <span className="hidden rounded-full border border-primary/16 bg-primary/12 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#ffd47a] sm:inline-flex sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.12em]">
-                                  {meta.badge}
-                                </span>
-                              ) : null}
-                            </div>
-                            {series ? (
-                              <p className="mt-2 hidden text-xs font-semibold uppercase tracking-[0.08em] text-white sm:block sm:mt-3 sm:text-sm sm:tracking-[0.14em]">
-                                {meta?.subtitle ?? series}
-                              </p>
-                            ) : null}
-                            <p className="mt-0.5 hidden text-[11px] leading-tight text-slate-400 sm:block sm:mt-1 sm:text-xs">
-                              {meta?.helper ?? "Protection package"}
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  {!isWarrantyNearPrice ? warrantySelector : null}
 
                   <div>
-                    <p className="mb-3 text-sm text-muted-foreground">Car size</p>
+                    {isWarrantyNearPrice ? (
+                      <div className="mb-4">
+                        <p className="text-[1.7rem] font-bold leading-tight text-white sm:text-[11px] sm:uppercase sm:tracking-[0.22em] sm:text-white/52">
+                          <span className="sm:hidden">
+                            Select your{" "}
+                            <span className="bg-[linear-gradient(180deg,#ffcf6a_0%,#f7b52b_55%,#e79a13_100%)] bg-clip-text text-transparent">
+                              car size
+                            </span>
+                          </span>
+                          <span className="hidden sm:inline">Select car size first</span>
+                        </p>
+                        <p className="mt-1 hidden text-sm leading-6 text-slate-300 sm:block">
+                          Pick the closest size. Finish and warranty stay beside the price below.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mb-3 text-sm text-muted-foreground">Car size</p>
+                    )}
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       {sizes.map((option) => {
                         const { title, subtitle } = sizeLabels[option];
@@ -492,14 +526,18 @@ const PpfCostCalculatorWidget = ({
                 </div>
               </Card>
 
-              {isPrimaryReady && isCoarsePointer ? (
+              {isStageTwoReady && isCoarsePointer ? (
                 <div className="rounded-[24px] border border-[#f7b52b]/18 bg-[radial-gradient(circle_at_top_left,rgba(245,181,43,0.12),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(10,10,10,0.96))] px-4 py-4 shadow-[0_18px_52px_rgba(0,0,0,0.2)]">
                   <p className="text-[11px] uppercase tracking-[0.22em] text-white/52">Step 2 unlocked</p>
                   <p className="mt-2 text-base font-semibold text-white">
-                    Continue down to choose finish and reveal the price.
+                    {isWarrantyNearPrice
+                      ? "Continue down to choose finish, warranty, and see the price."
+                      : "Continue down to choose finish and reveal the price."}
                   </p>
                   <p className="mt-1 text-sm leading-6 text-slate-300">
-                    Your package and vehicle are saved. Tap below to jump to the next step.
+                    {isWarrantyNearPrice
+                      ? "Your car size is saved. Tap below to jump to the price controls."
+                      : "Your package and vehicle are saved. Tap below to jump to the next step."}
                   </p>
                   <Button
                     type="button"
@@ -517,7 +555,7 @@ const PpfCostCalculatorWidget = ({
                 ref={stageTwoRef}
                 className={cn(
                   "[overflow-anchor:none] overflow-hidden transition-all duration-500 ease-out",
-                  isPrimaryReady ? "max-h-[2400px] opacity-100" : "max-h-0 opacity-0"
+                  isStageTwoReady ? "max-h-[2800px] opacity-100" : "max-h-0 opacity-0"
                 )}
               >
                 <div className="grid gap-5">
@@ -628,13 +666,15 @@ const PpfCostCalculatorWidget = ({
                         </div>
                       ) : null}
 
-                      {effectiveWarrantyYears === 5 ? (
+                      {isWarrantyNearPrice ? warrantySelector : null}
+
+                      {allowFrontCoverage && effectiveWarrantyYears === 5 ? (
                         <div>
                           <p className="mb-3 text-[11px] uppercase tracking-[0.22em] text-white/52">Choose coverage</p>
                           <div className="grid gap-3 sm:grid-cols-2">
                             {coverageOptions.map((option) => {
                               const isFront = option === "Front";
-                              const disabled = isFront && !frontAvailable;
+                              const disabled = isFront && !canChooseFrontCoverage;
 
                               return (
                                 <button
@@ -684,6 +724,7 @@ const PpfCostCalculatorWidget = ({
                               selection={visibleSelection}
                               vehicleSummary={vehicleSummary}
                               onWhatsAppClick={() => onWhatsAppRequest?.(visibleSelection)}
+                              ctaLabel={quoteCtaLabel}
                             />
                           </div>
                         ) : isPriceReady ? (
@@ -731,9 +772,11 @@ const PpfCostCalculatorWidget = ({
 
                       {!isPriceReady ? (
                         <p className="text-sm text-slate-400">
-                          {effectiveWarrantyYears === 5
-                            ? "Gloss is preselected. Switch to matte or front coverage if you want, then reveal the price."
-                            : "Gloss is preselected. Switch to matte if you want, then reveal the price."}
+                          {isWarrantyNearPrice && effectiveWarrantyYears === null
+                            ? "Gloss is preselected. Choose a warranty below to show the price."
+                            : allowFrontCoverage && effectiveWarrantyYears === 5
+                              ? "Gloss is preselected. Switch to matte or front coverage if you want, then reveal the price."
+                              : "Gloss is preselected. Switch to matte if you want, then reveal the price."}
                         </p>
                       ) : null}
                     </div>
