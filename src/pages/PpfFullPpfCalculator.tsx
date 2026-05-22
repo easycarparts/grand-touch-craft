@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Check, Maximize2, MessageCircle, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ const GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO = "AW-17684563059/KqOWCJfDoLAcEPOI1PBB
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
 const TRUST_HANDOVER_VIDEO =
   "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/f_auto/v1775906544/Customer_Hand_Over_phxbyt.mp4";
+const SCROLL_DEPTH_MILESTONES = [25, 50, 75, 90];
 
 const sizeOptions: Array<{
   value: PpfPricingSize;
@@ -260,13 +261,22 @@ const GoogleRating = () => (
 );
 
 const PpfFullPpfCalculator = () => {
-  const [size, setSize] = useState<PpfPricingSize>("SUV");
-  const [finish, setFinish] = useState<PpfPricingFinish>("Gloss");
-  const [warrantyYears, setWarrantyYears] = useState<PackageYears>(10);
+  const [size, setSize] = useState<PpfPricingSize | null>(null);
+  const [finish, setFinish] = useState<PpfPricingFinish | null>(null);
+  const [warrantyYears, setWarrantyYears] = useState<PackageYears | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [carDetails, setCarDetails] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const sessionStartedAtRef = useRef(Date.now());
+  const maxScrollDepthRef = useRef(0);
+  const scrollMilestonesTrackedRef = useRef(new Set<number>());
+  const sectionVisibleSinceRef = useRef(new Map<string, number>());
+  const sectionTotalMsRef = useRef(new Map<string, number>());
+  const sectionSeenRef = useRef(new Set<string>());
+  const hasTrackedCalculatorStartRef = useRef(false);
+  const hasTrackedPriceViewedRef = useRef(false);
+  const hasTrackedSaveQuoteStartRef = useRef(false);
 
   const funnelContext = useMemo(
     () =>
@@ -279,13 +289,17 @@ const PpfFullPpfCalculator = () => {
   );
 
   const estimate = useMemo(
-    () => getPpfPriceRange("STEK", warrantyYears, size, "Full Body", finish).min,
+    () =>
+      size && finish && warrantyYears
+        ? getPpfPriceRange("STEK", warrantyYears, size, "Full Body", finish).min
+        : null,
     [finish, size, warrantyYears],
   );
 
-  const selectedSize = sizeOptions.find((option) => option.value === size) ?? sizeOptions[2];
-  const selectedSeries = stekSeriesName(warrantyYears);
-  const packageLabel = `${warrantyYears}-year premium full PPF`;
+  const selectedSize = size ? sizeOptions.find((option) => option.value === size) ?? null : null;
+  const selectedSeries = warrantyYears ? stekSeriesName(warrantyYears) : null;
+  const packageLabel = warrantyYears ? `${warrantyYears}-year premium full PPF` : "";
+  const isCalculatorComplete = Boolean(size && finish && warrantyYears && estimate !== null);
 
   const trackEvent = useCallback(
     (eventName: string, payload: Record<string, unknown> = {}) => {
@@ -296,6 +310,104 @@ const PpfFullPpfCalculator = () => {
       });
     },
     [funnelContext],
+  );
+
+  const buildCalculatorPayload = useCallback(
+    () => ({
+      size,
+      finish,
+      warranty_years: warrantyYears,
+      package_name: packageLabel || undefined,
+      estimate_value: estimate,
+      coverage: "Full Body",
+      calculator_complete: isCalculatorComplete,
+    }),
+    [estimate, finish, isCalculatorComplete, packageLabel, size, warrantyYears],
+  );
+
+  const trackCalculatorStarted = useCallback(
+    (changedField: string) => {
+      if (hasTrackedCalculatorStartRef.current) return;
+      hasTrackedCalculatorStartRef.current = true;
+      trackEvent("calculator_started", {
+        changed_field: changedField,
+        ...buildCalculatorPayload(),
+      });
+    },
+    [buildCalculatorPayload, trackEvent],
+  );
+
+  const trackCalculatorChange = useCallback(
+    (changedField: string, nextPayload: Record<string, unknown>) => {
+      trackCalculatorStarted(changedField);
+      trackEvent("calculator_setup_changed", {
+        changed_field: changedField,
+        ...buildCalculatorPayload(),
+        ...nextPayload,
+      });
+    },
+    [buildCalculatorPayload, trackCalculatorStarted, trackEvent],
+  );
+
+  const flushSectionDuration = useCallback(
+    (sectionName: string, reason: string) => {
+      const startedAt = sectionVisibleSinceRef.current.get(sectionName);
+      if (!startedAt) return;
+
+      sectionVisibleSinceRef.current.delete(sectionName);
+      const durationMs = Math.max(0, Date.now() - startedAt);
+      const nextTotalMs = (sectionTotalMsRef.current.get(sectionName) ?? 0) + durationMs;
+      sectionTotalMsRef.current.set(sectionName, nextTotalMs);
+
+      if (durationMs < 250) return;
+
+      trackEvent("section_engagement", {
+        section_name: sectionName,
+        duration_ms: durationMs,
+        total_section_ms: nextTotalMs,
+        exit_reason: reason,
+      });
+    },
+    [trackEvent],
+  );
+
+  const restartVisibleSectionsFromViewport = useCallback(() => {
+    if (typeof window === "undefined") return;
+
+    const viewportHeight = window.innerHeight;
+    const now = Date.now();
+    const sections = document.querySelectorAll<HTMLElement>("[data-funnel-section]");
+
+    sections.forEach((section) => {
+      const sectionName = section.dataset.funnelSection;
+      if (!sectionName) return;
+
+      const rect = section.getBoundingClientRect();
+      const isVisible = rect.top < viewportHeight * 0.72 && rect.bottom > viewportHeight * 0.28;
+      if (!isVisible || sectionVisibleSinceRef.current.has(sectionName)) return;
+
+      sectionVisibleSinceRef.current.set(sectionName, now);
+
+      if (!sectionSeenRef.current.has(sectionName)) {
+        sectionSeenRef.current.add(sectionName);
+        trackEvent("section_view", { section_name: sectionName });
+      }
+    });
+  }, [trackEvent]);
+
+  const trackPageCheckpoint = useCallback(
+    (reason: string) => {
+      const visibleSections = Array.from(sectionVisibleSinceRef.current.keys());
+      visibleSections.forEach((sectionName) => flushSectionDuration(sectionName, reason));
+
+      trackEvent("page_checkpoint", {
+        checkpoint_reason: reason,
+        elapsed_ms: Date.now() - sessionStartedAtRef.current,
+        max_scroll_percent: maxScrollDepthRef.current,
+        visible_sections: visibleSections.join(","),
+      });
+    },
+    [flushSectionDuration, trackEvent],
   );
 
   useEffect(() => {
@@ -316,27 +428,135 @@ const PpfFullPpfCalculator = () => {
   }, [trackEvent]);
 
   useEffect(() => {
-    trackEvent("calculator_selection_changed", {
-      size,
-      finish,
-      warranty_years: warrantyYears,
-      estimate_value: estimate,
-      coverage: "Full Body",
-    });
-  }, [estimate, finish, size, trackEvent, warrantyYears]);
+    if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
 
-  const priceWhatsAppMessage = useMemo(() => {
-    const carLine = carDetails.trim() ? ` My car is: ${carDetails.trim()}.` : "";
-    return [
-      "Hi Sean, I came from the Grand Touch Google PPF calculator page.",
-      carLine,
-      `Setup: ${packageLabel}, ${finish.toLowerCase()} finish, ${selectedSize.label}.`,
-      `Starting price shown: ${formatAED(estimate)} + VAT.`,
-      "Can you confirm exact price and earliest availability?",
-    ]
-      .filter(Boolean)
-      .join(" ");
-  }, [carDetails, estimate, finish, packageLabel, selectedSize.label]);
+    const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-funnel-section]"));
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const sectionName = (entry.target as HTMLElement).dataset.funnelSection;
+          if (!sectionName) return;
+
+          const isActive = entry.isIntersecting && entry.intersectionRatio >= 0.35;
+          const isLeaving = !entry.isIntersecting || entry.intersectionRatio <= 0.15;
+
+          if (isActive) {
+            if (!sectionVisibleSinceRef.current.has(sectionName)) {
+              sectionVisibleSinceRef.current.set(sectionName, Date.now());
+            }
+
+            if (!sectionSeenRef.current.has(sectionName)) {
+              sectionSeenRef.current.add(sectionName);
+              trackEvent("section_view", { section_name: sectionName });
+            }
+          } else if (isLeaving) {
+            flushSectionDuration(sectionName, "scroll_out");
+          }
+        });
+      },
+      { threshold: [0, 0.15, 0.35, 0.55, 0.75] },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    restartVisibleSectionsFromViewport();
+    const visibleSections = sectionVisibleSinceRef.current;
+
+    return () => {
+      observer.disconnect();
+      Array.from(visibleSections.keys()).forEach((sectionName) => {
+        flushSectionDuration(sectionName, "observer_cleanup");
+      });
+    };
+  }, [flushSectionDuration, restartVisibleSectionsFromViewport, trackEvent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
+
+    const priceResult = document.querySelector<HTMLElement>("[data-price-result]");
+    if (!priceResult) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting || entry.intersectionRatio < 0.45) return;
+        if (hasTrackedPriceViewedRef.current) return;
+        hasTrackedPriceViewedRef.current = true;
+        if (!isCalculatorComplete) return;
+        trackEvent("price_viewed", buildCalculatorPayload());
+      },
+      { threshold: [0, 0.25, 0.45, 0.7, 1] },
+    );
+
+    observer.observe(priceResult);
+    return () => observer.disconnect();
+  }, [buildCalculatorPayload, isCalculatorComplete, trackEvent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateScrollDepth = () => {
+      const doc = document.documentElement;
+      const scrollableHeight = Math.max(doc.scrollHeight - window.innerHeight, 1);
+      const currentPercent = Math.min(
+        100,
+        Math.round(((window.scrollY || doc.scrollTop || 0) / scrollableHeight) * 100),
+      );
+
+      if (currentPercent > maxScrollDepthRef.current) {
+        maxScrollDepthRef.current = currentPercent;
+      }
+
+      SCROLL_DEPTH_MILESTONES.forEach((milestone) => {
+        if (currentPercent < milestone || scrollMilestonesTrackedRef.current.has(milestone)) return;
+        scrollMilestonesTrackedRef.current.add(milestone);
+        trackEvent("scroll_depth_reached", {
+          scroll_percent: milestone,
+          current_scroll_percent: currentPercent,
+        });
+      });
+    };
+
+    updateScrollDepth();
+    window.addEventListener("scroll", updateScrollDepth, { passive: true });
+    window.addEventListener("resize", updateScrollDepth);
+
+    return () => {
+      window.removeEventListener("scroll", updateScrollDepth);
+      window.removeEventListener("resize", updateScrollDepth);
+    };
+  }, [trackEvent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        trackPageCheckpoint("hidden");
+        return;
+      }
+
+      trackEvent("page_checkpoint", {
+        checkpoint_reason: "resume",
+        elapsed_ms: Date.now() - sessionStartedAtRef.current,
+        max_scroll_percent: maxScrollDepthRef.current,
+      });
+      restartVisibleSectionsFromViewport();
+    };
+
+    const onPageHide = () => trackPageCheckpoint("pagehide");
+    const onBeforeUnload = () => trackPageCheckpoint("beforeunload");
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("beforeunload", onBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [restartVisibleSectionsFromViewport, trackEvent, trackPageCheckpoint]);
 
   const generalWhatsAppMessage = useMemo(() => {
     const carLine = carDetails.trim() ? ` My car is: ${carDetails.trim()}.` : "";
@@ -349,9 +569,28 @@ const PpfFullPpfCalculator = () => {
       .join(" ");
   }, [carDetails]);
 
+  const priceWhatsAppMessage = useMemo(() => {
+    const carLine = carDetails.trim() ? ` My car is: ${carDetails.trim()}.` : "";
+    if (!isCalculatorComplete || !estimate || !finish || !packageLabel || !selectedSize) {
+      return generalWhatsAppMessage;
+    }
+
+    return [
+      "Hi Sean, I came from the Grand Touch Google PPF calculator page.",
+      carLine,
+      `Setup: ${packageLabel}, ${finish.toLowerCase()} finish, ${selectedSize.label}.`,
+      `Starting price shown: ${formatAED(estimate)} + VAT.`,
+      "Can you confirm exact price and earliest availability?",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }, [carDetails, estimate, finish, generalWhatsAppMessage, isCalculatorComplete, packageLabel, selectedSize]);
+
   const handleWhatsAppClick = useCallback(
     (placement: string) => {
-      const isPriceResultCta = placement === "price_result";
+      const isPriceResultCta = placement === "price_result" && isCalculatorComplete;
+      const messageType = isPriceResultCta ? "selected_price" : "general_calculator";
+      const eventName = isPriceResultCta ? "selected_price_whatsapp_click" : "general_whatsapp_click";
       trackEvent("whatsapp_click", {
         cta_location: placement,
         size,
@@ -359,7 +598,13 @@ const PpfFullPpfCalculator = () => {
         warranty_years: warrantyYears,
         estimate_value: isPriceResultCta ? estimate : undefined,
         coverage: "Full Body",
-        message_type: isPriceResultCta ? "selected_price" : "general_calculator",
+        message_type: messageType,
+        calculator_complete: isCalculatorComplete,
+      });
+      trackEvent(eventName, {
+        cta_location: placement,
+        ...buildCalculatorPayload(),
+        message_type: messageType,
       });
       trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO);
       window.open(
@@ -368,13 +613,30 @@ const PpfFullPpfCalculator = () => {
         "noopener,noreferrer",
       );
     },
-    [estimate, finish, generalWhatsAppMessage, priceWhatsAppMessage, size, trackEvent, warrantyYears],
+    [
+      buildCalculatorPayload,
+      estimate,
+      finish,
+      generalWhatsAppMessage,
+      isCalculatorComplete,
+      priceWhatsAppMessage,
+      size,
+      trackEvent,
+      warrantyYears,
+    ],
   );
 
   const handleSaveQuote = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!isCalculatorComplete || estimate === null || !finish || !size || !packageLabel) return;
+
     setSaveStatus("saving");
 
+    trackEvent("save_quote_submitted", {
+      form_type: "save_quote",
+      ...buildCalculatorPayload(),
+      has_car_details: Boolean(carDetails.trim()),
+    });
     trackEvent("lead_form_submitted", {
       form_type: "save_quote",
       size,
@@ -409,10 +671,16 @@ const PpfFullPpfCalculator = () => {
     }
   };
 
+  const handleSaveQuoteStarted = () => {
+    if (hasTrackedSaveQuoteStartRef.current) return;
+    hasTrackedSaveQuoteStartRef.current = true;
+    trackEvent("save_quote_started", buildCalculatorPayload());
+  };
+
   return (
     <div className="min-h-screen bg-[#080808] text-white">
       <main>
-        <section className="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_18%_0%,rgba(247,181,43,0.16),transparent_30%),linear-gradient(180deg,#111,#080808)] px-4 pb-10 pt-7 sm:px-6 lg:px-8">
+        <section data-funnel-section="hero" className="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_18%_0%,rgba(247,181,43,0.16),transparent_30%),linear-gradient(180deg,#111,#080808)] px-4 pb-10 pt-7 sm:px-6 lg:px-8">
           <div className="container mx-auto max-w-6xl">
             <header className="flex items-center justify-between gap-4">
               <a href="/" aria-label="Grand Touch Auto home" className="inline-flex items-center">
@@ -486,7 +754,7 @@ const PpfFullPpfCalculator = () => {
                 </div>
               </div>
 
-              <Card id="calculator" className="overflow-hidden rounded-[32px] border-[#f7b52b]/16 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.34)] sm:p-5">
+              <Card id="calculator" data-funnel-section="calculator" className="overflow-hidden rounded-[32px] border-[#f7b52b]/16 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.34)] sm:p-5">
                 <div className="grid gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/50">1. Vehicle size</p>
@@ -495,7 +763,10 @@ const PpfFullPpfCalculator = () => {
                         <button
                           key={option.value}
                           type="button"
-                          onClick={() => setSize(option.value)}
+                          onClick={() => {
+                            setSize(option.value);
+                            trackCalculatorChange("size", { size: option.value });
+                          }}
                           className={cn(
                             "overflow-hidden rounded-[22px] border text-left transition",
                             size === option.value
@@ -522,7 +793,10 @@ const PpfFullPpfCalculator = () => {
                           <button
                             key={option.value}
                             type="button"
-                            onClick={() => setFinish(option.value)}
+                            onClick={() => {
+                              setFinish(option.value);
+                              trackCalculatorChange("finish", { finish: option.value });
+                            }}
                             className={cn(
                               "rounded-[18px] border px-3 py-3 text-left transition",
                               finish === option.value
@@ -544,7 +818,13 @@ const PpfFullPpfCalculator = () => {
                           <button
                             key={option.years}
                             type="button"
-                            onClick={() => setWarrantyYears(option.years)}
+                            onClick={() => {
+                              setWarrantyYears(option.years);
+                              trackCalculatorChange("warranty_years", {
+                                warranty_years: option.years,
+                                package_name: `${option.years}-year premium full PPF`,
+                              });
+                            }}
                             className={cn(
                               "relative rounded-[18px] border px-2 py-3 text-left transition",
                               warrantyYears === option.years
@@ -565,20 +845,27 @@ const PpfFullPpfCalculator = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-[28px] border border-[#f7b52b]/20 bg-[radial-gradient(circle_at_top_left,rgba(247,181,43,0.22),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(8,8,8,0.96))] p-5">
+                  <div data-price-result className="rounded-[28px] border border-[#f7b52b]/20 bg-[radial-gradient(circle_at_top_left,rgba(247,181,43,0.22),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(8,8,8,0.96))] p-5">
                     <div className="flex flex-wrap gap-2">
-                      {[selectedSize.label, finish, packageLabel, selectedSeries].filter(Boolean).map((chip) => (
+                      {[selectedSize?.label, finish, packageLabel, selectedSeries].filter(Boolean).map((chip) => (
                         <span key={chip} className="rounded-full border border-white/10 bg-black/24 px-3 py-1 text-xs font-semibold">
                           {chip}
                         </span>
                       ))}
+                      {!isCalculatorComplete ? (
+                        <span className="rounded-full border border-white/10 bg-black/24 px-3 py-1 text-xs font-semibold text-slate-300">
+                          Choose size, finish, and warranty
+                        </span>
+                      ) : null}
                     </div>
                     <p className="mt-4 text-xs font-semibold uppercase tracking-[0.24em] text-white/55">Starting from</p>
                     <p className="mt-1 text-[3.35rem] font-black leading-none tracking-tight sm:text-[4.5rem]">
-                      {formatAED(estimate)}
+                      {estimate !== null ? formatAED(estimate) : "Select setup"}
                     </p>
                     <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-                      Prices exclude VAT. Final quote depends on vehicle and paint condition.
+                      {isCalculatorComplete
+                        ? "Prices exclude VAT. Final quote depends on vehicle and paint condition."
+                        : "Pick all three options to show the starting price and send the exact setup."}
                     </p>
                     <div className="mt-5 grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
                       {["Full-car PPF installation", "Paint prep before film", "Handover inspection", "Warranty registration"].map((item) => (
@@ -592,14 +879,15 @@ const PpfFullPpfCalculator = () => {
                       <Button
                         type="button"
                         size="lg"
-                        className="bg-[#25D366] text-white shadow-[0_18px_46px_rgba(37,211,102,0.26)] hover:bg-[#1fbe5c]"
+                        disabled={!isCalculatorComplete}
+                        className="bg-[#25D366] text-white shadow-[0_18px_46px_rgba(37,211,102,0.26)] hover:bg-[#1fbe5c] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/45 disabled:shadow-none"
                         onClick={() => handleWhatsAppClick("price_result")}
                       >
                         <MessageCircle className="mr-2 h-4 w-4" />
-                        Send Price on WhatsApp
+                        {isCalculatorComplete ? "Send Price on WhatsApp" : "Choose Setup First"}
                       </Button>
                       <a href="#save-quote" className="inline-flex">
-                        <Button type="button" size="lg" variant="outline" className="w-full border-white/16 bg-white/[0.03] text-white hover:bg-white/[0.08]">
+                        <Button type="button" size="lg" variant="outline" disabled={!isCalculatorComplete} className="w-full border-white/16 bg-white/[0.03] text-white hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:text-white/40">
                           Save Quote
                         </Button>
                       </a>
@@ -611,7 +899,7 @@ const PpfFullPpfCalculator = () => {
           </div>
         </section>
 
-        <section id="owner-standard" className="border-b border-white/10 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+        <section id="owner-standard" data-funnel-section="owner_standard" className="border-b border-white/10 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
           <div className="container mx-auto max-w-6xl">
             <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_18%_0%,rgba(247,181,43,0.14),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(10,10,10,0.98))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.32)] sm:rounded-[30px] sm:p-7 lg:p-8">
               <div className="grid gap-4 sm:gap-7 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
@@ -728,7 +1016,7 @@ const PpfFullPpfCalculator = () => {
           </div>
         </section>
 
-        <section id="save-quote" className="border-b border-white/10 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <section id="save-quote" data-funnel-section="save_quote" className="border-b border-white/10 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
           <div className="container mx-auto max-w-6xl">
             <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
               <div>
@@ -740,7 +1028,7 @@ const PpfFullPpfCalculator = () => {
                 </p>
               </div>
               <Card className="rounded-[22px] border-white/10 bg-white/[0.035] p-4 sm:rounded-[28px] sm:p-5">
-                <form onSubmit={handleSaveQuote} className="grid gap-3 sm:grid-cols-3">
+                <form onSubmit={handleSaveQuote} onFocus={handleSaveQuoteStarted} className="grid gap-3 sm:grid-cols-3">
                   <Input
                     required
                     value={name}
@@ -762,8 +1050,12 @@ const PpfFullPpfCalculator = () => {
                     className="border-white/10 bg-black/28 text-white placeholder:text-white/38"
                   />
                   <div className="sm:col-span-3 grid gap-3 sm:grid-cols-[1fr_0.78fr]">
-                    <Button type="submit" disabled={saveStatus === "saving"} className="bg-[#f7b52b] font-semibold text-black hover:bg-[#ffc54d]">
-                      {saveStatus === "saving" ? "Saving..." : "Save Quote & Request Availability"}
+                    <Button type="submit" disabled={saveStatus === "saving" || !isCalculatorComplete} className="bg-[#f7b52b] font-semibold text-black hover:bg-[#ffc54d] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/40">
+                      {saveStatus === "saving"
+                        ? "Saving..."
+                        : isCalculatorComplete
+                          ? "Save Quote & Request Availability"
+                          : "Choose Setup Before Saving"}
                     </Button>
                     <Button
                       type="button"
@@ -790,7 +1082,7 @@ const PpfFullPpfCalculator = () => {
           </div>
         </section>
 
-        <section className="border-b border-white/10 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <section data-funnel-section="film_proof" className="border-b border-white/10 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
           <div className="container mx-auto max-w-6xl">
             <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-center">
               <div className="relative hidden max-h-[260px] overflow-hidden rounded-[28px] border border-white/10 bg-black/35 sm:block lg:max-h-none">
@@ -850,7 +1142,7 @@ const PpfFullPpfCalculator = () => {
           </div>
         </section>
 
-        <section className="border-b border-white/10 bg-[radial-gradient(circle_at_70%_20%,rgba(247,181,43,0.08),transparent_28%)] px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <section data-funnel-section="handover_proof" className="border-b border-white/10 bg-[radial-gradient(circle_at_70%_20%,rgba(247,181,43,0.08),transparent_28%)] px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
           <div className="container mx-auto max-w-6xl">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -880,7 +1172,7 @@ const PpfFullPpfCalculator = () => {
           </div>
         </section>
 
-        <section className="px-4 py-12 sm:px-6 lg:px-8">
+        <section data-funnel-section="final_cta" className="px-4 py-12 sm:px-6 lg:px-8">
           <div className="container mx-auto max-w-6xl">
             <Card className="rounded-[30px] border-[#f7b52b]/20 bg-[radial-gradient(circle_at_top_left,rgba(247,181,43,0.16),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(10,10,10,0.98))] p-6 sm:p-8">
               <div className="grid gap-5 lg:grid-cols-[1fr_0.5fr] lg:items-center">

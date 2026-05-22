@@ -64,7 +64,17 @@ const journeySteps = [
     label: "Vehicle Saved",
     eventNames: ["lead_vehicle_captured"],
   },
-  { label: "Quote Intent", eventNames: ["quote_unlock_requested", "quote_unlocked"] },
+  {
+    label: "Quote Intent",
+    eventNames: [
+      "quote_unlock_requested",
+      "quote_unlocked",
+      "calculator_selection_changed",
+      "calculator_started",
+      "calculator_setup_changed",
+      "price_viewed",
+    ],
+  },
   { label: "Lead Submit", eventNames: ["lead_form_submitted"] },
   { label: "WhatsApp", eventNames: ["whatsapp_click"] },
 ];
@@ -169,6 +179,35 @@ const SITE_ORIGIN = "https://www.grandtouchauto.ae";
 
 /** TikTok paid social template for the live cache-bust path. Funnel filter: `ppf_tiktok_quote`. TikTok may append `ttclid`. */
 const TIKTOK_QUOTE_FUNNEL_TRACKING_URL = `${SITE_ORIGIN}/ppf-tiktok-quote_2?utm_source=tiktok&utm_medium=paid_social&utm_campaign=tiktok_leadfunnel_apr&utm_id=__CAMPAIGN_ID__`;
+/** Google PPC full PPF calculator URL. Funnel filter: `ppf_full_ppf_calculator`. Google may append `gclid`. */
+const FULL_PPF_CALCULATOR_TRACKING_URL = `${SITE_ORIGIN}/ppf-full-ppf-calculator?utm_source=google&utm_medium=paid_search&utm_campaign=ppf_calculator_ab_may_2026`;
+
+const knownFunnelOptions = [
+  "ppf_dubai_quote",
+  "ppf_full_ppf_calculator",
+  "ppf_tiktok_quote",
+  "ppf_tiktok_guided_quote",
+];
+
+const fullPpfCalculatorJourneySteps = [
+  { label: "Landing View", eventNames: ["lp_view"] },
+  { label: "Price Viewed", eventNames: ["price_viewed"] },
+  { label: "Calculator Started", eventNames: ["calculator_started", "calculator_setup_changed"] },
+  { label: "Setup Changed", eventNames: ["calculator_setup_changed", "calculator_selection_changed"] },
+  { label: "Selected Price WA", eventNames: ["selected_price_whatsapp_click"] },
+  { label: "Any WhatsApp", eventNames: ["whatsapp_click", "general_whatsapp_click"] },
+  { label: "Optional Save", eventNames: ["save_quote_submitted", "lead_form_submitted"] },
+];
+
+const funnelLabels: Record<string, string> = {
+  ppf_dubai_quote: "PPF Dubai Quote",
+  ppf_full_ppf_calculator: "Full PPF Calculator",
+  ppf_tiktok_quote: "TikTok PPF Quote",
+  ppf_tiktok_guided_quote: "TikTok Guided Quote",
+};
+
+const formatFunnelOption = (value: string) =>
+  value === "all" ? "All funnels" : (funnelLabels[value] ? `${funnelLabels[value]} · ${value}` : value);
 
 type DashboardDatePreset =
   | "all"
@@ -245,7 +284,42 @@ const getIntentBand = (score: number) => {
   };
 };
 
+const isFullPpfCalculatorSession = (row: SessionRow) =>
+  row.landingPageVariant === "google_full_ppf_calculator" ||
+  row.pathname.includes("/ppf-full-ppf-calculator");
+
+const isFullPpfCalculatorSelected = (selectedFunnel: string) =>
+  selectedFunnel === "ppf_full_ppf_calculator";
+
 const getDropOffHint = (row: SessionRow) => {
+  if (isFullPpfCalculatorSession(row)) {
+    const quoteSelections = countQuoteSelections(row);
+
+    if (row.whatsappClicked) {
+      return row.quoteEstimate !== null
+        ? "Sent a selected calculator setup to WhatsApp."
+        : "Clicked WhatsApp, but not from the selected price CTA.";
+    }
+
+    if (row.leadSubmitted) {
+      return "Saved the quote form, but did not click WhatsApp yet.";
+    }
+
+    if (row.quoteEstimate !== null && quoteSelections >= 3) {
+      return "Saw price and configured the setup, but did not WhatsApp.";
+    }
+
+    if (quoteSelections > 0) {
+      return "Started changing the calculator, but did not send the setup.";
+    }
+
+    if (row.maxScrollPercent >= 50 || row.sectionsViewed.includes("calculator")) {
+      return "Reached the page, but did not meaningfully use the calculator.";
+    }
+
+    return "Left before using the calculator.";
+  }
+
   if (row.leadSubmitted || row.whatsappClicked) {
     return "Converted into a direct action.";
   }
@@ -304,6 +378,34 @@ const getSessionSecondaryLabel = (row: SessionRow) => {
 };
 
 const getSessionStatus = (row: SessionRow) => {
+  if (isFullPpfCalculatorSession(row)) {
+    if (row.whatsappClicked || row.leadSubmitted) {
+      return {
+        label: "Goal hit",
+        className: "border-emerald-400/20 bg-emerald-500/10 text-emerald-200",
+      };
+    }
+
+    if (row.quoteEstimate !== null && countQuoteSelections(row) >= 3) {
+      return {
+        label: "Warm lead",
+        className: "border-primary/25 bg-primary/10 text-primary",
+      };
+    }
+
+    if (row.maxScrollPercent >= 50 || row.sectionsViewed.includes("calculator")) {
+      return {
+        label: "Engaged",
+        className: "border-sky-400/20 bg-sky-500/10 text-sky-200",
+      };
+    }
+
+    return {
+      label: "Needs work",
+      className: "border-white/10 bg-white/5 text-slate-300",
+    };
+  }
+
   if (row.leadSubmitted || row.whatsappClicked) {
     return {
       label: "Goal hit",
@@ -333,6 +435,58 @@ const getSessionStatus = (row: SessionRow) => {
 
 const buildSessionMilestones = (row: SessionRow): SessionMilestone[] => {
   const quoteSelections = countQuoteSelections(row);
+  if (isFullPpfCalculatorSession(row)) {
+    const deeperEngagement =
+      row.maxScrollPercent >= 70 || row.sectionsViewed.length >= 4 || row.videoStarted;
+
+    return [
+      {
+        stepNumber: 1,
+        label: "WhatsApp goal",
+        detail: row.whatsappClicked
+          ? row.quoteEstimate !== null
+            ? "Clicked WhatsApp after seeing the selected setup"
+            : "Clicked a general WhatsApp CTA"
+          : "No WhatsApp click yet",
+        complete: row.whatsappClicked,
+      },
+      {
+        stepNumber: 2,
+        label: "Price viewed",
+        detail:
+          row.quoteEstimate !== null
+            ? `Saw ${formatCurrency(row.quoteEstimate)}`
+            : "No price-view event captured yet",
+        complete: row.quoteEstimate !== null,
+      },
+      {
+        stepNumber: 3,
+        label: "Setup configured",
+        detail:
+          quoteSelections >= 3
+            ? `Configured ${quoteSelections} core setup fields`
+            : quoteSelections > 0
+              ? `Changed ${quoteSelections} setup fields`
+              : "No calculator changes recorded",
+        complete: quoteSelections >= 3,
+      },
+      {
+        stepNumber: 4,
+        label: "Trust consumed",
+        detail:
+          row.sectionsViewed.length || row.maxScrollPercent
+            ? [
+                row.maxScrollPercent ? `${row.maxScrollPercent}% scroll` : "",
+                row.sectionsViewed.length ? `${row.sectionsViewed.length} sections viewed` : "",
+              ]
+                .filter(Boolean)
+                .join(" | ")
+            : "No deeper page engagement yet",
+        complete: deeperEngagement,
+      },
+    ];
+  }
+
   const conversionDetail = row.leadSubmitted
     ? row.whatsappClicked
       ? "Submitted the lead form and also clicked WhatsApp"
@@ -483,7 +637,7 @@ const AdminFunnelDashboard = () => {
   const [baselineStartInput, setBaselineStartInput] = useState("");
   const [savedBaselines, setSavedBaselines] = useState<DashboardBaseline[]>([]);
   const [activeBaselineId, setActiveBaselineId] = useState<string>("all");
-  const [tiktokTrackingUrlCopied, setTiktokTrackingUrlCopied] = useState(false);
+  const [copiedTrackingUrl, setCopiedTrackingUrl] = useState<string | null>(null);
 
   const refreshRecords = async () => {
     if (!supabase) {
@@ -596,7 +750,9 @@ const AdminFunnelDashboard = () => {
   }, [savedBaselines]);
 
   const funnelOptions = useMemo(() => {
-    const unique = Array.from(new Set(records.map((record) => record.funnel_name))).filter(Boolean);
+    const unique = Array.from(
+      new Set([...knownFunnelOptions, ...records.map((record) => record.funnel_name)]),
+    ).filter(Boolean);
     return ["all", ...unique];
   }, [records]);
 
@@ -738,6 +894,9 @@ const AdminFunnelDashboard = () => {
       if (typeof record.payload.package_name === "string") {
         current.packageName = record.payload.package_name;
       }
+      if (!current.packageName && typeof record.payload.warranty_years === "number") {
+        current.packageName = `${record.payload.warranty_years}-year full PPF`;
+      }
       if (typeof record.payload.vehicle_size === "string") {
         current.vehicleSize = record.payload.vehicle_size;
       }
@@ -868,15 +1027,20 @@ const AdminFunnelDashboard = () => {
   }, [filteredRecords]);
 
   const funnelStepData = useMemo(
-    () =>
-      journeySteps.map((step) => {
+    () => {
+      const activeJourneySteps = isFullPpfCalculatorSelected(selectedFunnel)
+        ? fullPpfCalculatorJourneySteps
+        : journeySteps;
+
+      return activeJourneySteps.map((step) => {
         const matching = filteredRecords.filter((record) => step.eventNames.includes(record.event_name));
         return {
           step: step.label,
           sessions: countUnique(matching.map((record) => record.session_id)),
         };
-      }),
-    [filteredRecords],
+      });
+    },
+    [filteredRecords, selectedFunnel],
   );
 
   const eventBreakdown = useMemo(() => {
@@ -1099,13 +1263,13 @@ const AdminFunnelDashboard = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleCopyTiktokTrackingUrl = async () => {
+  const handleCopyTrackingUrl = async (url: string, key: string) => {
     try {
-      await navigator.clipboard.writeText(TIKTOK_QUOTE_FUNNEL_TRACKING_URL);
-      setTiktokTrackingUrlCopied(true);
-      window.setTimeout(() => setTiktokTrackingUrlCopied(false), 2000);
+      await navigator.clipboard.writeText(url);
+      setCopiedTrackingUrl(key);
+      window.setTimeout(() => setCopiedTrackingUrl(null), 2000);
     } catch {
-      setTiktokTrackingUrlCopied(false);
+      setCopiedTrackingUrl(null);
     }
   };
 
@@ -1142,7 +1306,7 @@ const AdminFunnelDashboard = () => {
                 <SelectContent>
                   {funnelOptions.map((option) => (
                     <SelectItem key={option} value={option}>
-                      {option === "all" ? "All funnels" : option}
+                      {formatFunnelOption(option)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1155,7 +1319,34 @@ const AdminFunnelDashboard = () => {
             </div>
           </div>
 
-          <div className="mt-4 space-y-4 text-sm text-slate-300">
+          <div className="mt-4 grid gap-4 text-sm text-slate-300 lg:grid-cols-2">
+            <div className="rounded-xl border border-primary/15 bg-black/25 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Full PPF calculator URL (Google PPC)
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-400">
+                Use this for the calculator A/B campaign. Sessions bucket under{" "}
+                <span className="font-mono text-white">ppf_full_ppf_calculator</span> in the funnel
+                dropdown; <code className="text-primary/90">gclid</code> and UTMs are captured on
+                first paint.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <code className="min-h-11 min-w-0 flex-1 break-all rounded-lg border border-white/10 bg-black/50 p-3 text-[11px] leading-relaxed text-slate-200">
+                  {FULL_PPF_CALCULATOR_TRACKING_URL}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 shrink-0 border-white/15 bg-black/30 text-white hover:bg-white/10"
+                  onClick={() =>
+                    void handleCopyTrackingUrl(FULL_PPF_CALCULATOR_TRACKING_URL, "full_ppf_calculator")
+                  }
+                >
+                  {copiedTrackingUrl === "full_ppf_calculator" ? "Copied" : "Copy URL"}
+                </Button>
+              </div>
+            </div>
+
             <div className="rounded-xl border border-white/10 bg-black/25 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                 TikTok tracking URL (production)
@@ -1177,17 +1368,26 @@ const AdminFunnelDashboard = () => {
                   type="button"
                   variant="outline"
                   className="h-11 shrink-0 border-white/15 bg-black/30 text-white hover:bg-white/10"
-                  onClick={() => void handleCopyTiktokTrackingUrl()}
+                  onClick={() => void handleCopyTrackingUrl(TIKTOK_QUOTE_FUNNEL_TRACKING_URL, "tiktok")}
                 >
-                  {tiktokTrackingUrlCopied ? "Copied" : "Copy URL"}
+                  {copiedTrackingUrl === "tiktok" ? "Copied" : "Copy URL"}
                 </Button>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4 space-y-4 text-sm text-slate-300">
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               <span>
                 Test Google funnel:{" "}
                 <Link className="text-primary hover:underline" to="/ppf-dubai-quote">
                   /ppf-dubai-quote
+                </Link>
+              </span>
+              <span>
+                Test full PPF calculator:{" "}
+                <Link className="text-primary hover:underline" to="/ppf-full-ppf-calculator">
+                  /ppf-full-ppf-calculator
                 </Link>
               </span>
               <span>
