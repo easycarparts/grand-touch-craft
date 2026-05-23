@@ -339,6 +339,25 @@ const buildWhatsAppUrl = (message: string) =>
 
 const formatAED = (value: number) => `AED ${value.toLocaleString("en-AE")}`;
 
+const phoneDigits = (value: string) => value.replace(/\D/g, "");
+
+const localPhoneDigits = (value: string) => {
+  const digits = phoneDigits(value);
+  if (digits.startsWith("971")) return digits.slice(3);
+  return digits;
+};
+
+const isLikelyRealPhone = (value: string) => {
+  const digits = phoneDigits(value);
+  const local = localPhoneDigits(value);
+  if (!local) return false;
+  if (/^(\d)\1+$/.test(local)) return false;
+  if (digits.startsWith("971")) {
+    return /^5\d{8}$/.test(local);
+  }
+  return digits.length >= 10 && digits.length <= 15 && local.length >= 7;
+};
+
 const finishImageFor = (size: PpfPricingSize | null, finish: PpfPricingFinish) => {
   const prefix =
     size === "Medium" ? "e63s" : size === "SUV" ? "patrol" : size === "Sports" ? "gt3" : "a45";
@@ -822,7 +841,7 @@ const PpfFullPpfGuidedCalculator = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
-  const [formStatus, setFormStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [formStatus, setFormStatus] = useState<"idle" | "saving" | "saved" | "error" | "invalid_phone">("idle");
   const flowPanelRef = useRef<HTMLDivElement>(null);
 
   const sizeGridRef = useRef<HTMLDivElement>(null);
@@ -977,7 +996,8 @@ const PpfFullPpfGuidedCalculator = () => {
       : null;
   const isComplete = Boolean(size && finish && warrantyYears && estimate !== null);
   const policyBonusEligible = Boolean(size && warrantyYears);
-  const phoneCaptured = phone.replace(/\D/g, "").length >= 9;
+  const phoneCaptured = isLikelyRealPhone(phone);
+  const phoneAttempted = localPhoneDigits(phone).length > 0;
   const bonusEligible = policyBonusEligible && phoneCaptured;
   const premiumBonusLabel = bonusEligible
     ? "5% saving, free pickup, or free tint unlocked"
@@ -1127,8 +1147,7 @@ const PpfFullPpfGuidedCalculator = () => {
 
   const handlePhoneCapture = useCallback(async () => {
     const cleaned = phone.trim();
-    const digits = cleaned.replace(/\D/g, "");
-    if (digits.length < 9) return;
+    if (!isLikelyRealPhone(cleaned)) return;
     if (phoneCapturedAt === cleaned) return;
 
     setPhoneCapturedAt(cleaned);
@@ -1220,6 +1239,21 @@ const PpfFullPpfGuidedCalculator = () => {
   const handleBonusForm = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isComplete || !estimate || !size || !finish || !selectedPackage) return;
+
+    if (!phoneAttempted) {
+      trackEvent("guided_bonus_whatsapp_no_details", buildPayload());
+      handleWhatsApp("result_bonus_cta_no_details");
+      return;
+    }
+
+    if (!phoneCaptured) {
+      setFormStatus("invalid_phone");
+      trackEvent("guided_invalid_phone_blocked", {
+        capture_location: "result_bonus_form",
+        ...buildPayload(),
+      });
+      return;
+    }
 
     setFormStatus("saving");
     trackEvent("save_quote_submitted", {
@@ -2124,16 +2158,6 @@ const PpfFullPpfGuidedCalculator = () => {
                       ))}
                     </div>
 
-                    <Button
-                      type="button"
-                      size="lg"
-                      onClick={() => handleWhatsApp("result_price_visible")}
-                      className="mt-2.5 h-11 w-full bg-[#25D366] font-black text-white shadow-[0_18px_48px_rgba(37,211,102,0.28)] hover:bg-[#20bf5d]"
-                    >
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      Check This Price on WhatsApp
-                    </Button>
-
                     {/* Subtle FREE add-ons modal trigger (informational, not a CTA) */}
                     <Dialog>
                       <DialogTrigger asChild>
@@ -2284,10 +2308,10 @@ const PpfFullPpfGuidedCalculator = () => {
                       className="mt-2 rounded-2xl border border-[#f7b52b]/30 bg-[#f7b52b]/[0.04] p-3 animate-guided-attention motion-reduce:animate-none sm:mt-2.5 sm:rounded-[20px] sm:p-3"
                     >
                       <p className="text-xs font-black uppercase tracking-[0.14em] text-[#f7b52b] sm:text-sm sm:tracking-[0.16em]">
-                        {phoneCaptured ? "Last step — just your name" : "Complete in 10 seconds"}
+                        {phoneCaptured ? "Name optional — bonus unlocked" : "Add details or WhatsApp now"}
                       </p>
                       <p className="mt-0.5 text-[11px] leading-snug text-slate-300 sm:mt-1 sm:text-xs sm:leading-5">
-                        Sean WhatsApps your exact price + bonus confirmation. No spam.
+                        Leave it blank to WhatsApp Sean now, or add a real number so we can save the bonus claim.
                       </p>
 
                       <div className="mt-2 grid gap-2 sm:grid-cols-2 sm:gap-2.5">
@@ -2295,24 +2319,24 @@ const PpfFullPpfGuidedCalculator = () => {
                           value={name}
                           onChange={(event) => setName(event.target.value)}
                           placeholder="Your name"
-                          required
                           className={cn(
-                            "h-10 bg-white/[0.04] text-white placeholder:text-slate-500 transition-colors duration-500",
-                            phoneCaptured && !name
-                              ? "border-[#f7b52b]/55 focus-visible:ring-[#f7b52b]/40"
-                              : "border-white/15",
+                            "h-10 border-white/15 bg-white/[0.04] text-white placeholder:text-slate-500 transition-colors duration-500",
                           )}
                         />
                         <PhoneInputWithCountry
                           value={phone}
-                          onChange={setPhone}
+                          onChange={(value) => {
+                            setPhone(value);
+                            if (formStatus === "invalid_phone" || formStatus === "error") {
+                              setFormStatus("idle");
+                            }
+                          }}
                           onFocus={() => setIsPhoneFocused(true)}
                           onBlur={() => {
                             setIsPhoneFocused(false);
                             void handlePhoneCapture();
                           }}
                           placeholder={animatedPhonePlaceholder}
-                          required
                           className={cn(
                             "bg-white/[0.04] transition-colors duration-500",
                             phoneCaptured ? "border-white/15" : "border-[#f7b52b]/55",
@@ -2333,12 +2357,17 @@ const PpfFullPpfGuidedCalculator = () => {
                           : formStatus === "saved"
                             ? "Saved — opening WhatsApp..."
                             : phoneCaptured
-                              ? "Confirm & open WhatsApp"
-                              : "Claim bonus & open WhatsApp"}
+                              ? "Save & open WhatsApp"
+                              : "Open WhatsApp"}
                       </Button>
                       {formStatus === "error" ? (
                         <p className="mt-2 text-xs text-red-300 sm:text-sm">
                           Could not save yet. WhatsApp Sean instead.
+                        </p>
+                      ) : null}
+                      {formStatus === "invalid_phone" ? (
+                        <p className="mt-2 text-xs text-red-300 sm:text-sm">
+                          Please enter a real WhatsApp number, or clear the phone field and press the button to WhatsApp Sean.
                         </p>
                       ) : null}
                     </form>
