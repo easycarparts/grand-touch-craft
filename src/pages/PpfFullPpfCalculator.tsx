@@ -72,6 +72,15 @@ const trustPoints = [
   "WhatsApp to confirm slot",
 ];
 
+const includedValueItems = [
+  "Multi-stage paint correction",
+  "Full interior and exterior detailing",
+  "Headlights + door sills protection",
+  "Interior leather ceramic coating",
+  "Rims ceramic coating",
+  "Lifetime PPF inspection support",
+];
+
 const ownerStandardCards = [
   {
     eyebrow: "One owner-led standard",
@@ -580,7 +589,7 @@ const PpfFullPpfCalculator = () => {
       carLine,
       `Setup: ${packageLabel}, ${finish.toLowerCase()} finish, ${selectedSize.label}.`,
       `Starting price shown: ${formatAED(estimate)} + VAT.`,
-      "Can you confirm exact price and earliest availability?",
+      "Can you check this setup, confirm exact price, and earliest availability?",
     ]
       .filter(Boolean)
       .join(" ");
@@ -867,13 +876,29 @@ const PpfFullPpfCalculator = () => {
                         ? "Prices exclude VAT. Final quote depends on vehicle and paint condition."
                         : "Pick all three options to show the starting price and send the exact setup."}
                     </p>
-                    <div className="mt-5 grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
-                      {["Full-car PPF installation", "Paint prep before film", "Handover inspection", "Warranty registration"].map((item) => (
-                        <div key={item} className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-[#f7b52b]" />
-                          <span>{item}</span>
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-black/24 p-3 sm:mt-5 sm:p-4">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f7b52b]">
+                            Included in the job
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-white">
+                            Prep, protection, detailing, ceramic extras, and lifetime inspection support.
+                          </p>
                         </div>
-                      ))}
+                      </div>
+                      <div className="mt-3 grid gap-2 text-[13px] leading-5 text-slate-200 sm:grid-cols-2">
+                        {includedValueItems.map((item) => (
+                          <div key={item} className="flex items-start gap-2">
+                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-3 text-xs leading-5 text-slate-400">
+                        Not sure if your car sits in the right size bracket? Send the setup and Sean will
+                        check it before anything is booked.
+                      </p>
                     </div>
                     <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_0.72fr]">
                       <Button
@@ -884,7 +909,7 @@ const PpfFullPpfCalculator = () => {
                         onClick={() => handleWhatsAppClick("price_result")}
                       >
                         <MessageCircle className="mr-2 h-4 w-4" />
-                        {isCalculatorComplete ? "Send Price on WhatsApp" : "Choose Setup First"}
+                        {isCalculatorComplete ? "Check This Price With Sean" : "Choose Setup First"}
                       </Button>
                       <a href="#save-quote" className="inline-flex">
                         <Button type="button" size="lg" variant="outline" disabled={!isCalculatorComplete} className="w-full border-white/16 bg-white/[0.03] text-white hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:text-white/40">
