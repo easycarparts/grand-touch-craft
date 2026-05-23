@@ -201,6 +201,7 @@ const FULL_PPF_CALCULATOR_TRACKING_URL = `${SITE_ORIGIN}/ppf-full-ppf-calculator
 const knownFunnelOptions = [
   "ppf_dubai_quote",
   "ppf_full_ppf_calculator",
+  "ppf_full_ppf_guided_calculator",
   "ppf_tiktok_quote",
   "ppf_tiktok_guided_quote",
 ];
@@ -215,9 +216,19 @@ const fullPpfCalculatorJourneySteps = [
   { label: "Optional Save", eventNames: ["save_quote_submitted", "lead_form_submitted"] },
 ];
 
+const fullPpfGuidedCalculatorJourneySteps = [
+  { label: "Landing View", eventNames: ["lp_view"] },
+  { label: "Size Selected", eventNames: ["guided_step_completed"] },
+  { label: "Price Revealed", eventNames: ["guided_price_revealed", "price_viewed"] },
+  { label: "Selected Price WA", eventNames: ["selected_price_whatsapp_click"] },
+  { label: "Any WhatsApp", eventNames: ["whatsapp_click", "general_whatsapp_click"] },
+  { label: "Bonus Form", eventNames: ["save_quote_submitted", "lead_form_submitted"] },
+];
+
 const funnelLabels: Record<string, string> = {
   ppf_dubai_quote: "PPF Dubai Quote",
   ppf_full_ppf_calculator: "Full PPF Calculator",
+  ppf_full_ppf_guided_calculator: "Guided Full PPF Calculator",
   ppf_tiktok_quote: "TikTok PPF Quote",
   ppf_tiktok_guided_quote: "TikTok Guided Quote",
 };
@@ -302,10 +313,13 @@ const getIntentBand = (score: number) => {
 
 const isFullPpfCalculatorSession = (row: SessionRow) =>
   row.landingPageVariant === "google_full_ppf_calculator" ||
+  row.landingPageVariant === "google_full_ppf_guided_calculator" ||
+  row.pathname.includes("/ppf-full-ppf-calculator-guided") ||
   row.pathname.includes("/ppf-full-ppf-calculator");
 
 const isFullPpfCalculatorSelected = (selectedFunnel: string) =>
-  selectedFunnel === "ppf_full_ppf_calculator";
+  selectedFunnel === "ppf_full_ppf_calculator" ||
+  selectedFunnel === "ppf_full_ppf_guided_calculator";
 
 const getDropOffHint = (row: SessionRow) => {
   if (isFullPpfCalculatorSession(row)) {
@@ -1070,9 +1084,12 @@ const AdminFunnelDashboard = () => {
 
   const funnelStepData = useMemo(
     () => {
-      const activeJourneySteps = isFullPpfCalculatorSelected(selectedFunnel)
-        ? fullPpfCalculatorJourneySteps
-        : journeySteps;
+      const activeJourneySteps =
+        selectedFunnel === "ppf_full_ppf_guided_calculator"
+          ? fullPpfGuidedCalculatorJourneySteps
+          : isFullPpfCalculatorSelected(selectedFunnel)
+            ? fullPpfCalculatorJourneySteps
+            : journeySteps;
 
       return activeJourneySteps.map((step) => {
         const matching = filteredRecords.filter((record) => step.eventNames.includes(record.event_name));

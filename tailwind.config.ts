@@ -97,6 +97,89 @@ export default {
           "0%": { transform: "translateX(-100%)", opacity: "0" },
           "100%": { transform: "translateX(0)", opacity: "1" },
         },
+        "guided-tap-badge": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.78" },
+        },
+        "guided-attention": {
+          "0%": {
+            transform: "translateY(6px) scale(0.99)",
+            opacity: "0.6",
+            boxShadow: "0 0 0 0 rgba(247, 181, 43, 0)",
+          },
+          "40%": {
+            transform: "translateY(-2px) scale(1.012)",
+            opacity: "1",
+            boxShadow: "0 18px 42px rgba(247, 181, 43, 0.22)",
+          },
+          "100%": {
+            transform: "translateY(0) scale(1)",
+            opacity: "1",
+            boxShadow: "0 0 24px rgba(247, 181, 43, 0.12)",
+          },
+        },
+        "guided-caret-blink": {
+          "0%, 100%": { opacity: "0" },
+          "50%": { opacity: "1" },
+        },
+        "guided-free-pulse": {
+          "0%, 100%": {
+            boxShadow: "0 0 0 0 rgba(247, 181, 43, 0.45)",
+          },
+          "60%": {
+            boxShadow: "0 0 0 12px rgba(247, 181, 43, 0)",
+          },
+        },
+        "guided-sparkle-twinkle": {
+          "0%, 100%": { transform: "scale(1) rotate(0deg)", opacity: "1" },
+          "50%": { transform: "scale(1.18) rotate(15deg)", opacity: "0.85" },
+        },
+        "guided-reveal-row": {
+          "0%": {
+            opacity: "0",
+            transform: "translateY(8px)",
+            backgroundColor: "rgba(247, 181, 43, 0)",
+          },
+          "20%": {
+            opacity: "1",
+            transform: "translateY(0)",
+            backgroundColor: "rgba(247, 181, 43, 0.22)",
+          },
+          "55%": {
+            backgroundColor: "rgba(247, 181, 43, 0.22)",
+          },
+          "100%": {
+            opacity: "1",
+            transform: "translateY(0)",
+            backgroundColor: "rgba(247, 181, 43, 0)",
+          },
+        },
+        "guided-reveal-check": {
+          "0%": { transform: "scale(0.4)", opacity: "0" },
+          "40%": { transform: "scale(1.2)", opacity: "1" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        "guided-marquee": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
+        "guided-panel-flash": {
+          "0%, 100%": {
+            boxShadow:
+              "0 24px 80px rgba(0,0,0,0.42), 0 0 0 0 rgba(247,181,43,0)",
+            borderColor: "rgba(255,255,255,0.10)",
+          },
+          "25%": {
+            boxShadow:
+              "0 24px 80px rgba(0,0,0,0.42), 0 0 0 6px rgba(247,181,43,0.45), 0 0 60px rgba(247,181,43,0.45)",
+            borderColor: "rgba(247,181,43,0.9)",
+          },
+          "55%": {
+            boxShadow:
+              "0 24px 80px rgba(0,0,0,0.42), 0 0 0 3px rgba(247,181,43,0.18), 0 0 30px rgba(247,181,43,0.22)",
+            borderColor: "rgba(247,181,43,0.55)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.3s ease-out",
@@ -106,6 +189,15 @@ export default {
         "shimmer": "shimmer 3s ease-in-out infinite",
         "glow": "glow 2s ease-in-out infinite",
         "slide-in": "slide-in 0.5s ease-out",
+        "guided-tap-badge": "guided-tap-badge 4.5s ease-in-out infinite",
+        "guided-attention": "guided-attention 1.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "guided-caret-blink": "guided-caret-blink 1s steps(2, end) infinite",
+        "guided-free-pulse": "guided-free-pulse 2.4s ease-out infinite",
+        "guided-sparkle-twinkle": "guided-sparkle-twinkle 2.2s ease-in-out infinite",
+        "guided-reveal-row": "guided-reveal-row 1.6s ease-out both",
+        "guided-reveal-check": "guided-reveal-check 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+        "guided-marquee": "guided-marquee 38s linear infinite",
+        "guided-panel-flash": "guided-panel-flash 1.4s cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },
   },

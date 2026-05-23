@@ -254,6 +254,32 @@ const pages = [
       "<p><strong>Enable JavaScript</strong> to use the interactive full PPF calculator and WhatsApp handoff.</p>",
   },
   {
+    path: "/ppf-full-ppf-calculator-guided",
+    title: "Full Car PPF Price Dubai | Grand Touch Auto",
+    description:
+      "See your full car PPF price in Dubai, build a premium setup step by step, and claim 5% off, pickup, or tint with Sean on WhatsApp.",
+    keywords:
+      "full car PPF price Dubai, guided PPF quote Dubai, premium PPF Dubai, full body PPF Dubai, STEK PPF Dubai, PPF offer Dubai",
+    ogTitle: "Full Car PPF Price Dubai | Grand Touch",
+    ogDescription:
+      "Choose vehicle size, finish, and warranty package, then reveal a premium PPF setup with a direct WhatsApp bonus claim.",
+    seoBody: `
+        <h1>Full car PPF price in Dubai</h1>
+        <p>Build a premium full-car PPF setup step by step with Grand Touch Auto before asking Sean to confirm the exact price, bonus, and next slot.</p>
+        <h2>What the guided flow covers</h2>
+        <ul>
+          <li>Vehicle size selection for full body PPF</li>
+          <li>Gloss or matte finish direction</li>
+          <li>5-year, 10-year, and 12-year warranty packages</li>
+          <li>Premium bonuses such as 5% off, pickup and drop-off, tint, ceramic extras, and lifetime inspection support</li>
+        </ul>
+        <h2>Why this page exists</h2>
+        <p>This experimental Google PPC funnel adds more micro-commitment before the price reveal and gives buyers a stronger reason to message Sean on WhatsApp.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the guided full PPF quote flow and WhatsApp handoff.</p>",
+  },
+  {
     path: "/ppf-tiktok-quote_2",
     title: "PPF TikTok Quote | Grand Touch",
     description:

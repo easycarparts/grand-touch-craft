@@ -93,3 +93,35 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  @keyframes guided-glow-comet-run {
+    to {
+      stroke-dashoffset: -100;
+    }
+  }
+
+  @keyframes guided-glow-comet-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .guided-glow-comet {
+    stroke-dashoffset: 0;
+    animation:
+      guided-glow-comet-run 7.5s linear infinite,
+      guided-glow-comet-pulse 3.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .guided-glow-comet {
+      animation: none;
+      opacity: 0.55;
+    }
+  }
+}
