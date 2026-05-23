@@ -101,6 +101,14 @@ type SessionRow = {
   events: number;
   leadSubmitted: boolean;
   whatsappClicked: boolean;
+  selectedPriceWhatsappClicked: boolean;
+  generalWhatsappClicked: boolean;
+  priceViewed: boolean;
+  calculatorTouched: boolean;
+  saveQuoteStarted: boolean;
+  saveQuoteSubmitted: boolean;
+  lastWhatsappCtaLocation: string;
+  lastWhatsappMessageType: string;
   quoteModalOpened: boolean;
   unlockRequested: boolean;
   durationMs: number;
@@ -135,6 +143,14 @@ type SessionAccumulator = Omit<SessionRow, "sectionsViewed" | "intentScore"> & {
 };
 
 const countUnique = (values: string[]) => new Set(values.filter(Boolean)).size;
+
+const WHATSAPP_EVENT_NAMES = [
+  "whatsapp_click",
+  "selected_price_whatsapp_click",
+  "general_whatsapp_click",
+];
+
+const isWhatsappEvent = (eventName: string) => WHATSAPP_EVENT_NAMES.includes(eventName);
 
 const formatEventName = (value: string) =>
   value
@@ -296,9 +312,9 @@ const getDropOffHint = (row: SessionRow) => {
     const quoteSelections = countQuoteSelections(row);
 
     if (row.whatsappClicked) {
-      return row.quoteEstimate !== null
+      return row.selectedPriceWhatsappClicked
         ? "Sent a selected calculator setup to WhatsApp."
-        : "Clicked WhatsApp, but not from the selected price CTA.";
+        : `Clicked a general WhatsApp CTA${row.lastWhatsappCtaLocation ? ` from ${row.lastWhatsappCtaLocation}` : ""}.`;
     }
 
     if (row.leadSubmitted) {
@@ -444,9 +460,9 @@ const buildSessionMilestones = (row: SessionRow): SessionMilestone[] => {
         stepNumber: 1,
         label: "WhatsApp goal",
         detail: row.whatsappClicked
-          ? row.quoteEstimate !== null
+          ? row.selectedPriceWhatsappClicked
             ? "Clicked WhatsApp after seeing the selected setup"
-            : "Clicked a general WhatsApp CTA"
+            : `Clicked a general WhatsApp CTA${row.lastWhatsappCtaLocation ? `: ${row.lastWhatsappCtaLocation}` : ""}`
           : "No WhatsApp click yet",
         complete: row.whatsappClicked,
       },
@@ -832,6 +848,14 @@ const AdminFunnelDashboard = () => {
         events: 0,
         leadSubmitted: false,
         whatsappClicked: false,
+        selectedPriceWhatsappClicked: false,
+        generalWhatsappClicked: false,
+        priceViewed: false,
+        calculatorTouched: false,
+        saveQuoteStarted: false,
+        saveQuoteSubmitted: false,
+        lastWhatsappCtaLocation: "",
+        lastWhatsappMessageType: "",
         quoteModalOpened: false,
         unlockRequested: false,
         durationMs: 0,
@@ -861,7 +885,25 @@ const AdminFunnelDashboard = () => {
         current.endedAt = record.timestamp;
       }
       current.leadSubmitted ||= record.event_name === "lead_form_submitted";
-      current.whatsappClicked ||= record.event_name === "whatsapp_click";
+      current.whatsappClicked ||= isWhatsappEvent(record.event_name);
+      current.selectedPriceWhatsappClicked ||= record.event_name === "selected_price_whatsapp_click";
+      current.generalWhatsappClicked ||= record.event_name === "general_whatsapp_click";
+      current.priceViewed ||= record.event_name === "price_viewed";
+      current.calculatorTouched ||= [
+        "calculator_started",
+        "calculator_setup_changed",
+        "calculator_selection_changed",
+      ].includes(record.event_name);
+      current.saveQuoteStarted ||= record.event_name === "save_quote_started";
+      current.saveQuoteSubmitted ||= ["save_quote_submitted", "lead_form_submitted"].includes(
+        record.event_name,
+      );
+      if (isWhatsappEvent(record.event_name) && typeof record.payload.cta_location === "string") {
+        current.lastWhatsappCtaLocation = record.payload.cta_location;
+      }
+      if (isWhatsappEvent(record.event_name) && typeof record.payload.message_type === "string") {
+        current.lastWhatsappMessageType = record.payload.message_type;
+      }
       current.quoteModalOpened ||= record.event_name === "quote_modal_opened";
       current.unlockRequested ||= record.event_name === "quote_unlock_requested";
       current.videoStarted ||= ["manual_video_play", "video_progress", "video_completed"].includes(
@@ -1015,7 +1057,7 @@ const AdminFunnelDashboard = () => {
     const visitors = countUnique(filteredRecords.map((record) => record.visitor_id));
     const sessions = countUnique(filteredRecords.map((record) => record.session_id));
     const leadSubmits = filteredRecords.filter((record) => record.event_name === "lead_form_submitted").length;
-    const whatsappClicks = filteredRecords.filter((record) => record.event_name === "whatsapp_click").length;
+    const whatsappClicks = filteredRecords.filter((record) => isWhatsappEvent(record.event_name)).length;
 
     return {
       events: filteredRecords.length,
@@ -1101,7 +1143,7 @@ const AdminFunnelDashboard = () => {
         current.leads += 1;
       }
 
-      if (record.event_name === "whatsapp_click") {
+      if (isWhatsappEvent(record.event_name)) {
         current.whatsappClicks += 1;
       }
 
@@ -1147,6 +1189,7 @@ const AdminFunnelDashboard = () => {
   const focusedSessionInsights = useMemo(() => {
     const viewedSections = new Set<string>();
     const openedFaqs = new Set<string>();
+    const whatsappClicks: Array<{ eventName: string; ctaLocation: string; messageType: string }> = [];
     let lastCheckpointReason = "";
 
     for (const record of focusedSessionRecords) {
@@ -1162,11 +1205,25 @@ const AdminFunnelDashboard = () => {
       ) {
         lastCheckpointReason = record.payload.checkpoint_reason;
       }
+      if (isWhatsappEvent(record.event_name)) {
+        whatsappClicks.push({
+          eventName: record.event_name,
+          ctaLocation:
+            typeof record.payload.cta_location === "string"
+              ? record.payload.cta_location
+              : "unknown",
+          messageType:
+            typeof record.payload.message_type === "string"
+              ? record.payload.message_type
+              : "unknown",
+        });
+      }
     }
 
     return {
       viewedSections: Array.from(viewedSections),
       openedFaqs: Array.from(openedFaqs),
+      whatsappClicks,
       lastCheckpointReason,
     };
   }, [focusedSessionRecords]);
@@ -1927,6 +1984,24 @@ const AdminFunnelDashboard = () => {
                       </span>
                     </p>
                     <p>
+                      <span className="text-slate-500">WhatsApp path:</span>{" "}
+                      <span className="text-white">
+                        {focusedSessionInsights.whatsappClicks.length
+                          ? focusedSessionInsights.whatsappClicks
+                              .map((click) =>
+                                [
+                                  formatEventName(click.eventName),
+                                  click.ctaLocation !== "unknown" ? click.ctaLocation : "",
+                                  click.messageType !== "unknown" ? click.messageType : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" / "),
+                              )
+                              .join(", ")
+                          : "No WhatsApp click captured"}
+                      </span>
+                    </p>
+                    <p>
                       <span className="text-slate-500">Viewed sections:</span>{" "}
                       <span className="text-white">
                         {focusedSessionInsights.viewedSections.length
@@ -2148,7 +2223,18 @@ const AdminFunnelDashboard = () => {
                             </TableCell>
                             <TableCell className="py-3 align-top">
                               <div className="space-y-1 text-[11px] text-slate-300">
-                                <div>{row.whatsappClicked ? "WA clicked" : "No WA"}</div>
+                                <div>
+                                  {row.selectedPriceWhatsappClicked
+                                    ? "Selected price WA"
+                                    : row.generalWhatsappClicked
+                                      ? "General WA"
+                                      : row.whatsappClicked
+                                        ? "WA clicked"
+                                        : "No WA"}
+                                </div>
+                                {row.lastWhatsappCtaLocation ? (
+                                  <div className="text-slate-500">{row.lastWhatsappCtaLocation}</div>
+                                ) : null}
                                 <div>{row.leadSubmitted ? "Lead submitted" : "No lead"}</div>
                               </div>
                             </TableCell>
