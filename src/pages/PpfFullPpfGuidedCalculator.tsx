@@ -1317,20 +1317,45 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
   };
 
   const whatsAppMessage = useMemo(() => {
+    if (!isComplete || !estimate || !selectedPackage || !finish || !selectedSize) {
+      const lines = [
+        isTikTokVariant
+          ? "Hi Sean, I came from TikTok and I am looking at full car PPF."
+          : "Hi Sean, I am looking at full car PPF on the Grand Touch page.",
+        vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
+        size || finish || selectedPackage
+          ? `What I selected so far: ${[size, finish, selectedPackage?.title].filter(Boolean).join(", ")}.`
+          : "",
+        "Can you WhatsApp me the best package, bonus, and earliest slot?",
+      ].filter(Boolean);
+
+      return lines.join(" ");
+    }
+
     const lines = [
       variantConfig.messageIntro,
-      vehicle.trim() ? `Car: ${vehicle.trim()}.` : "Car: I need you to confirm the right size.",
-      selectedPackage && finish && selectedSize
-        ? `Setup: ${selectedPackage.title}, ${finish.toLowerCase()} finish, ${selectedSize.label}.`
-        : "",
-      estimate ? `Starting price shown: ${formatAED(estimate)} + VAT.` : "",
+      vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
+      `Setup: ${selectedPackage.title}, ${finish.toLowerCase()} finish, ${selectedSize.label}.`,
+      `Starting price shown: ${formatAED(estimate)} + VAT.`,
       `Bonus claim: ${premiumBonusLabel}.`,
       selectedExtras.length ? `I am also interested in: ${selectedExtras.join(", ")}.` : "",
       "Can you confirm the exact price, bonus, and earliest slot?",
     ].filter(Boolean);
 
     return lines.join(" ");
-  }, [estimate, finish, premiumBonusLabel, selectedExtras, selectedPackage, selectedSize, variantConfig, vehicle]);
+  }, [
+    estimate,
+    finish,
+    isComplete,
+    isTikTokVariant,
+    premiumBonusLabel,
+    selectedExtras,
+    selectedPackage,
+    selectedSize,
+    size,
+    variantConfig,
+    vehicle,
+  ]);
 
   const handleWhatsApp = (placement: string) => {
     trackEvent("whatsapp_click", {
