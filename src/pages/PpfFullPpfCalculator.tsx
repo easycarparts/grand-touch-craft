@@ -490,8 +490,8 @@ const PpfFullPpfCalculator = () => {
       ([entry]) => {
         if (!entry?.isIntersecting || entry.intersectionRatio < 0.45) return;
         if (hasTrackedPriceViewedRef.current) return;
-        hasTrackedPriceViewedRef.current = true;
         if (!isCalculatorComplete) return;
+        hasTrackedPriceViewedRef.current = true;
         trackEvent("price_viewed", buildCalculatorPayload());
       },
       { threshold: [0, 0.25, 0.45, 0.7, 1] },
