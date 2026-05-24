@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { CheckCircle2, Trash2 } from "lucide-react";
 
 import { G700BuildSummaryCard } from "@/components/admin/G700BuildSummaryCard";
@@ -49,11 +49,41 @@ import {
   withAlpha,
   formatDueLabel,
 } from "@/lib/admin-lead-tasks";
+import { supabase } from "@/lib/supabase";
+
+type LeadSnapshotSummary = {
+  snapshotType: string;
+  capturedAt: string | null;
+  payload: Record<string, unknown>;
+};
 
 const compactSelectTriggerClass = "h-9 border-white/10 bg-black/20 px-3 text-sm text-white";
 const compactInputClass = "h-9 border-white/10 bg-black/20 px-3 text-sm text-white placeholder:text-slate-500";
 const compactTextareaClass = "min-h-[96px] border-white/10 bg-black/20 text-sm text-white placeholder:text-slate-500";
 const compactButtonClass = "h-9 border-white/10 bg-black/20 px-3 text-sm text-white hover:bg-white/10";
+
+const readPayloadString = (payload: Record<string, unknown> | null | undefined, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+
+  return "";
+};
+
+const readPayloadNumber = (payload: Record<string, unknown> | null | undefined, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value.replace(/[^0-9.]/g, ""));
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+
+  return null;
+};
 
 const buildCrmActivityItems = (lead: LeadTaskLead, adminUsersById: Map<string, AdminUserOption>) => [
   ...lead.notes.map((note) => {
@@ -159,13 +189,69 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
     onRequestDeleteLead,
   } = props;
 
+  const [latestSnapshot, setLatestSnapshot] = useState<LeadSnapshotSummary | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLatestSnapshot = async () => {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("lead_contact_snapshots")
+        .select("snapshot_type, captured_at, payload")
+        .eq("lead_id", lead.id)
+        .order("captured_at", { ascending: false })
+        .limit(1);
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn("Failed to load latest lead snapshot", error);
+        setLatestSnapshot(null);
+        return;
+      }
+
+      const row = data?.[0] as
+        | { snapshot_type?: string | null; captured_at?: string | null; payload?: Record<string, unknown> | null }
+        | undefined;
+
+      setLatestSnapshot(
+        row
+          ? {
+              snapshotType: row.snapshot_type || "submit",
+              capturedAt: row.captured_at || null,
+              payload: row.payload ?? {},
+            }
+          : null,
+      );
+    };
+
+    void loadLatestSnapshot();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lead.id]);
+
+  const latestSnapshotPayload = latestSnapshot?.payload ?? {};
+  const selectedPackage =
+    lead.latestRollup?.package_name || readPayloadString(latestSnapshotPayload, "package_name", "package", "warranty_package");
+  const selectedSize =
+    lead.latestRollup?.vehicle_size || readPayloadString(latestSnapshotPayload, "vehicle_size", "size", "car_size");
+  const selectedFinish = lead.latestRollup?.finish || readPayloadString(latestSnapshotPayload, "finish", "finish_preference");
+  const selectedCoverage = lead.latestRollup?.coverage || readPayloadString(latestSnapshotPayload, "coverage");
+  const selectedWarranty = readPayloadString(latestSnapshotPayload, "warranty_years", "warranty");
+  const selectedExtras = readPayloadString(latestSnapshotPayload, "selected_extras");
+  const bonusEligible = latestSnapshotPayload.bonus_eligible === true;
+  const selectedEstimate =
+    lead.latestRollup?.quote_estimate ??
+    readPayloadNumber(latestSnapshotPayload, "final_price", "service_price", "estimate_value") ??
+    lead.latest_quote_estimate;
+
   const vehicle = getLeadVehicleText(lead);
   const requestedProtection = readImportMetadataValue(lead.import_metadata, "protection_level");
-  const calculatorProtection = [
-    lead.latestRollup?.coverage,
-    lead.latestRollup?.finish,
-    lead.latestRollup?.package_name,
-  ]
+  const calculatorProtection = [selectedCoverage, selectedFinish, selectedPackage]
     .filter(Boolean)
     .join(" | ");
   const protectionLabel = calculatorProtection || (requestedProtection ? formatMetaLeadChoice(requestedProtection) : "");
@@ -550,9 +636,9 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                         What They Want
                                       </p>
                                       <div className="mt-4 flex flex-wrap gap-2">
-                                        {lead.latestRollup?.package_name ? (
+                                        {selectedPackage ? (
                                           <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
-                                            {lead.latestRollup.package_name}
+                                            {selectedPackage}
                                           </Badge>
                                         ) : null}
                                         {requestedProtection ? (
@@ -565,25 +651,33 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                             Timing: {formatMetaLeadChoice(deliveryStatus)}
                                           </Badge>
                                         ) : null}
-                                        {lead.latestRollup?.vehicle_size ? (
+                                        {selectedSize ? (
                                           <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                                            Size: {lead.latestRollup.vehicle_size}
+                                            Size: {selectedSize}
                                           </Badge>
                                         ) : null}
-                                        {lead.latestRollup?.finish ? (
+                                        {selectedFinish ? (
                                           <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                                            Finish: {lead.latestRollup.finish}
+                                            Finish: {selectedFinish}
                                           </Badge>
                                         ) : null}
-                                        {lead.latestRollup?.coverage ? (
+                                        {selectedCoverage ? (
                                           <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
-                                            Coverage: {lead.latestRollup.coverage}
+                                            Coverage: {selectedCoverage}
+                                          </Badge>
+                                        ) : null}
+                                        {selectedWarranty ? (
+                                          <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
+                                            Warranty: {selectedWarranty} years
+                                          </Badge>
+                                        ) : null}
+                                        {bonusEligible ? (
+                                          <Badge variant="outline" className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200">
+                                            Bonus eligible
                                           </Badge>
                                         ) : null}
                                         <Badge variant="outline" className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200">
-                                          {formatCurrency(
-                                            lead.latestRollup?.quote_estimate ?? lead.latest_quote_estimate,
-                                          )}
+                                          {formatCurrency(selectedEstimate)}
                                         </Badge>
                                       </div>
                                       <div className="mt-4 grid gap-3 text-sm text-slate-300 sm:grid-cols-2">
@@ -616,9 +710,23 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                         <p>
                                           <span className="text-slate-500">Car size:</span>{" "}
                                           <span className="text-white">
-                                            {lead.latestRollup?.vehicle_size || "Not captured"}
+                                            {selectedSize || "Not captured"}
                                           </span>
                                         </p>
+                                        <p>
+                                          <span className="text-slate-500">Finish:</span>{" "}
+                                          <span className="text-white">{selectedFinish || "Not captured"}</span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">Package:</span>{" "}
+                                          <span className="text-white">{selectedPackage || "Not captured"}</span>
+                                        </p>
+                                        {selectedExtras ? (
+                                          <p className="sm:col-span-2">
+                                            <span className="text-slate-500">Extras:</span>{" "}
+                                            <span className="text-white">{selectedExtras}</span>
+                                          </p>
+                                        ) : null}
                                         <p>
                                           <span className="text-slate-500">Timing:</span>{" "}
                                           <span className="text-white">
