@@ -195,6 +195,8 @@ const SITE_ORIGIN = "https://www.grandtouchauto.ae";
 
 /** TikTok paid social template for the live cache-bust path. Funnel filter: `ppf_tiktok_quote`. TikTok may append `ttclid`. */
 const TIKTOK_QUOTE_FUNNEL_TRACKING_URL = `${SITE_ORIGIN}/ppf-tiktok-quote_2?utm_source=tiktok&utm_medium=paid_social&utm_campaign=tiktok_leadfunnel_apr&utm_id=__CAMPAIGN_ID__`;
+/** TikTok paid social guided full PPF calculator URL. Funnel filter: `ppf_tiktok_guided_calculator`. TikTok may append `ttclid`. */
+const TIKTOK_GUIDED_CALCULATOR_TRACKING_URL = `${SITE_ORIGIN}/ppf-tiktok-full-car-ppf?utm_source=tiktok&utm_medium=paid_social&utm_campaign=tiktok_full_ppf_guided&utm_id=__CAMPAIGN_ID__`;
 /** Google PPC full PPF calculator URL. Funnel filter: `ppf_full_ppf_calculator`. Google may append `gclid`. */
 const FULL_PPF_CALCULATOR_TRACKING_URL = `${SITE_ORIGIN}/ppf-full-ppf-calculator?utm_source=google&utm_medium=paid_search&utm_campaign=ppf_calculator_ab_may_2026`;
 
@@ -202,6 +204,7 @@ const knownFunnelOptions = [
   "ppf_dubai_quote",
   "ppf_full_ppf_calculator",
   "ppf_full_ppf_guided_calculator",
+  "ppf_tiktok_guided_calculator",
   "ppf_tiktok_quote",
   "ppf_tiktok_guided_quote",
 ];
@@ -229,6 +232,7 @@ const funnelLabels: Record<string, string> = {
   ppf_dubai_quote: "PPF Dubai Quote",
   ppf_full_ppf_calculator: "Full PPF Calculator",
   ppf_full_ppf_guided_calculator: "Guided Full PPF Calculator",
+  ppf_tiktok_guided_calculator: "TikTok Guided PPF Calculator",
   ppf_tiktok_quote: "TikTok PPF Quote",
   ppf_tiktok_guided_quote: "TikTok Guided Quote",
 };
@@ -314,12 +318,15 @@ const getIntentBand = (score: number) => {
 const isFullPpfCalculatorSession = (row: SessionRow) =>
   row.landingPageVariant === "google_full_ppf_calculator" ||
   row.landingPageVariant === "google_full_ppf_guided_calculator" ||
+  row.landingPageVariant === "tiktok_full_ppf_guided_calculator" ||
+  row.pathname.includes("/ppf-tiktok-full-car-ppf") ||
   row.pathname.includes("/ppf-full-ppf-calculator-guided") ||
   row.pathname.includes("/ppf-full-ppf-calculator");
 
 const isFullPpfCalculatorSelected = (selectedFunnel: string) =>
   selectedFunnel === "ppf_full_ppf_calculator" ||
-  selectedFunnel === "ppf_full_ppf_guided_calculator";
+  selectedFunnel === "ppf_full_ppf_guided_calculator" ||
+  selectedFunnel === "ppf_tiktok_guided_calculator";
 
 const getDropOffHint = (row: SessionRow) => {
   if (isFullPpfCalculatorSession(row)) {
@@ -1085,7 +1092,8 @@ const AdminFunnelDashboard = () => {
   const funnelStepData = useMemo(
     () => {
       const activeJourneySteps =
-        selectedFunnel === "ppf_full_ppf_guided_calculator"
+        selectedFunnel === "ppf_full_ppf_guided_calculator" ||
+        selectedFunnel === "ppf_tiktok_guided_calculator"
           ? fullPpfGuidedCalculatorJourneySteps
           : isFullPpfCalculatorSelected(selectedFunnel)
             ? fullPpfCalculatorJourneySteps
@@ -1448,6 +1456,33 @@ const AdminFunnelDashboard = () => {
                 </Button>
               </div>
             </div>
+
+            <div className="rounded-xl border border-[#f7b52b]/25 bg-[#f7b52b]/[0.04] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f7b52b]">
+                TikTok guided calculator URL
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-400">
+                Use this for the new low-intent TikTok test. Sessions bucket under{" "}
+                <span className="font-mono text-white">ppf_tiktok_guided_calculator</span>;
+                <code className="mx-1 text-primary/90">ttclid</code>, campaign macros, and UTMs
+                are captured separately from Google.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <code className="min-h-11 min-w-0 flex-1 break-all rounded-lg border border-white/10 bg-black/50 p-3 text-[11px] leading-relaxed text-slate-200">
+                  {TIKTOK_GUIDED_CALCULATOR_TRACKING_URL}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 shrink-0 border-white/15 bg-black/30 text-white hover:bg-white/10"
+                  onClick={() =>
+                    void handleCopyTrackingUrl(TIKTOK_GUIDED_CALCULATOR_TRACKING_URL, "tiktok_guided_calculator")
+                  }
+                >
+                  {copiedTrackingUrl === "tiktok_guided_calculator" ? "Copied" : "Copy URL"}
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="mt-4 space-y-4 text-sm text-slate-300">
@@ -1468,6 +1503,12 @@ const AdminFunnelDashboard = () => {
                 Test TikTok funnel:{" "}
                 <Link className="text-primary hover:underline" to="/ppf-tiktok-quote_2">
                   /ppf-tiktok-quote_2
+                </Link>
+              </span>
+              <span>
+                Test TikTok guided calculator:{" "}
+                <Link className="text-primary hover:underline" to="/ppf-tiktok-full-car-ppf">
+                  /ppf-tiktok-full-car-ppf
                 </Link>
               </span>
             </div>

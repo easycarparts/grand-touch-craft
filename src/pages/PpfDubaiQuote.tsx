@@ -1429,6 +1429,20 @@ const PpfDubaiQuote = ({ variant = "google" }: { variant?: LandingPageVariant })
       currency: "AED",
       value: 1,
     });
+    trackTikTokEvent("Contact", {
+      content_name: variantConfig.tikTokContentName,
+      contact_channel: "form_submit",
+      source: "ppf_tiktok_quote_2",
+      utm_source: utmParams.utm_source,
+      utm_medium: utmParams.utm_medium,
+      utm_campaign: utmParams.utm_campaign,
+      utm_content: utmParams.utm_content,
+      utm_term: utmParams.utm_term,
+      utm_id: utmParams.utm_id,
+      ttclid: utmParams.ttclid,
+      currency: "AED",
+      value: 1,
+    });
   };
 
   const flushSectionDuration = useCallback(

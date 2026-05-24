@@ -58,6 +58,7 @@ import { PhoneInputWithCountry } from "@/components/PhoneInputWithCountry";
 import stekWarrantySticker from "../../Landscape STEK Sticker.png";
 import { captureLeadSnapshot, createFunnelTrackingContext, trackFunnelEvent } from "@/lib/funnel-analytics";
 import { updatePageSEO } from "@/lib/seo";
+import { initTikTokPixel, trackTikTokEvent, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
 import { cn } from "@/lib/utils";
 import {
   getPpfPriceRange,
@@ -69,12 +70,109 @@ import logo from "@/assets/logo.svg";
 
 type PackageYears = 5 | 10 | 12;
 type FlowStep = "size" | "finish" | "package" | "result";
+type GuidedCalculatorVariant = "google" | "tiktok";
+
+type GuidedCalculatorVariantConfig = {
+  seoKey: string;
+  funnelName: string;
+  landingPageVariant: string;
+  defaultSourcePlatform: string;
+  calculatorType: string;
+  pageUrl: string;
+  seo: {
+    title: string;
+    description: string;
+    keywords: string;
+    ogTitle: string;
+    ogDescription: string;
+  };
+  eyebrow: string;
+  headline: string;
+  headlineAccent: string;
+  mobileIntro: string;
+  desktopIntro: string;
+  primaryCta: string;
+  secondaryCta: string;
+  proofPoints: string[];
+  messageIntro: string;
+  phoneCaptureServiceName: string;
+  bonusClaimServiceName: string;
+};
+
+type PpfFullPpfGuidedCalculatorProps = {
+  variant?: GuidedCalculatorVariant;
+};
 
 const WHATSAPP_NUMBER = "971567191045";
 const DISPLAY_PHONE = "+971 56 719 1045";
 const TEL_HREF = "tel:+971567191045";
 const GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO = "AW-17684563059/KqOWCJfDoLAcEPOI1PBB";
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
+
+const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVariantConfig> = {
+  google: {
+    seoKey: "ppf-full-ppf-calculator-guided",
+    funnelName: "ppf_full_ppf_guided_calculator",
+    landingPageVariant: "google_full_ppf_guided_calculator",
+    defaultSourcePlatform: "google",
+    calculatorType: "guided_full_ppf",
+    pageUrl: "https://www.grandtouchauto.ae/ppf-full-ppf-calculator-guided",
+    seo: {
+      title: "Guided Full PPF Quote Dubai | Grand Touch Auto",
+      description:
+        "See your full car PPF price in Dubai, build a premium setup step by step, and claim a Grand Touch bonus with Sean on WhatsApp.",
+      keywords:
+        "full car PPF price Dubai, guided PPF quote Dubai, premium PPF Dubai, full body PPF Dubai, STEK PPF Dubai, PPF offer Dubai",
+      ogTitle: "Full Car PPF Price Dubai",
+      ogDescription:
+        "Build your full PPF setup, reveal the starting price, and claim 5% off, pickup, or tint with Sean on WhatsApp.",
+    },
+    eyebrow: "Premium PPF - Dubai",
+    headline: "Full Car PPF Price",
+    headlineAccent: "in Dubai.",
+    mobileIntro:
+      "Build your setup, see the starting price, then claim 5% off, free pickup, or window tint with Sean on WhatsApp.",
+    desktopIntro:
+      "Build your full-body PPF setup, see the starting price, then claim 5% off, free pickup, or window tint with Sean on WhatsApp.",
+    primaryCta: "Get my quote",
+    secondaryCta: "WhatsApp Sean",
+    proofPoints: ["60-second quote", "No commitment", "Sean reviews each setup"],
+    messageIntro: "Hi Sean, I built a guided full PPF setup on the Grand Touch page.",
+    phoneCaptureServiceName: "Guided Full PPF - Phone Captured At Warranty Step",
+    bonusClaimServiceName: "Guided Full PPF Bonus Claim",
+  },
+  tiktok: {
+    seoKey: "ppf-tiktok-full-car-ppf",
+    funnelName: "ppf_tiktok_guided_calculator",
+    landingPageVariant: "tiktok_full_ppf_guided_calculator",
+    defaultSourcePlatform: "tiktok",
+    calculatorType: "tiktok_guided_full_ppf",
+    pageUrl: "https://www.grandtouchauto.ae/ppf-tiktok-full-car-ppf",
+    seo: {
+      title: "TikTok Full PPF Offer Dubai | Grand Touch Auto",
+      description:
+        "Tap through a mobile-first full car PPF quote flow for Dubai, reveal your starting price, and claim a Grand Touch TikTok bonus on WhatsApp.",
+      keywords:
+        "TikTok PPF Dubai, full car PPF Dubai offer, PPF price Dubai TikTok, Grand Touch PPF, STEK PPF Dubai",
+      ogTitle: "TikTok Full PPF Offer Dubai",
+      ogDescription:
+        "Choose car size, finish, and warranty in a fast TikTok-first flow, then WhatsApp Sean with your setup and bonus claim.",
+    },
+    eyebrow: "TikTok PPF offer - Dubai",
+    headline: "Full PPF price",
+    headlineAccent: "+ bonus claim.",
+    mobileIntro:
+      "Tap your size, finish, and warranty. Reveal the price, then WhatsApp Sean with the setup already written.",
+    desktopIntro:
+      "A fast TikTok-first PPF quote flow: tap your size, finish, and warranty, reveal the price, then WhatsApp Sean with your setup already written.",
+    primaryCta: "Start my setup",
+    secondaryCta: "WhatsApp Sean",
+    proofPoints: ["30-second setup", "No spam", "Sean confirms on WhatsApp"],
+    messageIntro: "Hi Sean, I built a TikTok full PPF setup on the Grand Touch page.",
+    phoneCaptureServiceName: "TikTok Guided Full PPF - Phone Captured At Warranty Step",
+    bonusClaimServiceName: "TikTok Guided Full PPF Bonus Claim",
+  },
+};
 
 // Dubai install slot windows — rolling, cosmetic only. Used to give a "next available" feel.
 const SLOTS_PER_WEEK = 4;
@@ -177,6 +275,17 @@ const topOffers: Array<{
   { icon: Sparkles, text: "Free window tint upgrade available" },
   { icon: ShieldCheck, text: "10 & 12-year warranty options available" },
   { icon: Zap, text: "Same-day WhatsApp quote direct from Sean" },
+];
+
+const tiktokTopOffers: Array<{
+  icon: typeof Truck;
+  text: string;
+}> = [
+  { icon: MousePointerClick, text: "Tap 3 choices to reveal your PPF setup" },
+  { icon: BadgePercent, text: "TikTok bonus: 5% off, pickup, or tint" },
+  { icon: MessageCircle, text: "WhatsApp Sean with your setup pre-written" },
+  { icon: ShieldCheck, text: "10 & 12-year warranty options available" },
+  { icon: Zap, text: "Built for mobile - no long form required" },
 ];
 
 /**
@@ -832,7 +941,10 @@ const ScarcityChip = ({ className, variant = "dark" }: ScarcityChipProps) => {
   );
 };
 
-const PpfFullPpfGuidedCalculator = () => {
+const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalculatorProps) => {
+  const variantConfig = guidedVariantConfig[variant];
+  const isTikTokVariant = variant === "tiktok";
+  const offerTickerItems = isTikTokVariant ? tiktokTopOffers : topOffers;
   const [step, setStep] = useState<FlowStep>("size");
   const [size, setSize] = useState<PpfPricingSize | null>(null);
   const [finish, setFinish] = useState<PpfPricingFinish | null>(null);
@@ -980,11 +1092,11 @@ const PpfFullPpfGuidedCalculator = () => {
   const funnelContext = useMemo(
     () =>
       createFunnelTrackingContext({
-        funnelName: "ppf_full_ppf_guided_calculator",
-        landingPageVariant: "google_full_ppf_guided_calculator",
-        defaultSourcePlatform: "google",
+        funnelName: variantConfig.funnelName,
+        landingPageVariant: variantConfig.landingPageVariant,
+        defaultSourcePlatform: variantConfig.defaultSourcePlatform,
       }),
-    [],
+    [variantConfig],
   );
 
   const selectedSize = sizeOptions.find((option) => option.value === size) ?? null;
@@ -1031,19 +1143,17 @@ const PpfFullPpfGuidedCalculator = () => {
   );
 
   useEffect(() => {
-    updatePageSEO("ppf-full-ppf-calculator-guided", {
-      title: "Guided Full PPF Quote Dubai | Grand Touch Auto",
-      description:
-        "See your full car PPF price in Dubai, build a premium setup step by step, and claim a Grand Touch bonus with Sean on WhatsApp.",
-      keywords:
-        "full car PPF price Dubai, guided PPF quote Dubai, premium PPF Dubai, full body PPF Dubai, STEK PPF Dubai, PPF offer Dubai",
-      ogTitle: "Full Car PPF Price Dubai",
-      ogDescription:
-        "Build your full PPF setup, reveal the starting price, and claim 5% off, pickup, or tint with Sean on WhatsApp.",
-    });
+    updatePageSEO(variantConfig.seoKey, variantConfig.seo);
 
-    trackEvent("lp_view", { calculator_type: "guided_full_ppf" });
-  }, [trackEvent]);
+    trackEvent("lp_view", { calculator_type: variantConfig.calculatorType });
+    if (isTikTokVariant) {
+      initTikTokPixel();
+      trackTikTokEvent("ViewContent", {
+        content_name: "TikTok Guided Full PPF Calculator",
+        content_category: "PPF",
+      });
+    }
+  }, [isTikTokVariant, trackEvent, variantConfig]);
 
   const goToStep = (nextStep: FlowStep, reason: string) => {
     setStep(nextStep);
@@ -1169,7 +1279,7 @@ const PpfFullPpfGuidedCalculator = () => {
       phone: cleaned,
       vehicleModel: vehicle.trim(),
       payload: {
-        service_name: "Guided Full PPF — Phone Captured At Warranty Step",
+        service_name: variantConfig.phoneCaptureServiceName,
         package_name: selectedPackage?.title,
         warranty_years: warrantyYears,
         finish,
@@ -1188,6 +1298,7 @@ const PpfFullPpfGuidedCalculator = () => {
     selectedPackage,
     size,
     trackEvent,
+    variantConfig,
     vehicle,
     warrantyYears,
   ]);
@@ -1207,7 +1318,7 @@ const PpfFullPpfGuidedCalculator = () => {
 
   const whatsAppMessage = useMemo(() => {
     const lines = [
-      "Hi Sean, I built a guided full PPF setup on the Grand Touch page.",
+      variantConfig.messageIntro,
       vehicle.trim() ? `Car: ${vehicle.trim()}.` : "Car: I need you to confirm the right size.",
       selectedPackage && finish && selectedSize
         ? `Setup: ${selectedPackage.title}, ${finish.toLowerCase()} finish, ${selectedSize.label}.`
@@ -1219,7 +1330,7 @@ const PpfFullPpfGuidedCalculator = () => {
     ].filter(Boolean);
 
     return lines.join(" ");
-  }, [estimate, finish, premiumBonusLabel, selectedExtras, selectedPackage, selectedSize, vehicle]);
+  }, [estimate, finish, premiumBonusLabel, selectedExtras, selectedPackage, selectedSize, variantConfig, vehicle]);
 
   const handleWhatsApp = (placement: string) => {
     trackEvent("whatsapp_click", {
@@ -1232,7 +1343,17 @@ const PpfFullPpfGuidedCalculator = () => {
       message_type: "guided_setup",
       ...buildPayload(),
     });
-    trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO);
+    if (isTikTokVariant) {
+      trackTikTokEvent("Contact", {
+        content_name: "TikTok Guided Full PPF Calculator",
+        content_category: "PPF",
+        button_location: placement,
+        value: estimate ?? undefined,
+        currency: "AED",
+      });
+    } else {
+      trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO);
+    }
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
   };
 
@@ -1274,7 +1395,7 @@ const PpfFullPpfGuidedCalculator = () => {
       phone: phone.trim(),
       vehicleModel: vehicle.trim(),
       payload: {
-        service_name: "Guided Full PPF Bonus Claim",
+        service_name: variantConfig.bonusClaimServiceName,
         service_price: estimate,
         final_price: estimate,
         package_name: selectedPackage.title,
@@ -1288,10 +1409,29 @@ const PpfFullPpfGuidedCalculator = () => {
 
     if (result.ok) {
       setFormStatus("saved");
-      trackGoogleAdsConversion(GOOGLE_ADS_SUBMIT_LEAD_SEND_TO);
+      if (isTikTokVariant) {
+        trackTikTokSubmitForm({
+          content_name: "TikTok Guided Full PPF Calculator",
+          content_category: "PPF",
+          value: estimate,
+          currency: "AED",
+        });
+        trackTikTokEvent("Contact", {
+          content_name: "TikTok Guided Full PPF Calculator",
+          content_category: "PPF",
+          contact_channel: "form_submit",
+          button_location: "result_bonus_form",
+          value: estimate,
+          currency: "AED",
+        });
+      } else {
+        trackGoogleAdsConversion(GOOGLE_ADS_SUBMIT_LEAD_SEND_TO);
+      }
       trackEvent("guided_lead_saved_whatsapp_handoff", buildPayload());
       window.setTimeout(() => {
-        trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO);
+        if (!isTikTokVariant) {
+          trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO);
+        }
         window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
       }, 350);
     } else {
@@ -1368,7 +1508,7 @@ const PpfFullPpfGuidedCalculator = () => {
         "@type": "LocalBusiness",
         name: "Grand Touch Auto",
         image: "https://www.grandtouchauto.ae/guided-sean-with-patrols.png",
-        url: "https://www.grandtouchauto.ae/ppf-full-ppf-calculator-guided",
+        url: variantConfig.pageUrl,
         telephone: "+971567191045",
         priceRange: "AED 4,000 – AED 25,000",
         address: {
@@ -1431,7 +1571,7 @@ const PpfFullPpfGuidedCalculator = () => {
     return () => {
       scripts.forEach((s) => s.parentElement?.removeChild(s));
     };
-  }, []);
+  }, [variantConfig]);
 
   const handleMobileSticky = () => {
     if (step === "result") {
@@ -1506,7 +1646,7 @@ const PpfFullPpfGuidedCalculator = () => {
           />
 
           <div className="flex w-max animate-guided-marquee items-center group-hover:[animation-play-state:paused] group-focus-visible:[animation-play-state:paused] motion-reduce:animate-none">
-            {[...topOffers, ...topOffers].map((offer, index) => {
+            {[...offerTickerItems, ...offerTickerItems].map((offer, index) => {
               const Icon = offer.icon;
               return (
                 <span
@@ -1554,11 +1694,11 @@ const PpfFullPpfGuidedCalculator = () => {
             <div className="mt-3 lg:hidden">
               <div className="relative overflow-hidden rounded-2xl border border-[#f7b52b]/35 bg-[radial-gradient(circle_at_85%_-10%,rgba(247,181,43,0.28),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(8,8,8,0.55))] p-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b]">
-                  Premium PPF · Dubai
+                  {variantConfig.eyebrow}
                 </p>
                 <h1 className="mt-1.5 text-[1.85rem] font-black leading-[1.04] tracking-tight">
-                  Full Car PPF Price
-                  <span className="block text-[#f7b52b]">in Dubai.</span>
+                  {variantConfig.headline}
+                  <span className="block text-[#f7b52b]">{variantConfig.headlineAccent}</span>
                 </h1>
                 <HeroTrustBadges className="mt-3" />
 
@@ -1590,15 +1730,12 @@ const PpfFullPpfGuidedCalculator = () => {
                 </div>
 
                 <p className="mt-3 text-xs leading-5 text-slate-300">
-                  Build your setup, see the starting price, then claim
-                  <span className="font-bold text-white"> 5% off, free pickup, or window tint</span>
-                  {" "}
-                  with Sean on WhatsApp.
+                  {variantConfig.mobileIntro}
                 </p>
 
                 <div className="mt-3 grid grid-cols-3 gap-1.5">
                   {[
-                    { icon: BadgePercent, label: "5% off setup" },
+                    { icon: BadgePercent, label: isTikTokVariant ? "TikTok bonus" : "5% off setup" },
                     { icon: Truck, label: "Free pickup" },
                     { icon: Sparkles, label: "Free tint" },
                   ].map(({ icon: Icon, label }) => (
@@ -1627,7 +1764,7 @@ const PpfFullPpfGuidedCalculator = () => {
                     }}
                     className="h-11 gap-1.5 bg-[#f7b52b] px-2 text-[13px] font-black tracking-tight text-black hover:bg-[#ffc94f]"
                   >
-                    Get my quote
+                    {variantConfig.primaryCta}
                     <ArrowRight className="h-4 w-4 shrink-0" />
                   </Button>
                   <Button
@@ -1636,7 +1773,7 @@ const PpfFullPpfGuidedCalculator = () => {
                     className="h-11 gap-1.5 bg-[#25D366] px-2 text-[13px] font-black tracking-tight text-white hover:bg-[#20bf5d]"
                   >
                     <MessageCircle className="h-4 w-4 shrink-0" />
-                    WhatsApp Sean
+                    {variantConfig.secondaryCta}
                   </Button>
                 </div>
 
@@ -1667,7 +1804,7 @@ const PpfFullPpfGuidedCalculator = () => {
                     more below the hero without us using a giant arrow. */}
                 <div className="mt-3 flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-[0.3em] text-[#f7b52b]/80 motion-reduce:animate-none">
                   <span className="animate-bounce">↓</span>
-                  Build your quote below
+                  {isTikTokVariant ? "Tap the cards below" : "Build your quote below"}
                 </div>
               </div>
             </div>
@@ -1675,26 +1812,23 @@ const PpfFullPpfGuidedCalculator = () => {
             <div className="grid gap-4 pb-8 pt-3 lg:grid-cols-[0.88fr_1.12fr] lg:items-start lg:gap-8 lg:pb-12 lg:pt-12">
               <div className="hidden lg:block lg:sticky lg:top-20">
                 <p className="text-xs font-black uppercase tracking-[0.28em] text-[#f7b52b]">
-                  Premium PPF · Dubai
+                  {variantConfig.eyebrow}
                 </p>
                 <HeroTrustBadges size="md" className="mt-2.5" />
                 <h1 className="mt-3 text-[2.85rem] font-black leading-[1.02] tracking-tight xl:text-[3.4rem]">
-                  Full Car PPF Price
-                  <span className="block text-[#f7b52b]">in Dubai.</span>
+                  {variantConfig.headline}
+                  <span className="block text-[#f7b52b]">{variantConfig.headlineAccent}</span>
                 </h1>
                 <p className="mt-3 max-w-xl text-base leading-7 text-slate-200">
-                  Build your full-body PPF setup, see the starting price, then claim
-                  <span className="font-bold text-white"> 5% off, free pickup, or window tint</span>
-                  {" "}
-                  with Sean on WhatsApp.
+                  {variantConfig.desktopIntro}
                 </p>
 
                 <div className="mt-4 grid grid-cols-3 gap-2.5">
                   {[
                     {
                       icon: BadgePercent,
-                      label: "5% off setup",
-                      sub: "Any package",
+                      label: isTikTokVariant ? "TikTok bonus" : "5% off setup",
+                      sub: isTikTokVariant ? "Claim option" : "Any package",
                     },
                     {
                       icon: Truck,
@@ -1736,7 +1870,7 @@ const PpfFullPpfGuidedCalculator = () => {
                     }}
                     className="h-12 bg-[#f7b52b] text-base font-black text-black hover:bg-[#ffc94f]"
                   >
-                    Build my quote
+                    {isTikTokVariant ? "Start my setup" : "Build my quote"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <Button
@@ -1746,7 +1880,7 @@ const PpfFullPpfGuidedCalculator = () => {
                     className="h-12 bg-[#25D366] text-base font-black text-white hover:bg-[#20bf5d]"
                   >
                     <MessageCircle className="mr-2 h-4 w-4" />
-                    WhatsApp Sean
+                    {variantConfig.secondaryCta}
                   </Button>
                 </div>
 
@@ -1775,11 +1909,7 @@ const PpfFullPpfGuidedCalculator = () => {
                     </a>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                    {[
-                      "60-second quote",
-                      "No commitment",
-                      "Sean reviews each setup",
-                    ].map((item) => (
+                    {variantConfig.proofPoints.map((item) => (
                       <span key={item} className="flex items-center gap-1.5">
                         <Check className="h-3 w-3 text-[#f7b52b]" />
                         {item}

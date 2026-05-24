@@ -1487,6 +1487,13 @@ const PpfTikTokGuidedFunnel = ({ variant = "tiktok_guided" }: { variant?: Landin
       currency: "AED",
       value: 1,
     });
+    trackTikTokEvent("Contact", {
+      content_name: variantConfig.tikTokContentName,
+      contact_channel: "form_submit",
+      source: "ppf_tiktok_guided_funnel",
+      currency: "AED",
+      value: 1,
+    });
   };
 
   const flushSectionDuration = useCallback(
