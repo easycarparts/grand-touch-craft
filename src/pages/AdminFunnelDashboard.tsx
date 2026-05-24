@@ -142,6 +142,16 @@ type SessionAccumulator = Omit<SessionRow, "sectionsViewed" | "intentScore"> & {
   sectionsViewed: Set<string>;
 };
 
+type LeadSnapshotRecord = {
+  sessionId: string;
+  visitorId: string;
+  fullName: string;
+  phone: string;
+  vehicleModel: string;
+  payload: Record<string, unknown>;
+  capturedAt: string;
+};
+
 const countUnique = (values: string[]) => new Set(values.filter(Boolean)).size;
 
 const WHATSAPP_EVENT_NAMES = [
@@ -675,29 +685,56 @@ const AdminFunnelDashboard = () => {
   const [savedBaselines, setSavedBaselines] = useState<DashboardBaseline[]>([]);
   const [activeBaselineId, setActiveBaselineId] = useState<string>("all");
   const [copiedTrackingUrl, setCopiedTrackingUrl] = useState<string | null>(null);
+  const [leadSnapshots, setLeadSnapshots] = useState<LeadSnapshotRecord[]>([]);
 
   const refreshRecords = async () => {
     if (!supabase) {
       setRecords(readStoredFunnelEvents());
+      setLeadSnapshots([]);
       return;
     }
 
-    const { data, error } = await supabase
-      .from("lead_events")
-      .select(
-        "id, external_event_id, occurred_at, event_name, funnel_name, landing_page_variant, source_platform, pathname, session_id, visitor_id, attribution, payload",
-      )
-      .order("occurred_at", { ascending: false })
-      .limit(5000);
+    const [eventsResult, snapshotsResult] = await Promise.all([
+      supabase
+        .from("lead_events")
+        .select(
+          "id, external_event_id, occurred_at, event_name, funnel_name, landing_page_variant, source_platform, pathname, session_id, visitor_id, attribution, payload",
+        )
+        .order("occurred_at", { ascending: false })
+        .limit(5000),
+      supabase
+        .from("lead_contact_snapshots")
+        .select("session_id, visitor_id, full_name, phone, vehicle_model, payload, captured_at")
+        .order("captured_at", { ascending: false })
+        .limit(1000),
+    ]);
 
-    if (error) {
-      console.warn("Failed to load funnel events from Supabase", error);
+    if (eventsResult.error) {
+      console.warn("Failed to load funnel events from Supabase", eventsResult.error);
       setRecords(readStoredFunnelEvents());
+      setLeadSnapshots([]);
       return;
+    }
+
+    if (snapshotsResult.error) {
+      console.warn("Failed to load lead snapshots from Supabase", snapshotsResult.error);
+      setLeadSnapshots([]);
+    } else {
+      setLeadSnapshots(
+        ((snapshotsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+          sessionId: String(row.session_id || ""),
+          visitorId: String(row.visitor_id || ""),
+          fullName: String(row.full_name || ""),
+          phone: String(row.phone || ""),
+          vehicleModel: String(row.vehicle_model || ""),
+          payload: (row.payload as Record<string, unknown>) || {},
+          capturedAt: String(row.captured_at || ""),
+        })),
+      );
     }
 
     setRecords(
-      ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      ((eventsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
         id: String(row.external_event_id || row.id),
         timestamp: String(row.occurred_at),
         event_name: String(row.event_name),
@@ -856,6 +893,15 @@ const AdminFunnelDashboard = () => {
 
   const sessionRows = useMemo(() => {
     const grouped = new Map<string, SessionAccumulator>();
+    const snapshotsBySession = new Map<string, LeadSnapshotRecord>();
+
+    for (const snapshot of leadSnapshots) {
+      if (!snapshot.sessionId) continue;
+      const existing = snapshotsBySession.get(snapshot.sessionId);
+      if (!existing || new Date(snapshot.capturedAt).getTime() > new Date(existing.capturedAt).getTime()) {
+        snapshotsBySession.set(snapshot.sessionId, snapshot);
+      }
+    }
 
     for (const record of filteredRecords) {
       const current = grouped.get(record.session_id) || {
@@ -1007,22 +1053,55 @@ const AdminFunnelDashboard = () => {
     }
 
     return Array.from(grouped.values())
-      .map((row) => ({
-        ...row,
-        sectionsViewed: Array.from(row.sectionsViewed),
-        durationMs:
-          row.durationMs ||
-          Math.max(0, new Date(row.endedAt).getTime() - new Date(row.startedAt).getTime()),
-        intentScore: getIntentScore({
+      .map((row) => {
+        const snapshot = snapshotsBySession.get(row.sessionId);
+        const snapshotPayload = snapshot?.payload ?? {};
+        const packageName =
+          row.packageName ||
+          (typeof snapshotPayload.package_name === "string" ? snapshotPayload.package_name : "") ||
+          (typeof snapshotPayload.warranty_years === "number"
+            ? `${snapshotPayload.warranty_years}-year full PPF`
+            : "");
+        const vehicleSize =
+          row.vehicleSize ||
+          (typeof snapshotPayload.vehicle_size === "string" ? snapshotPayload.vehicle_size : "") ||
+          (typeof snapshotPayload.size === "string" ? snapshotPayload.size : "");
+        const finish = row.finish || (typeof snapshotPayload.finish === "string" ? snapshotPayload.finish : "");
+        const coverage =
+          row.coverage || (typeof snapshotPayload.coverage === "string" ? snapshotPayload.coverage : "");
+        const quoteEstimate =
+          row.quoteEstimate ??
+          (typeof snapshotPayload.final_price === "number"
+            ? snapshotPayload.final_price
+            : typeof snapshotPayload.service_price === "number"
+              ? snapshotPayload.service_price
+              : typeof snapshotPayload.estimate_value === "number"
+                ? snapshotPayload.estimate_value
+                : null);
+        const nextRow = {
           ...row,
+          leadSubmitted: row.leadSubmitted || Boolean(snapshot),
+          leadName: row.leadName || snapshot?.fullName || "",
+          leadPhone: row.leadPhone || snapshot?.phone || "",
+          vehicleModel: row.vehicleModel || snapshot?.vehicleModel || "",
+          packageName,
+          vehicleSize,
+          finish,
+          coverage,
+          quoteEstimate,
           sectionsViewed: Array.from(row.sectionsViewed),
           durationMs:
             row.durationMs ||
             Math.max(0, new Date(row.endedAt).getTime() - new Date(row.startedAt).getTime()),
-        }),
-      }))
+        };
+
+        return {
+          ...nextRow,
+          intentScore: getIntentScore(nextRow),
+        };
+      })
       .sort((a, b) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime());
-  }, [filteredRecords]);
+  }, [filteredRecords, leadSnapshots]);
 
   const filteredSessionRows = useMemo(() => {
     const filtered = sessionRows.filter((row) => {

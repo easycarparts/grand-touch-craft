@@ -1134,12 +1134,27 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
       package_name: selectedPackage?.title,
       estimate_value: estimate,
       coverage: "Full Body",
+      lead_name: name.trim() || undefined,
+      lead_phone: phoneCaptured ? phone.trim() : undefined,
       vehicle_model: vehicle.trim() || undefined,
       bonus_eligible: bonusEligible,
       bonus_label: premiumBonusLabel,
       selected_extras: selectedExtras.join(", "),
     }),
-    [bonusEligible, estimate, finish, premiumBonusLabel, selectedExtras, selectedPackage, size, vehicle, warrantyYears],
+    [
+      bonusEligible,
+      estimate,
+      finish,
+      name,
+      phone,
+      phoneCaptured,
+      premiumBonusLabel,
+      selectedExtras,
+      selectedPackage,
+      size,
+      vehicle,
+      warrantyYears,
+    ],
   );
 
   useEffect(() => {
