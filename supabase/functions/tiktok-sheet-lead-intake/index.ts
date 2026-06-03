@@ -135,12 +135,12 @@ const upsertTikTokSheetLead = async (payload: SheetLeadPayload) => {
       "vehicle model",
       "what vehicle",
     ]) ?? null;
-  const installTiming = getValue(row, ["when are you looking to install", "install timing", "timing"]);
-  const budgetAnswer = getValue(row, ["premium full body ppf", "budget", "10k", "price", "is that okay"]);
+  const installTiming = getValue(row, ["when are you looking to install", "when", "install timing", "timing"]);
+  const budgetAnswer = getValue(row, ["premium full body ppf", "intent", "budget", "10k", "price", "is that okay"]);
   const leadIdFromSheet = getValue(row, ["lead id", "lead_id", "id", "tiktok lead id", "leadid"]);
   const campaignName = getValue(row, ["campaign name", "campaign"]);
   const adGroupName = getValue(row, ["ad group name", "adgroup name", "ad set name", "adset name"]);
-  const adName = getValue(row, ["ad name", "creative name", "ad"]);
+  const adName = getValue(row, ["ad name", "creative name"]);
   const formName = getValue(row, ["form name", "instant form name", "lead form name"]);
   const createdAt = parseTimestamp(getValue(row, ["created time", "created_time", "submit time", "submission time", "time"]));
   const externalLeadId = buildExternalLeadId({
