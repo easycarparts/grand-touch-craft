@@ -41,9 +41,9 @@ const STEK_FULL_BODY_MINS: Record<5 | 10 | 12, Record<PpfPricingSize, PpfGlossMa
   },
   10: {
     Small: { glossMin: 9990, matteMin: 10490 },
-    Medium: { glossMin: 11500, matteMin: 12000 },
-    SUV: { glossMin: 12500, matteMin: 13000 },
-    Sports: { glossMin: 12075, matteMin: 12600 },
+    Medium: { glossMin: 10500, matteMin: 10990 },
+    SUV: { glossMin: 10990, matteMin: 11490 },
+    Sports: { glossMin: 10990, matteMin: 11490 },
   },
   12: {
     Small: { glossMin: 13000, matteMin: 13500 },

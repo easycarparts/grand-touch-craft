@@ -955,6 +955,11 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [formStatus, setFormStatus] = useState<"idle" | "saving" | "saved" | "error" | "invalid_phone">("idle");
   const flowPanelRef = useRef<HTMLDivElement>(null);
+  const pageStartedAtRef = useRef<number>(Date.now());
+  const activeSectionRef = useRef<string>("calculator");
+  const activeSectionStartedAtRef = useRef<number>(Date.now());
+  const viewedSectionsRef = useRef<Set<string>>(new Set());
+  const maxScrollPercentRef = useRef(0);
 
   const sizeGridRef = useRef<HTMLDivElement>(null);
   const sizeCardRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -1129,10 +1134,13 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
   const buildPayload = useCallback(
     () => ({
       size,
+      vehicle_size: size,
       finish,
       warranty_years: warrantyYears,
       package_name: selectedPackage?.title,
       estimate_value: estimate,
+      final_price: estimate,
+      service_price: estimate,
       coverage: "Full Body",
       lead_name: name.trim() || undefined,
       lead_phone: phoneCaptured ? phone.trim() : undefined,
@@ -1157,6 +1165,38 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
     ],
   );
 
+  const buildProjectedPayload = useCallback(
+    ({
+      nextSize = size,
+      nextFinish = finish,
+      nextWarrantyYears = warrantyYears,
+    }: {
+      nextSize?: PpfPricingSize | null;
+      nextFinish?: PpfPricingFinish | null;
+      nextWarrantyYears?: PackageYears | null;
+    } = {}) => {
+      const projectedPackage =
+        packageOptions.find((option) => option.years === nextWarrantyYears) ?? null;
+      const projectedEstimate =
+        nextSize && nextFinish && nextWarrantyYears
+          ? getPpfPriceRange("STEK", nextWarrantyYears, nextSize, "Full Body", nextFinish).min
+          : null;
+
+      return {
+        ...buildPayload(),
+        size: nextSize,
+        vehicle_size: nextSize,
+        finish: nextFinish,
+        warranty_years: nextWarrantyYears,
+        package_name: projectedPackage?.title,
+        estimate_value: projectedEstimate,
+        final_price: projectedEstimate,
+        service_price: projectedEstimate,
+      };
+    },
+    [buildPayload, finish, size, warrantyYears],
+  );
+
   useEffect(() => {
     updatePageSEO(variantConfig.seoKey, variantConfig.seo);
 
@@ -1169,6 +1209,136 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
       });
     }
   }, [isTikTokVariant, trackEvent, variantConfig]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    const getScrollPercent = () => {
+      const doc = document.documentElement;
+      const scrollable = Math.max(1, doc.scrollHeight - window.innerHeight);
+      const percent = Math.round((window.scrollY / scrollable) * 100);
+      return Math.max(0, Math.min(100, percent));
+    };
+
+    const updateMaxScroll = () => {
+      maxScrollPercentRef.current = Math.max(maxScrollPercentRef.current, getScrollPercent());
+    };
+
+    const flushSectionEngagement = (reason: string) => {
+      const nowMs = Date.now();
+      const durationMs = nowMs - activeSectionStartedAtRef.current;
+      const sectionName = activeSectionRef.current;
+      if (sectionName && durationMs >= 750) {
+        trackEvent("section_engagement", {
+          section_name: sectionName,
+          duration_ms: durationMs,
+          checkpoint_reason: reason,
+          current_scroll_percent: getScrollPercent(),
+          max_scroll_percent: maxScrollPercentRef.current,
+        });
+      }
+      activeSectionStartedAtRef.current = nowMs;
+    };
+
+    const setActiveSection = (sectionName: string, reason: string) => {
+      if (!sectionName || activeSectionRef.current === sectionName) return;
+      flushSectionEngagement(reason);
+      activeSectionRef.current = sectionName;
+      activeSectionStartedAtRef.current = Date.now();
+    };
+
+    const markSectionViewed = (sectionName: string) => {
+      if (!sectionName || viewedSectionsRef.current.has(sectionName)) return;
+      viewedSectionsRef.current.add(sectionName);
+      trackEvent("section_view", {
+        section_name: sectionName,
+        current_scroll_percent: getScrollPercent(),
+        max_scroll_percent: maxScrollPercentRef.current,
+      });
+    };
+
+    const emitCheckpoint = (reason: string) => {
+      updateMaxScroll();
+      trackEvent("page_checkpoint", {
+        checkpoint_reason: reason,
+        elapsed_ms: Math.max(0, Date.now() - pageStartedAtRef.current),
+        active_section: activeSectionRef.current,
+        current_scroll_percent: getScrollPercent(),
+        max_scroll_percent: maxScrollPercentRef.current,
+      });
+    };
+
+    const calculatorPanel = flowPanelRef.current;
+    calculatorPanel?.setAttribute("data-funnel-section", "calculator");
+
+    const sections = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-funnel-section]"),
+    );
+    const visibleRatios = new Map<Element, number>();
+
+    updateMaxScroll();
+    markSectionViewed("calculator");
+    emitCheckpoint("initial_view");
+
+    const observer =
+      typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(
+            (entries) => {
+              updateMaxScroll();
+              for (const entry of entries) {
+                visibleRatios.set(entry.target, entry.isIntersecting ? entry.intersectionRatio : 0);
+                const sectionName = (entry.target as HTMLElement).dataset.funnelSection;
+                if (sectionName && entry.isIntersecting && entry.intersectionRatio >= 0.25) {
+                  markSectionViewed(sectionName);
+                }
+              }
+
+              let bestSection = activeSectionRef.current;
+              let bestRatio = 0;
+              for (const section of sections) {
+                const ratio = visibleRatios.get(section) ?? 0;
+                if (ratio > bestRatio) {
+                  bestRatio = ratio;
+                  bestSection = section.dataset.funnelSection || bestSection;
+                }
+              }
+              if (bestRatio >= 0.2) {
+                setActiveSection(bestSection, "section_change");
+              }
+            },
+            { threshold: [0, 0.2, 0.25, 0.5, 0.75] },
+          )
+        : null;
+
+    sections.forEach((section) => observer?.observe(section));
+
+    const onScroll = () => updateMaxScroll();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushSectionEngagement("visibility_hidden");
+        emitCheckpoint("visibility_hidden");
+      }
+    };
+    const onBeforeUnload = () => {
+      flushSectionEngagement("page_unload");
+      emitCheckpoint("page_unload");
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    const checkpointId = window.setInterval(() => emitCheckpoint("heartbeat"), 12_000);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.clearInterval(checkpointId);
+      flushSectionEngagement("unmount");
+      calculatorPanel?.removeAttribute("data-funnel-section");
+    };
+  }, [trackEvent]);
 
   const goToStep = (nextStep: FlowStep, reason: string) => {
     setStep(nextStep);
@@ -1240,7 +1410,7 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
     setSize(nextSize);
     trackEvent("guided_step_completed", {
       step_name: "size",
-      size: nextSize,
+      ...buildProjectedPayload({ nextSize }),
     });
   };
 
@@ -1248,8 +1418,7 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
     setFinish(nextFinish);
     trackEvent("guided_step_completed", {
       step_name: "finish",
-      size,
-      finish: nextFinish,
+      ...buildProjectedPayload({ nextFinish }),
     });
   };
 
@@ -1257,9 +1426,7 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
     setWarrantyYears(nextYears);
     trackEvent("guided_step_completed", {
       step_name: "package",
-      size,
-      finish,
-      warranty_years: nextYears,
+      ...buildProjectedPayload({ nextWarrantyYears: nextYears }),
     });
   };
 

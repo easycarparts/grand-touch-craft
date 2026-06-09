@@ -51,6 +51,11 @@ import {
   getVehicleIdentityLabel,
 } from "@/lib/funnel-intent";
 import { supabase } from "@/lib/supabase";
+import {
+  getPpfPriceRange,
+  type PpfPricingFinish,
+  type PpfPricingSize,
+} from "@/data/ppf-calculator-pricing";
 
 const journeySteps = [
   { label: "Landing View", eventNames: ["lp_view"] },
@@ -184,6 +189,45 @@ const formatDurationMs = (value: number) => {
 
   if (minutes <= 0) return `${seconds}s`;
   return `${minutes}m ${seconds}s`;
+};
+
+const parseWarrantyYears = (value: string) => {
+  const match = value.match(/\b(5|10|12)\b/);
+  return match ? Number(match[1]) : null;
+};
+
+const normalizeGuidedSize = (value: string): PpfPricingSize | null => {
+  const normalized = value.toLowerCase();
+  if (normalized.includes("suv") || normalized.includes("4x4")) return "SUV";
+  if (normalized.includes("sports")) return "Sports";
+  if (normalized.includes("medium")) return "Medium";
+  if (normalized.includes("small")) return "Small";
+  return null;
+};
+
+const normalizeGuidedFinish = (value: string): PpfPricingFinish | null => {
+  const normalized = value.toLowerCase();
+  if (normalized.includes("matte")) return "Matte";
+  if (normalized.includes("gloss")) return "Gloss";
+  return null;
+};
+
+const calculateGuidedEstimate = ({
+  packageName,
+  vehicleSize,
+  finish,
+}: {
+  packageName: string;
+  vehicleSize: string;
+  finish: string;
+}) => {
+  const warrantyYears = parseWarrantyYears(packageName);
+  const normalizedSize = normalizeGuidedSize(vehicleSize);
+  const normalizedFinish = normalizeGuidedFinish(finish);
+
+  if (!warrantyYears || !normalizedSize || !normalizedFinish) return null;
+
+  return getPpfPriceRange("STEK", warrantyYears, normalizedSize, "Full Body", normalizedFinish).min;
 };
 
 const formatSectionName = (value: string) =>
@@ -332,6 +376,12 @@ const isFullPpfCalculatorSession = (row: SessionRow) =>
   row.pathname.includes("/ppf-tiktok-full-car-ppf") ||
   row.pathname.includes("/ppf-full-ppf-calculator-guided") ||
   row.pathname.includes("/ppf-full-ppf-calculator");
+
+const isGuidedCalculatorRow = (row: Pick<SessionRow, "landingPageVariant" | "pathname">) =>
+  row.landingPageVariant === "google_full_ppf_guided_calculator" ||
+  row.landingPageVariant === "tiktok_full_ppf_guided_calculator" ||
+  row.pathname.includes("/ppf-tiktok-full-car-ppf") ||
+  row.pathname.includes("/ppf-full-ppf-calculator-guided");
 
 const isFullPpfCalculatorSelected = (selectedFunnel: string) =>
   selectedFunnel === "ppf_full_ppf_calculator" ||
@@ -1021,6 +1071,12 @@ const AdminFunnelDashboard = () => {
       if (typeof record.payload.estimate_value === "number") {
         current.quoteEstimate = record.payload.estimate_value;
       }
+      if (typeof record.payload.final_price === "number") {
+        current.quoteEstimate = record.payload.final_price;
+      }
+      if (typeof record.payload.service_price === "number") {
+        current.quoteEstimate = record.payload.service_price;
+      }
       if (typeof record.payload.lead_name === "string") {
         current.leadName = record.payload.lead_name;
       }
@@ -1069,7 +1125,7 @@ const AdminFunnelDashboard = () => {
         const finish = row.finish || (typeof snapshotPayload.finish === "string" ? snapshotPayload.finish : "");
         const coverage =
           row.coverage || (typeof snapshotPayload.coverage === "string" ? snapshotPayload.coverage : "");
-        const quoteEstimate =
+        const trackedQuoteEstimate =
           row.quoteEstimate ??
           (typeof snapshotPayload.final_price === "number"
             ? snapshotPayload.final_price
@@ -1078,6 +1134,10 @@ const AdminFunnelDashboard = () => {
               : typeof snapshotPayload.estimate_value === "number"
                 ? snapshotPayload.estimate_value
                 : null);
+        const guidedQuoteEstimate = isGuidedCalculatorRow(row)
+          ? calculateGuidedEstimate({ packageName, vehicleSize, finish })
+          : null;
+        const quoteEstimate = guidedQuoteEstimate ?? trackedQuoteEstimate;
         const nextRow = {
           ...row,
           leadSubmitted: row.leadSubmitted || Boolean(snapshot),
