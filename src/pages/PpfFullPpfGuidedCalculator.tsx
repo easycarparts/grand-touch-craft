@@ -1516,13 +1516,12 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
 
     const setupParts = [selectedSize.label, finish.toLowerCase(), selectedPackage.title].filter(Boolean);
     const lines = [
-      isTikTokVariant ? "Hi Sean, I checked full PPF on TikTok." : "Hi Sean, I checked full PPF on the Grand Touch page.",
+      isTikTokVariant ? "Hi Sean, I checked full PPF on TikTok." : "Hi Sean, I checked full PPF.",
       vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
       `Setup: ${setupParts.join(", ")}.`,
-      `Price shown: ${formatAED(estimate)} + VAT.`,
       bonusEligible ? `Bonus: ${premiumBonusLabel}.` : "",
       selectedExtras.length ? `I am also interested in: ${selectedExtras.join(", ")}.` : "",
-      "Can you confirm final price and earliest slot?",
+      "Can you confirm final price and availability?",
     ].filter(Boolean);
 
     return lines.join(" ");
