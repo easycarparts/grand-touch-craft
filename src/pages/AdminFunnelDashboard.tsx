@@ -100,6 +100,7 @@ type SessionRow = {
   visitorId: string;
   startedAt: string;
   endedAt: string;
+  funnelName: string;
   sourcePlatform: string;
   landingPageVariant: string;
   pathname: string;
@@ -155,6 +156,64 @@ type LeadSnapshotRecord = {
   vehicleModel: string;
   payload: Record<string, unknown>;
   capturedAt: string;
+};
+
+const mapRollupToSessionRow = (row: Record<string, unknown>): SessionRow => {
+  const baseRow: SessionRow = {
+    sessionId: String(row.session_id || ""),
+    visitorId: String(row.visitor_id || ""),
+    startedAt: String(row.started_at || row.ended_at || ""),
+    endedAt: String(row.ended_at || row.started_at || ""),
+    funnelName: String(row.funnel_name || ""),
+    sourcePlatform: String(row.source_platform || ""),
+    landingPageVariant: String(row.landing_page_variant || ""),
+    pathname: String(row.pathname || ""),
+    events: Number(row.events || 0),
+    leadSubmitted: Boolean(row.lead_submitted),
+    whatsappClicked: Boolean(row.whatsapp_clicked),
+    selectedPriceWhatsappClicked: Boolean(row.selected_price_whatsapp_clicked),
+    generalWhatsappClicked: Boolean(row.general_whatsapp_clicked),
+    priceViewed: Boolean(row.price_viewed),
+    calculatorTouched: Boolean(row.calculator_touched),
+    saveQuoteStarted: Boolean(row.save_quote_started),
+    saveQuoteSubmitted: Boolean(row.save_quote_submitted),
+    lastWhatsappCtaLocation: String(row.last_whatsapp_cta_location || ""),
+    lastWhatsappMessageType: String(row.last_whatsapp_message_type || ""),
+    quoteModalOpened: Boolean(row.quote_modal_opened),
+    unlockRequested: Boolean(row.unlock_requested),
+    durationMs: Number(row.duration_ms || 0),
+    maxScrollPercent: Number(row.max_scroll_percent || 0),
+    videoMaxProgressPercent: Number(row.video_max_progress_percent || 0),
+    videoStarted: Number(row.video_max_progress_percent || 0) > 0,
+    packageName: String(row.package_name || ""),
+    vehicleSize: String(row.vehicle_size || ""),
+    finish: String(row.finish || ""),
+    coverage: String(row.coverage || ""),
+    quoteEstimate: typeof row.quote_estimate === "number" ? row.quote_estimate : null,
+    leadName: String(row.lead_name || ""),
+    leadPhone: String(row.lead_phone || ""),
+    vehicleMake: String(row.vehicle_make || ""),
+    vehicleModel: String(row.vehicle_model || ""),
+    vehicleYear: String(row.vehicle_year || ""),
+    sectionsViewed: Array.isArray(row.sections_viewed)
+      ? row.sections_viewed.map((section) => String(section)).filter(Boolean)
+      : [],
+    faqOpenCount: Number(row.faq_open_count || 0),
+    lastCheckpointReason: String(row.last_checkpoint_reason || ""),
+    intentScore: Number(row.intent_score || 0),
+  };
+  const guidedQuoteEstimate = isGuidedCalculatorRow(baseRow)
+    ? calculateGuidedEstimate({
+        packageName: baseRow.packageName,
+        vehicleSize: baseRow.vehicleSize,
+        finish: baseRow.finish,
+      })
+    : null;
+
+  return {
+    ...baseRow,
+    quoteEstimate: guidedQuoteEstimate ?? baseRow.quoteEstimate,
+  };
 };
 
 const countUnique = (values: string[]) => new Set(values.filter(Boolean)).size;
@@ -736,15 +795,17 @@ const AdminFunnelDashboard = () => {
   const [activeBaselineId, setActiveBaselineId] = useState<string>("all");
   const [copiedTrackingUrl, setCopiedTrackingUrl] = useState<string | null>(null);
   const [leadSnapshots, setLeadSnapshots] = useState<LeadSnapshotRecord[]>([]);
+  const [rollupSessionRows, setRollupSessionRows] = useState<SessionRow[]>([]);
 
   const refreshRecords = async () => {
     if (!supabase) {
       setRecords(readStoredFunnelEvents());
       setLeadSnapshots([]);
+      setRollupSessionRows([]);
       return;
     }
 
-    const [eventsResult, snapshotsResult] = await Promise.all([
+    const [eventsResult, snapshotsResult, rollupsResult] = await Promise.all([
       supabase
         .from("lead_events")
         .select(
@@ -756,6 +817,13 @@ const AdminFunnelDashboard = () => {
         .from("lead_contact_snapshots")
         .select("session_id, visitor_id, full_name, phone, vehicle_model, payload, captured_at")
         .order("captured_at", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("admin_session_rollups")
+        .select(
+          "session_id, visitor_id, started_at, ended_at, source_platform, landing_page_variant, pathname, funnel_name, events, lead_submitted, whatsapp_clicked, selected_price_whatsapp_clicked, general_whatsapp_clicked, price_viewed, calculator_touched, save_quote_started, save_quote_submitted, last_whatsapp_cta_location, last_whatsapp_message_type, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, lead_name, lead_phone, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, last_checkpoint_reason, intent_score",
+        )
+        .order("ended_at", { ascending: false })
         .limit(1000),
     ]);
 
@@ -780,6 +848,15 @@ const AdminFunnelDashboard = () => {
           payload: (row.payload as Record<string, unknown>) || {},
           capturedAt: String(row.captured_at || ""),
         })),
+      );
+    }
+
+    if (rollupsResult.error) {
+      console.warn("Failed to load session rollups from Supabase", rollupsResult.error);
+      setRollupSessionRows([]);
+    } else {
+      setRollupSessionRows(
+        ((rollupsResult.data ?? []) as Array<Record<string, unknown>>).map(mapRollupToSessionRow),
       );
     }
 
@@ -941,6 +1018,55 @@ const AdminFunnelDashboard = () => {
     });
   }, [records, selectedFunnel, datePreset, customStartDate, customEndDate, activeBaseline]);
 
+  const filteredRollupSessionRows = useMemo(() => {
+    const todayDubai = getDubaiDateKey(new Date());
+    const yesterdayDubai = shiftDateKey(todayDubai, -1);
+    const last7Start = shiftDateKey(todayDubai, -6);
+    const last30Start = shiftDateKey(todayDubai, -29);
+
+    return rollupSessionRows.filter((row) => {
+      const matchesFunnel = selectedFunnel === "all" || row.funnelName === selectedFunnel;
+
+      if (!matchesFunnel) return false;
+
+      const sessionTime = new Date(row.endedAt || row.startedAt).getTime();
+      if (activeBaseline && sessionTime < new Date(activeBaseline.startedAt).getTime()) {
+        return false;
+      }
+
+      if (activeBaseline?.endedAt && sessionTime > new Date(activeBaseline.endedAt).getTime()) {
+        return false;
+      }
+
+      if (datePreset === "all") return true;
+
+      const recordDateKey = getDubaiDateKey(new Date(row.endedAt || row.startedAt));
+
+      if (datePreset === "today") return recordDateKey === todayDubai;
+      if (datePreset === "yesterday") return recordDateKey === yesterdayDubai;
+      if (datePreset === "last_7_days") {
+        return recordDateKey >= last7Start && recordDateKey <= todayDubai;
+      }
+      if (datePreset === "last_30_days") {
+        return recordDateKey >= last30Start && recordDateKey <= todayDubai;
+      }
+      if (datePreset === "custom") {
+        const matchesStart = !customStartDate || recordDateKey >= customStartDate;
+        const matchesEnd = !customEndDate || recordDateKey <= customEndDate;
+        return matchesStart && matchesEnd;
+      }
+
+      return true;
+    });
+  }, [
+    rollupSessionRows,
+    selectedFunnel,
+    datePreset,
+    customStartDate,
+    customEndDate,
+    activeBaseline,
+  ]);
+
   const sessionRows = useMemo(() => {
     const grouped = new Map<string, SessionAccumulator>();
     const snapshotsBySession = new Map<string, LeadSnapshotRecord>();
@@ -959,6 +1085,7 @@ const AdminFunnelDashboard = () => {
         visitorId: record.visitor_id,
         startedAt: record.timestamp,
         endedAt: record.timestamp,
+        funnelName: record.funnel_name,
         sourcePlatform: record.source_platform,
         landingPageVariant: record.landing_page_variant,
         pathname: record.pathname,
@@ -1108,7 +1235,7 @@ const AdminFunnelDashboard = () => {
       grouped.set(record.session_id, current);
     }
 
-    return Array.from(grouped.values())
+    const eventSessionRows = Array.from(grouped.values())
       .map((row) => {
         const snapshot = snapshotsBySession.get(row.sessionId);
         const snapshotPayload = snapshot?.payload ?? {};
@@ -1161,7 +1288,21 @@ const AdminFunnelDashboard = () => {
         };
       })
       .sort((a, b) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime());
-  }, [filteredRecords, leadSnapshots]);
+
+    const rowsBySession = new Map<string, SessionRow>();
+    for (const row of filteredRollupSessionRows) {
+      rowsBySession.set(row.sessionId, row);
+    }
+    for (const row of eventSessionRows) {
+      if (!rowsBySession.has(row.sessionId)) {
+        rowsBySession.set(row.sessionId, row);
+      }
+    }
+
+    return Array.from(rowsBySession.values()).sort(
+      (a, b) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime(),
+    );
+  }, [filteredRecords, filteredRollupSessionRows, leadSnapshots]);
 
   const filteredSessionRows = useMemo(() => {
     const filtered = sessionRows.filter((row) => {
