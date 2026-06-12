@@ -960,6 +960,7 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
   const activeSectionStartedAtRef = useRef<number>(Date.now());
   const viewedSectionsRef = useRef<Set<string>>(new Set());
   const maxScrollPercentRef = useRef(0);
+  const resultStepStartedAtRef = useRef<number | null>(null);
 
   const sizeGridRef = useRef<HTMLDivElement>(null);
   const sizeCardRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -1211,6 +1212,31 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
   }, [isTikTokVariant, trackEvent, variantConfig]);
 
   useEffect(() => {
+    if (step !== "result") {
+      resultStepStartedAtRef.current = null;
+      return;
+    }
+
+    const startedAt = Date.now();
+    resultStepStartedAtRef.current = startedAt;
+    trackEvent("guided_result_viewed", {
+      ...buildPayload(),
+      result_step_started_at: new Date(startedAt).toISOString(),
+    });
+
+    return () => {
+      const durationMs = Date.now() - startedAt;
+      if (durationMs < 750) return;
+
+      trackEvent("result_screen_engagement", {
+        ...buildPayload(),
+        result_screen_duration_ms: durationMs,
+        checkpoint_reason: "result_step_exit",
+      });
+    };
+  }, [step]);
+
+  useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
     const getScrollPercent = () => {
@@ -1259,13 +1285,22 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
 
     const emitCheckpoint = (reason: string) => {
       updateMaxScroll();
+      const nowMs = Date.now();
       trackEvent("page_checkpoint", {
         checkpoint_reason: reason,
-        elapsed_ms: Math.max(0, Date.now() - pageStartedAtRef.current),
+        elapsed_ms: Math.max(0, nowMs - pageStartedAtRef.current),
         active_section: activeSectionRef.current,
         current_scroll_percent: getScrollPercent(),
         max_scroll_percent: maxScrollPercentRef.current,
       });
+
+      if (step === "result" && resultStepStartedAtRef.current) {
+        trackEvent("result_screen_engagement", {
+          ...buildPayload(),
+          result_screen_duration_ms: Math.max(0, nowMs - resultStepStartedAtRef.current),
+          checkpoint_reason: reason,
+        });
+      }
     };
 
     const calculatorPanel = flowPanelRef.current;
@@ -1338,7 +1373,7 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
       flushSectionEngagement("unmount");
       calculatorPanel?.removeAttribute("data-funnel-section");
     };
-  }, [trackEvent]);
+  }, [step, trackEvent]);
 
   const goToStep = (nextStep: FlowStep, reason: string) => {
     setStep(nextStep);

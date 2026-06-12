@@ -113,6 +113,8 @@ type SessionRow = {
   calculatorTouched: boolean;
   saveQuoteStarted: boolean;
   saveQuoteSubmitted: boolean;
+  resultScreenViewed: boolean;
+  resultScreenDurationMs: number;
   lastWhatsappCtaLocation: string;
   lastWhatsappMessageType: string;
   quoteModalOpened: boolean;
@@ -177,6 +179,8 @@ const mapRollupToSessionRow = (row: Record<string, unknown>): SessionRow => {
     calculatorTouched: Boolean(row.calculator_touched),
     saveQuoteStarted: Boolean(row.save_quote_started),
     saveQuoteSubmitted: Boolean(row.save_quote_submitted),
+    resultScreenViewed: false,
+    resultScreenDurationMs: 0,
     lastWhatsappCtaLocation: String(row.last_whatsapp_cta_location || ""),
     lastWhatsappMessageType: String(row.last_whatsapp_message_type || ""),
     quoteModalOpened: Boolean(row.quote_modal_opened),
@@ -200,7 +204,7 @@ const mapRollupToSessionRow = (row: Record<string, unknown>): SessionRow => {
       : [],
     faqOpenCount: Number(row.faq_open_count || 0),
     lastCheckpointReason: String(row.last_checkpoint_reason || ""),
-    intentScore: Number(row.intent_score || 0),
+    intentScore: 0,
   };
   const guidedQuoteEstimate = isGuidedCalculatorRow(baseRow)
     ? calculateGuidedEstimate({
@@ -213,6 +217,10 @@ const mapRollupToSessionRow = (row: Record<string, unknown>): SessionRow => {
   return {
     ...baseRow,
     quoteEstimate: guidedQuoteEstimate ?? baseRow.quoteEstimate,
+    intentScore: getIntentScore({
+      ...baseRow,
+      quoteEstimate: guidedQuoteEstimate ?? baseRow.quoteEstimate,
+    }),
   };
 };
 
@@ -1098,6 +1106,8 @@ const AdminFunnelDashboard = () => {
         calculatorTouched: false,
         saveQuoteStarted: false,
         saveQuoteSubmitted: false,
+        resultScreenViewed: false,
+        resultScreenDurationMs: 0,
         lastWhatsappCtaLocation: "",
         lastWhatsappMessageType: "",
         quoteModalOpened: false,
@@ -1137,11 +1147,31 @@ const AdminFunnelDashboard = () => {
         "calculator_started",
         "calculator_setup_changed",
         "calculator_selection_changed",
+        "guided_step_completed",
+        "guided_price_revealed",
+        "guided_result_viewed",
       ].includes(record.event_name);
       current.saveQuoteStarted ||= record.event_name === "save_quote_started";
       current.saveQuoteSubmitted ||= ["save_quote_submitted", "lead_form_submitted"].includes(
         record.event_name,
       );
+      current.resultScreenViewed ||= [
+        "guided_result_viewed",
+        "guided_price_revealed",
+        "result_screen_engagement",
+      ].includes(record.event_name);
+      if (typeof record.payload.result_screen_duration_ms === "number") {
+        current.resultScreenDurationMs = Math.max(
+          current.resultScreenDurationMs,
+          record.payload.result_screen_duration_ms,
+        );
+      }
+      if (typeof record.payload.result_step_elapsed_ms === "number") {
+        current.resultScreenDurationMs = Math.max(
+          current.resultScreenDurationMs,
+          record.payload.result_step_elapsed_ms,
+        );
+      }
       if (isWhatsappEvent(record.event_name) && typeof record.payload.cta_location === "string") {
         current.lastWhatsappCtaLocation = record.payload.cta_location;
       }
@@ -1294,9 +1324,60 @@ const AdminFunnelDashboard = () => {
       rowsBySession.set(row.sessionId, row);
     }
     for (const row of eventSessionRows) {
-      if (!rowsBySession.has(row.sessionId)) {
+      const rollupRow = rowsBySession.get(row.sessionId);
+      if (!rollupRow) {
         rowsBySession.set(row.sessionId, row);
+        continue;
       }
+
+      const mergedRow = {
+        ...rollupRow,
+        leadSubmitted: rollupRow.leadSubmitted || row.leadSubmitted,
+        whatsappClicked: rollupRow.whatsappClicked || row.whatsappClicked,
+        selectedPriceWhatsappClicked:
+          rollupRow.selectedPriceWhatsappClicked || row.selectedPriceWhatsappClicked,
+        generalWhatsappClicked: rollupRow.generalWhatsappClicked || row.generalWhatsappClicked,
+        priceViewed: rollupRow.priceViewed || row.priceViewed,
+        calculatorTouched: rollupRow.calculatorTouched || row.calculatorTouched,
+        saveQuoteStarted: rollupRow.saveQuoteStarted || row.saveQuoteStarted,
+        saveQuoteSubmitted: rollupRow.saveQuoteSubmitted || row.saveQuoteSubmitted,
+        resultScreenViewed: rollupRow.resultScreenViewed || row.resultScreenViewed,
+        resultScreenDurationMs: Math.max(
+          rollupRow.resultScreenDurationMs,
+          row.resultScreenDurationMs,
+        ),
+        lastWhatsappCtaLocation:
+          rollupRow.lastWhatsappCtaLocation || row.lastWhatsappCtaLocation,
+        lastWhatsappMessageType:
+          rollupRow.lastWhatsappMessageType || row.lastWhatsappMessageType,
+        durationMs: Math.max(rollupRow.durationMs, row.durationMs),
+        maxScrollPercent: Math.max(rollupRow.maxScrollPercent, row.maxScrollPercent),
+        videoMaxProgressPercent: Math.max(
+          rollupRow.videoMaxProgressPercent,
+          row.videoMaxProgressPercent,
+        ),
+        videoStarted: rollupRow.videoStarted || row.videoStarted,
+        packageName: rollupRow.packageName || row.packageName,
+        vehicleSize: rollupRow.vehicleSize || row.vehicleSize,
+        finish: rollupRow.finish || row.finish,
+        coverage: rollupRow.coverage || row.coverage,
+        quoteEstimate: rollupRow.quoteEstimate ?? row.quoteEstimate,
+        leadName: rollupRow.leadName || row.leadName,
+        leadPhone: rollupRow.leadPhone || row.leadPhone,
+        vehicleMake: rollupRow.vehicleMake || row.vehicleMake,
+        vehicleModel: rollupRow.vehicleModel || row.vehicleModel,
+        vehicleYear: rollupRow.vehicleYear || row.vehicleYear,
+        sectionsViewed: Array.from(
+          new Set([...rollupRow.sectionsViewed, ...row.sectionsViewed]),
+        ),
+        faqOpenCount: Math.max(rollupRow.faqOpenCount, row.faqOpenCount),
+        lastCheckpointReason: rollupRow.lastCheckpointReason || row.lastCheckpointReason,
+      };
+
+      rowsBySession.set(row.sessionId, {
+        ...mergedRow,
+        intentScore: getIntentScore(mergedRow),
+      });
     }
 
     return Array.from(rowsBySession.values()).sort(
