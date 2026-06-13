@@ -313,7 +313,7 @@ const trustFaqs: Array<{ question: string; answer: string }> = [
   {
     question: "How do you avoid poor fitment, lifting edges, and bad prep?",
     answer:
-      "The control point is the prep, not the film. Paint is decontaminated, corrected, and checked before install starts. If cleanliness or prep is off, the job is reset before film goes on. Lifting edges, trapped contamination, and weak finish usually begin long before the handover — which is why we don't skip stages.",
+      "The control point is prep and fitment discipline, not just the film brand. Paint is decontaminated, corrected, and checked before install starts. Every piece is hand-cut off the car first — no blade touches your paint. If cleanliness or prep is off, the job is reset before film goes on. Lifting edges, trapped contamination, and weak finish usually begin long before the handover — which is why we don't skip stages.",
   },
   {
     question: "What does the quote already include?",
@@ -3330,9 +3330,9 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
                 },
                 {
                   image: "/guided-rolls-install.png",
-                  alt: "Installer cutting STEK PPF film during fitment",
+                  alt: "Installer hand-cutting STEK PPF film away from the vehicle",
                   problem: "Razor-cut on the paint",
-                  fix: "Templates and pre-cut patterns only. Free-hand blade work on a panel is how clearcoat gets scored.",
+                  fix: "Every piece is hand-cut and trimmed off the car before install. No blade work on the panel — that's how clearcoat gets scored.",
                 },
                 {
                   image: "/guided-911-stek-roll.png",
@@ -3425,8 +3425,8 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
                 },
                 {
                   icon: Eye,
-                  title: "Measured install",
-                  body: "Pre-cut STEK fitted panel-by-panel — edges, wraps and recesses done properly.",
+                  title: "Hand-cut install",
+                  body: "STEK measured and hand-cut off the car, then fitted panel-by-panel — edges, wraps and recesses done properly.",
                 },
                 {
                   icon: Wrench,
