@@ -16,6 +16,7 @@ import {
   BadgePercent,
   Check,
   ChevronLeft,
+  ChevronRight,
   Clock,
   Eye,
   Gift,
@@ -25,16 +26,20 @@ import {
   MessageCircle,
   MousePointerClick,
   Phone,
+  Play,
   ScanSearch,
   ShieldCheck,
   Sparkles,
   Star,
   Truck,
   UserCheck,
+  Volume2,
+  VolumeX,
   Wrench,
   X,
   Zap,
 } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
 
 import {
   Accordion,
@@ -53,7 +58,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import HomeTrustStrip from "@/components/HomeTrustStrip";
 import { PhoneInputWithCountry } from "@/components/PhoneInputWithCountry";
 import stekWarrantySticker from "../../Landscape STEK Sticker.png";
 import { captureLeadSnapshot, createFunnelTrackingContext, trackFunnelEvent } from "@/lib/funnel-analytics";
@@ -286,67 +290,6 @@ const tiktokTopOffers: Array<{
   { icon: MessageCircle, text: "WhatsApp Sean with your setup pre-written" },
   { icon: ShieldCheck, text: "10 & 12-year warranty options available" },
   { icon: Zap, text: "Built for mobile - no long form required" },
-];
-
-/**
- * Premium film brands stocked by Grand Touch. Used in the Film Credibility
- * trust section to show buyers we install across multiple manufacturers and
- * default to a Grand Touch install standard before any film brand discussion.
- */
-const filmLogoTiles: ReadonlyArray<{
-  name: string;
-  src: string;
-  surface: "light" | "dark";
-  className: string;
-}> = [
-  {
-    name: "STEK",
-    src: "/stek-white-full.png",
-    surface: "dark",
-    className: "max-h-5 sm:max-h-9",
-  },
-  {
-    name: "GYEON",
-    src: "/gyeon-logo-purple.png",
-    surface: "light",
-    className: "max-h-7 sm:max-h-12 sm:scale-125",
-  },
-  {
-    name: "Protect+",
-    src: "/ppf-logo-protect-plus.webp",
-    surface: "dark",
-    className: "max-h-5 sm:max-h-9",
-  },
-  {
-    name: "Diamond Pro",
-    src: "/ppf-logo-diamond-pro.webp",
-    surface: "dark",
-    className: "max-h-7 sm:max-h-12",
-  },
-  {
-    name: "Hyper Pro / KKVinyl",
-    src: "/ppf-logo-kkvinyl.png",
-    surface: "light",
-    className: "max-h-8 scale-[1.65] sm:max-h-10 sm:scale-[2.15]",
-  },
-  {
-    name: "3M",
-    src: "/ppf-logo-3m.png",
-    surface: "light",
-    className: "max-h-10 scale-125 sm:max-h-14 sm:scale-150",
-  },
-  {
-    name: "Carbins",
-    src: "/ppf-logo-carbins.png",
-    surface: "dark",
-    className: "max-h-6 sm:max-h-10",
-  },
-  {
-    name: "Avery Dennison",
-    src: "/ppf-logo-avery.png",
-    surface: "light",
-    className: "max-h-10 scale-[1.45] sm:max-h-14 sm:scale-[1.75]",
-  },
 ];
 
 /**
@@ -637,6 +580,337 @@ const TrustSectionCta = ({
     </p>
   </div>
 );
+
+/** Inline coloured Google wordmark used on the review proof card. */
+const GoogleWordmark = ({ className }: { className?: string }) => (
+  <span aria-label="Google" className={cn("font-semibold tracking-tight", className)}>
+    <span className="text-[#4285F4]">G</span>
+    <span className="text-[#EA4335]">o</span>
+    <span className="text-[#FBBC05]">o</span>
+    <span className="text-[#4285F4]">g</span>
+    <span className="text-[#34A853]">l</span>
+    <span className="text-[#EA4335]">e</span>
+  </span>
+);
+
+/**
+ * Hero handover-reactions reel — a 1:1 customer handover montage (no audio).
+ * Autoplays muted + looping so the faces stay the focus; tap to pause/play.
+ */
+const HandoverReactionsReel = ({
+  videoSrc,
+  posterSrc,
+}: {
+  videoSrc: string;
+  posterSrc: string;
+}) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [playing, setPlaying] = useState(true);
+
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().then(() => setPlaying(true)).catch(() => undefined);
+    } else {
+      video.pause();
+      setPlaying(false);
+    }
+  };
+
+  return (
+    <div className="group relative overflow-hidden rounded-[28px] border border-white/12 bg-black shadow-[0_36px_120px_rgba(0,0,0,0.55)]">
+      <button
+        type="button"
+        onClick={togglePlay}
+        aria-label={playing ? "Pause reactions reel" : "Play reactions reel"}
+        className="block w-full"
+      >
+        <video
+          ref={videoRef}
+          className="aspect-square w-full bg-black object-cover"
+          poster={posterSrc}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+        >
+          <source src={videoSrc} type="video/mp4" />
+        </video>
+      </button>
+
+      {/* top-left live badge */}
+      <div className="pointer-events-none absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-[#f7b52b]/35 bg-black/55 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#f7b52b] backdrop-blur-sm">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#f7b52b]" />
+        Real reactions
+      </div>
+
+      {/* play state hint (only while paused) */}
+      {!playing ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/60 px-5 py-2.5 text-white shadow-2xl backdrop-blur-sm">
+            <Play className="h-4 w-4 fill-current" />
+            <span className="text-sm font-semibold">Tap to play</span>
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+type HandoverReviewClip = {
+  name: string;
+  car: string;
+  badge: string;
+  /** Accent colour for the badge chip (hex). */
+  accent: string;
+  videoSrc: string;
+  posterSrc: string;
+  google?: boolean;
+};
+
+/**
+ * Best customer handover clips for the reviews carousel. The first entry is the
+ * "main" clip (default centred + playing). To add more later, just append a
+ * HandoverReviewClip (name, car, badge, accent, videoSrc, posterSrc). The .mov
+ * sources are delivered as mp4 via Cloudinary, with auto-generated posters.
+ */
+const handoverReviewSlides: HandoverReviewClip[] = [
+  {
+    name: "Samir",
+    car: "Porsche 911 · Matte PPF",
+    badge: "Matte PPF",
+    accent: "#f6c76d",
+    videoSrc:
+      "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/v1781333287/911_MATTE_aaomcw.mp4",
+    posterSrc:
+      "https://res.cloudinary.com/diw6rekpm/video/upload/so_2/v1781333287/911_MATTE_aaomcw.jpg",
+  },
+  {
+    name: "Mansoor",
+    car: "Porsche 911 · STEK Gloss",
+    badge: "STEK gloss",
+    accent: "#9dc3b0",
+    videoSrc:
+      "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/v1781333400/911_4_vcvvkn.mp4",
+    posterSrc:
+      "https://res.cloudinary.com/diw6rekpm/video/upload/so_2/v1781333400/911_4_vcvvkn.jpg",
+  },
+  {
+    name: "Scott",
+    car: "Jetour G700 · STEK Matte + paint match",
+    badge: "Matte + paint match",
+    accent: "#f6c76d",
+    videoSrc:
+      "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/v1781333432/G7_BLUE_wlvxks.mp4",
+    posterSrc:
+      "https://res.cloudinary.com/diw6rekpm/video/upload/so_2/v1781333432/G7_BLUE_wlvxks.jpg",
+  },
+  {
+    name: "Mark",
+    car: "Zeekr 001",
+    badge: "Owner review",
+    accent: "#79a7ff",
+    google: true,
+    videoSrc:
+      "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/f_auto/v1775562589/Mark_Zeekr_conzdp.mp4",
+    posterSrc: "/mark-zeekr-001.png",
+  },
+  // Last entry so it wraps to the LEFT of the centred main clip (Samir).
+  {
+    name: "Alex",
+    car: "Aston Martin Rapide · Colour PPF",
+    badge: "Colour PPF · Hyper Pro",
+    accent: "#9dc3b0",
+    videoSrc:
+      "https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/v1781333953/Aston_Martin_Rapide_S_rstzr2.mp4",
+    posterSrc:
+      "https://res.cloudinary.com/diw6rekpm/video/upload/so_2/v1781333953/Aston_Martin_Rapide_S_rstzr2.jpg",
+  },
+];
+
+/**
+ * Reviews carousel: holds 6–8 clips but only the centred (selected) slide plays.
+ * Every other slide stays a static poster, so the section reads as "lots of proof"
+ * without 6 videos fighting for attention or hammering the page load.
+ */
+const HandoverReviewsCarousel = () => {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: "center",
+    loop: true,
+    containScroll: false,
+  });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [muted, setMuted] = useState(true);
+  const activeVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+    setMuted(true);
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on("select", onSelect).on("reInit", onSelect);
+    return () => {
+      emblaApi.off("select", onSelect).off("reInit", onSelect);
+    };
+  }, [emblaApi, onSelect]);
+
+  const toggleSound = () => {
+    const video = activeVideoRef.current;
+    if (!video) return;
+    const next = !muted;
+    video.muted = next;
+    setMuted(next);
+    if (!next) video.play().catch(() => undefined);
+  };
+
+  return (
+    <div className="relative mt-8">
+      <div className="overflow-hidden" ref={emblaRef}>
+        <div className="flex -ml-4 touch-pan-y">
+          {handoverReviewSlides.map((slide, index) => {
+            const isActive = index === selectedIndex;
+            return (
+              <div
+                key={index}
+                className="min-w-0 shrink-0 grow-0 basis-[82%] pl-4 sm:basis-[52%] lg:basis-[36%]"
+              >
+                <div
+                  className={cn(
+                    "relative overflow-hidden rounded-[24px] border bg-black transition-all duration-300",
+                    isActive
+                      ? "border-[#f7b52b]/45 shadow-[0_24px_70px_rgba(0,0,0,0.5)]"
+                      : "border-white/10 opacity-60 hover:opacity-90",
+                  )}
+                >
+                  <div className="relative aspect-[4/5]">
+                    {isActive ? (
+                      <video
+                        ref={(el) => {
+                          activeVideoRef.current = el;
+                          if (el) el.muted = muted;
+                        }}
+                        className="h-full w-full bg-black object-cover"
+                        poster={slide.posterSrc}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="metadata"
+                      >
+                        <source src={slide.videoSrc} type="video/mp4" />
+                      </video>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => emblaApi?.scrollTo(index)}
+                        className="group/poster block h-full w-full"
+                        aria-label={`Play ${slide.name} — ${slide.car}`}
+                      >
+                        <img
+                          src={slide.posterSrc}
+                          alt={`${slide.name} — ${slide.car}`}
+                          className="h-full w-full object-cover transition duration-700 group-hover/poster:scale-[1.04]"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/35">
+                          <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/55 px-4 py-2 text-white backdrop-blur-sm transition group-hover/poster:border-[#f7b52b]/55">
+                            <Play className="h-4 w-4 fill-current" />
+                            <span className="text-sm font-semibold">Play</span>
+                          </span>
+                        </div>
+                      </button>
+                    )}
+
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent p-4">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {slide.google ? <GoogleWordmark className="text-xs" /> : null}
+                        <span
+                          className="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em]"
+                          style={{ borderColor: `${slide.accent}55`, color: slide.accent }}
+                        >
+                          {slide.badge}
+                        </span>
+                        {slide.google ? (
+                          <span className="flex items-center gap-0.5 text-[#fbbc05]">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star key={star} className="h-3 w-3 fill-current" />
+                            ))}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1.5 text-base font-black leading-tight text-white">
+                        {slide.name}
+                      </p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
+                        {slide.car}
+                      </p>
+                    </div>
+
+                    {isActive ? (
+                      <button
+                        type="button"
+                        onClick={toggleSound}
+                        aria-label={muted ? "Unmute clip" : "Mute clip"}
+                        className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-sm transition hover:border-[#f7b52b]/55 hover:bg-black/70"
+                      >
+                        {muted ? (
+                          <VolumeX className="h-3.5 w-3.5" />
+                        ) : (
+                          <Volume2 className="h-3.5 w-3.5 text-[#f7b52b]" />
+                        )}
+                        {muted ? "Sound" : "On"}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Controls: prev · dots · next */}
+      <div className="mt-5 flex items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={() => emblaApi?.scrollPrev()}
+          aria-label="Previous clip"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white transition hover:border-[#f7b52b]/55 hover:text-[#f7b52b]"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          {handoverReviewSlides.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => emblaApi?.scrollTo(index)}
+              aria-label={`Go to clip ${index + 1}`}
+              className={cn(
+                "h-2 rounded-full transition-all",
+                index === selectedIndex ? "w-6 bg-[#f7b52b]" : "w-2 bg-white/25 hover:bg-white/40",
+              )}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => emblaApi?.scrollNext()}
+          aria-label="Next clip"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white transition hover:border-[#f7b52b]/55 hover:text-[#f7b52b]"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 type GuidedCardGlowProps = {
   delay?: number;
@@ -1443,26 +1717,32 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
 
   const selectSize = (nextSize: PpfPricingSize) => {
     setSize(nextSize);
-    trackEvent("guided_step_completed", {
+    const payload = {
       step_name: "size",
       ...buildProjectedPayload({ nextSize }),
-    });
+    };
+    trackEvent("guided_step_completed", payload);
+    trackEvent("calculator_selection_changed", payload);
   };
 
   const selectFinish = (nextFinish: PpfPricingFinish) => {
     setFinish(nextFinish);
-    trackEvent("guided_step_completed", {
+    const payload = {
       step_name: "finish",
       ...buildProjectedPayload({ nextFinish }),
-    });
+    };
+    trackEvent("guided_step_completed", payload);
+    trackEvent("calculator_selection_changed", payload);
   };
 
   const selectPackage = (nextYears: PackageYears) => {
     setWarrantyYears(nextYears);
-    trackEvent("guided_step_completed", {
+    const payload = {
       step_name: "package",
       ...buildProjectedPayload({ nextWarrantyYears: nextYears }),
-    });
+    };
+    trackEvent("guided_step_completed", payload);
+    trackEvent("calculator_selection_changed", payload);
   };
 
   const revealSetup = () => {
@@ -1575,17 +1855,22 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
     vehicle,
   ]);
 
-  const handleWhatsApp = (placement: string) => {
-    trackEvent("whatsapp_click", {
+  const trackWhatsAppContact = (placement: string) => {
+    const isSelectedSetupClick = isComplete && estimate !== null;
+    const messageType = isSelectedSetupClick ? "guided_selected_setup" : "guided_general_quote";
+    const eventPayload = {
       cta_location: placement,
-      message_type: "guided_setup",
+      message_type: messageType,
+      whatsapp_path: isSelectedSetupClick ? "selected_price" : "general",
       ...buildPayload(),
-    });
-    trackEvent("selected_price_whatsapp_click", {
-      cta_location: placement,
-      message_type: "guided_setup",
-      ...buildPayload(),
-    });
+    };
+
+    trackEvent("whatsapp_click", eventPayload);
+    trackEvent(
+      isSelectedSetupClick ? "selected_price_whatsapp_click" : "general_whatsapp_click",
+      eventPayload,
+    );
+
     if (isTikTokVariant) {
       trackTikTokEvent("Contact", {
         content_name: "TikTok Guided Full PPF Calculator",
@@ -1597,6 +1882,10 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
     } else {
       trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO);
     }
+  };
+
+  const handleWhatsApp = (placement: string) => {
+    trackWhatsAppContact(placement);
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
   };
 
@@ -1670,11 +1959,13 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
       } else {
         trackGoogleAdsConversion(GOOGLE_ADS_SUBMIT_LEAD_SEND_TO);
       }
-      trackEvent("guided_lead_saved_whatsapp_handoff", buildPayload());
+      const handoffPlacement = "result_bonus_form_saved";
+      trackEvent("guided_lead_saved_whatsapp_handoff", {
+        cta_location: handoffPlacement,
+        ...buildPayload(),
+      });
       window.setTimeout(() => {
-        if (!isTikTokVariant) {
-          trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO);
-        }
+        trackWhatsAppContact(handoffPlacement);
         window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
       }, 350);
     } else {
@@ -2753,13 +3044,116 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
 
         {/* ─────────────────────────────────────────────────────────────────
             TRUST STACK — full conversion funnel below the calculator.
-            Order is intentional: strongest social proof first (handovers),
-            then fast-scan credibility (Google/STEK strip), then objection-
-            handling (Why us, Process), FAQ, and a final dual-CTA close.
-            Every section has at least one Get-estimate + WhatsApp pair.
+            Order is intentional: the first thing after the (working) calculator
+            is the strongest EMOTIONAL social proof — real handover reactions on
+            video, then named owner reviews with real faces. Only after the
+            visitor has seen real people do we run the CTA recap, fast-scan
+            credibility (Google/STEK), then objection-handling (Why us, Process),
+            FAQ, and a final dual-CTA close. Every section has a CTA pair.
             ───────────────────────────────────────────────────────────────── */}
 
-        {/* 1. Mid-page CTA strip — direct continuation from the calculator */}
+        {/* 0a. Handover reactions reel — the emotional hook. A real 1:1 customer
+            handover montage (no audio) as the focus, with supporting copy + CTA
+            beside it. Balanced two-column block so the square stays tidy. */}
+        <section
+          data-funnel-section="handover_reactions"
+          className="border-t border-white/10 bg-[radial-gradient(circle_at_15%_0%,rgba(247,181,43,0.08),transparent_55%),#070707] px-3 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
+        >
+          <div className="mx-auto max-w-6xl">
+            <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+              {/* Video — the focus (1:1 customer handover montage, no audio) */}
+              <div className="mx-auto w-full max-w-[420px] sm:max-w-[460px] lg:max-w-none">
+                <HandoverReactionsReel
+                  videoSrc="https://res.cloudinary.com/diw6rekpm/video/upload/q_auto/v1781334893/customer_roqujv.mp4"
+                  posterSrc="https://res.cloudinary.com/diw6rekpm/video/upload/so_2/v1781334893/customer_roqujv.jpg"
+                />
+              </div>
+
+              {/* Copy + trust points + CTA */}
+              <div>
+                <p className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-[11px]">
+                  <Play className="h-3.5 w-3.5 fill-current" />
+                  Real handover reactions
+                </p>
+                <h2 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">
+                  See the moment it
+                  <span className="block text-[#f7b52b]">becomes their car.</span>
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
+                  Not stock footage, not actors — real Dubai owners on handover day, the second
+                  they see the finish in person. Watch before you decide who touches your car.
+                </p>
+
+                <div className="mt-6 space-y-4">
+                  {[
+                    {
+                      icon: UserCheck,
+                      title: "Real owners, not actors",
+                      body: "Every clip is a paying customer collecting their own car.",
+                    },
+                    {
+                      icon: Handshake,
+                      title: "Filmed on handover day",
+                      body: "The genuine first reaction once Sean reveals the finished car.",
+                    },
+                    {
+                      icon: ShieldCheck,
+                      title: "The standard we hand back",
+                      body: "The same QC and finish that ships with your STEK warranty.",
+                    },
+                  ].map(({ icon: Icon, title, body }) => (
+                    <div key={title} className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f7b52b]/15 ring-1 ring-[#f7b52b]/30">
+                        <Icon className="h-5 w-5 text-[#f7b52b]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-black leading-tight text-white">{title}</p>
+                        <p className="mt-0.5 text-[13px] leading-5 text-slate-400">{body}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <TrustSectionCta
+                  placement="handover_reactions"
+                  onEstimate={handleEstimateCta}
+                  onWhatsApp={handleWhatsApp}
+                  primaryLabel="Price my car like theirs"
+                  microcopy="60-second quote · Sean reviews each setup personally"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 0b. Customer reviews & real handovers — named owners + real faces,
+            each with a tap-to-play delivery clip. Ported from the quote funnel,
+            restyled to the guided gold ethos. */}
+        <section
+          id="real-handovers"
+          data-funnel-section="real_handovers"
+          className="bg-[#070707] px-3 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-[11px]">
+                Customer reviews & our work
+              </p>
+              <h2 className="mt-2 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">
+                Real buyers, real handovers,
+                <span className="block text-[#f7b52b]">real cars.</span>
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
+                Real owners trust Sean, the finish looks right, and the handover feels properly
+                done. Swipe through — the centre clip plays, tap it for sound.
+              </p>
+            </div>
+
+            <HandoverReviewsCarousel />
+          </div>
+        </section>
+
+        {/* 1. Mid-page CTA strip — recap CTA now that real proof has landed */}
         <section
           data-funnel-section="trust_cta_post_handovers"
           className="bg-[#070707] px-3 py-8 sm:px-6 sm:py-12 lg:px-8"
@@ -2781,107 +3175,6 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
                   onEstimate={handleEstimateCta}
                   onWhatsApp={handleWhatsApp}
                   microcopy="Bonuses worth AED 3,000+ · No upsell"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 2. Compact Google / STEK / studio strip */}
-        <HomeTrustStrip />
-
-        {/* 3. Film credibility — premium films stocked + traceable warranty proof */}
-        <section
-          data-funnel-section="trust_film_credibility"
-          className="bg-[#070707] px-3 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
-        >
-          <div className="mx-auto max-w-7xl">
-            <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] lg:gap-10">
-              {/* LEFT — Warranty proof photo card */}
-              <div className="group relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 shadow-[0_24px_80px_rgba(0,0,0,0.45)] transition hover:border-[#f7b52b]/35">
-                <img
-                  src={stekWarrantySticker}
-                  alt="STEK warranty sticker — traceable handover support"
-                  className="aspect-[4/3] h-full w-full object-cover transition duration-700 group-hover:scale-[1.03] sm:aspect-[5/4] lg:aspect-[4/3]"
-                  loading="lazy"
-                />
-                <div
-                  aria-hidden
-                  className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"
-                />
-                <div className="absolute inset-x-4 bottom-4 sm:inset-x-5 sm:bottom-5">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f7b52b]/35 bg-[#f7b52b]/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#f7b52b] backdrop-blur-sm sm:text-[11px]">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Warranty proof
-                  </span>
-                  <p className="mt-2 text-lg font-black leading-tight text-white sm:text-xl">
-                    Traceable handover support
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-white/70 sm:text-[13px]">
-                    Tamper-evident STEK sticker — registered to your film roll, your VIN, your handover.
-                  </p>
-                </div>
-              </div>
-
-              {/* RIGHT — Headline + films panel */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#f7b52b] sm:text-[11px]">
-                  Film credibility
-                </p>
-                <h2 className="mt-2 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">
-                  Film and warranty proof,
-                  <span className="block text-[#f7b52b]">without the confusion.</span>
-                </h2>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
-                  Get the full PPF starting price for your car first. Then check the film, finish,
-                  handover, and warranty proof sitting behind every quote — nothing hidden.
-                </p>
-
-                {/* Films available card */}
-                <div className="mt-5 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(10,10,10,0.96))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:mt-6 sm:rounded-[28px] sm:p-6">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-[11px]">
-                        Premium films available
-                      </p>
-                      <p className="mt-1.5 max-w-md text-sm leading-6 text-slate-300">
-                        Final film is confirmed after we know your car, finish, and warranty
-                        target — not pushed before.
-                      </p>
-                    </div>
-                    <span className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/80 sm:self-end sm:text-[10px]">
-                      <Check className="h-3 w-3 text-[#f7b52b]" />
-                      Install standard first
-                    </span>
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-                    {filmLogoTiles.map((logo) => (
-                      <div
-                        key={logo.name}
-                        title={logo.name}
-                        className={cn(
-                          "flex min-h-[64px] items-center justify-center overflow-hidden rounded-2xl border px-3 py-3 transition duration-200 hover:-translate-y-0.5 sm:min-h-[88px] sm:px-4 sm:py-4",
-                          logo.surface === "light"
-                            ? "border-white/10 bg-white shadow-[0_10px_28px_rgba(0,0,0,0.25)] hover:shadow-[0_18px_44px_rgba(247,181,43,0.18)]"
-                            : "border-white/10 bg-black/45 shadow-[0_10px_28px_rgba(0,0,0,0.45)] hover:border-[#f7b52b]/35 hover:bg-black/60",
-                        )}
-                      >
-                        <img
-                          src={logo.src}
-                          alt={`${logo.name} logo`}
-                          className={cn("max-w-full object-contain", logo.className)}
-                          loading="lazy"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <TrustSectionCta
-                  placement="trust_film_credibility"
-                  onEstimate={handleEstimateCta}
-                  onWhatsApp={handleWhatsApp}
                 />
               </div>
             </div>
@@ -2916,7 +3209,7 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
               <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent">
                 <div className="relative aspect-[4/5] w-full overflow-hidden sm:aspect-[5/6] lg:aspect-[4/5]">
                   <img
-                    src="/guided-sean-with-patrols.png"
+                    src="/guided-sean-with-patrols-v2.jpg"
                     alt="Sean — founder of Grand Touch Auto — between two Nissan Patrols he prepped for PPF"
                     loading="lazy"
                     className="h-full w-full object-cover"
@@ -3000,12 +3293,6 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
                 </figure>
               </div>
             </div>
-
-            <TrustSectionCta
-              placement="trust_why_grand_touch"
-              onEstimate={handleEstimateCta}
-              onWhatsApp={handleWhatsApp}
-            />
           </div>
         </section>
 
@@ -3101,84 +3388,168 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
               onEstimate={handleEstimateCta}
               onWhatsApp={handleWhatsApp}
               primaryLabel="Get my prep-first estimate"
+              microcopy="Prep-first install · Genuine STEK · Traceable warranty"
             />
           </div>
         </section>
 
-        {/* 4. Compact 4-stage process */}
+        {/* 4. The fix for those 4 mistakes — a slim numbered timeline that
+            bridges straight off the install-risk section (problem → our exact
+            sequence), kept visually distinct so the two don't feel duplicated. */}
         <section
           data-funnel-section="trust_process"
           className="bg-[#070707] px-3 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
         >
           <div className="mx-auto max-w-7xl">
             <div className="max-w-2xl">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-[11px]">
-                Our process
+              <p className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-[11px]">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                What we do instead
               </p>
               <h2 className="mt-2 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">
-                Four controlled stages
-                <span className="block text-[#f7b52b]">— prep to verified warranty.</span>
+                So none of those four
+                <span className="block text-[#f7b52b]">touch your car.</span>
               </h2>
               <p className="mt-3 text-base leading-7 text-slate-300 sm:text-lg">
-                No film over bad paint. No skipped QC. No vague handoff. Every car runs through
-                the same four stages.
+                Every car runs the same disciplined sequence — and each stage is signed off
+                before the next one starts.
               </p>
             </div>
 
-            <div className="mt-8 grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <ol className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-4 lg:gap-5">
               {[
                 {
                   icon: Sparkles,
-                  step: "Stage 01",
-                  title: "Prep & paint correction",
-                  body:
-                    "Full decontamination and multi-stage correction so film bonds to flawless paint.",
+                  title: "Deep prep & correction",
+                  body: "Decontamination and multi-stage correction until the paint is flawless under the film.",
                 },
                 {
                   icon: Eye,
-                  step: "Stage 02",
-                  title: "Controlled install",
-                  body:
-                    "STEK film fitted panel-by-panel after QC. No shortcuts on edges, wraps, or cuts.",
+                  title: "Measured install",
+                  body: "Pre-cut STEK fitted panel-by-panel — edges, wraps and recesses done properly.",
                 },
                 {
                   icon: Wrench,
-                  step: "Stage 03",
-                  title: "Final QC + ceramic extras",
-                  body:
-                    "Full quality check, then leather + wheel ceramic coatings and detail handover.",
+                  title: "Full QC + finish",
+                  body: "Inspected, then wheel and leather ceramic before a final clean for handover.",
                 },
                 {
                   icon: Award,
-                  step: "Stage 04",
-                  title: "One-week check + warranty",
-                  body:
-                    "One-week review and registered STEK warranty with your traceable serial.",
+                  title: "Recheck + warranty",
+                  body: "One-week recheck, then your STEK warranty registered to a traceable serial.",
                 },
-              ].map(({ icon: Icon, step: stepLabel, title, body }) => (
-                <Card
-                  key={title}
-                  className="flex h-full flex-col rounded-2xl border-white/10 bg-white/[0.025] p-4 text-white sm:p-5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f7b52b]">
-                      {stepLabel}
-                    </span>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f7b52b]/12 ring-1 ring-[#f7b52b]/25">
-                      <Icon className="h-4 w-4 text-[#f7b52b]" />
+              ].map(({ icon: Icon, title, body }, index) => (
+                <li key={title} className="relative flex flex-col">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#f7b52b]/35 bg-[#f7b52b]/10 text-[#f7b52b]">
+                      <Icon className="h-5 w-5" />
                     </div>
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f7b52b]">
+                      Stage 0{index + 1}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="hidden h-px flex-1 bg-gradient-to-r from-[#f7b52b]/30 to-transparent lg:block"
+                    />
                   </div>
-                  <h3 className="mt-3 text-base font-black leading-tight">{title}</h3>
-                  <p className="mt-1.5 text-xs leading-5 text-slate-400">{body}</p>
-                </Card>
+                  <h3 className="mt-4 text-base font-black leading-tight text-white">{title}</h3>
+                  <p className="mt-1.5 text-sm leading-6 text-slate-400">{body}</p>
+                </li>
               ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* 4b. Credibility band — Google rating + authorised STEK + traceable
+            warranty, merged into one scannable strip. Sits after the
+            install-quality story so it reinforces proof right before FAQ + booking. */}
+        <section
+          data-funnel-section="trust_credibility"
+          className="border-t border-white/10 bg-[#070707] px-3 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-[11px]">
+                Rated, authorised & registered
+              </p>
+              <h2 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">
+                The proof behind the
+                <span className="block text-[#f7b52b]">finish you just saw.</span>
+              </h2>
             </div>
 
-            <TrustSectionCta
-              placement="trust_process"
-              onEstimate={handleEstimateCta}
-              onWhatsApp={handleWhatsApp}
-            />
+            <div className="mt-8 grid gap-4 sm:gap-5 lg:grid-cols-3 lg:items-stretch">
+              {/* Google 4.9 — hero credibility */}
+              <div className="flex h-full flex-col justify-center overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_15%_0%,rgba(66,133,244,0.16),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(8,8,8,0.6))] p-5 sm:p-6">
+                <div className="flex items-center gap-2">
+                  <GoogleWordmark className="text-lg" />
+                  <span className="text-sm font-semibold text-white/80">Reviews</span>
+                </div>
+                <div className="mt-4 flex items-end gap-3">
+                  <span className="text-5xl font-black leading-none text-white sm:text-6xl">
+                    4.9
+                  </span>
+                  <div className="pb-1">
+                    <div className="flex gap-0.5 text-[#fbbc05]">
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <Star key={i} className="h-4 w-4 fill-current" />
+                      ))}
+                    </div>
+                    <p className="mt-1.5 text-[13px] leading-5 text-white/70">
+                      from real Dubai owners
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Authorised STEK installer */}
+              <div className="flex h-full flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(8,8,8,0.6))] p-5 sm:p-6">
+                <div className="flex items-center gap-2">
+                  <img
+                    src="/stek-white-full.png"
+                    alt="STEK"
+                    className="h-5 w-auto object-contain sm:h-6"
+                    loading="lazy"
+                  />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#f7b52b]/35 bg-[#f7b52b]/12 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-[#f7b52b]">
+                    <BadgeCheck className="h-3 w-3" />
+                    Authorised
+                  </span>
+                </div>
+                <h3 className="mt-4 text-lg font-black leading-tight text-white">
+                  Factory-trained STEK application
+                </h3>
+                <p className="mt-1.5 text-sm leading-6 text-slate-300">
+                  Genuine STEK film applied by an authorised installer — not a reseller
+                  cutting corners on prep.
+                </p>
+              </div>
+
+              {/* Traceable warranty — with proof sticker */}
+              <div className="group relative flex h-full flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(8,8,8,0.6))] p-5 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10">
+                    <img
+                      src={stekWarrantySticker}
+                      alt="STEK warranty sticker — traceable handover proof"
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#f7b52b]/35 bg-[#f7b52b]/12 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-[#f7b52b]">
+                    <ShieldCheck className="h-3 w-3" />
+                    Warranty proof
+                  </span>
+                </div>
+                <h3 className="mt-4 text-lg font-black leading-tight text-white">
+                  Registered to your VIN
+                </h3>
+                <p className="mt-1.5 text-sm leading-6 text-slate-300">
+                  A tamper-evident STEK sticker, registered to your film roll and handover —
+                  fully traceable, never just verbal.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -3208,9 +3579,14 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
               className="mt-6 space-y-2"
               onValueChange={(value) => {
                 if (value) {
-                  trackEvent("guided_trust_faq_open", {
+                  const payload = {
+                    faq_question: value,
                     question: value,
                     ...buildPayload(),
+                  };
+                  trackEvent("faq_opened", payload);
+                  trackEvent("guided_trust_faq_open", {
+                    ...payload,
                   });
                 }
               }}
@@ -3314,6 +3690,7 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
                   onEstimate={handleEstimateCta}
                   onWhatsApp={handleWhatsApp}
                   primaryLabel="Book my free pickup"
+                  microcopy="Free Dubai-wide pickup · We return it showroom-clean"
                 />
               </div>
 
