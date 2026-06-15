@@ -135,15 +135,15 @@ const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVaria
         "full car PPF price Dubai, guided PPF quote Dubai, premium PPF Dubai, full body PPF Dubai, STEK PPF Dubai, PPF offer Dubai",
       ogTitle: "Full Car PPF Price Dubai",
       ogDescription:
-        "Build your full PPF setup, reveal the starting price, and claim 5% off, pickup, or tint with Sean on WhatsApp.",
+        "Build your full PPF setup, reveal the starting price, and claim 20% off, pickup, or tint with Sean on WhatsApp.",
     },
     eyebrow: "Premium PPF - Dubai",
     headline: "Full Car PPF Price",
     headlineAccent: "in Dubai.",
     mobileIntro:
-      "Build your setup, see the starting price, then claim 5% off, free pickup, or window tint with Sean on WhatsApp.",
+      "Build your setup, see the starting price, then claim 20% off, free pickup, or window tint with Sean on WhatsApp.",
     desktopIntro:
-      "Build your full-body PPF setup, see the starting price, then claim 5% off, free pickup, or window tint with Sean on WhatsApp.",
+      "Build your full-body PPF setup, see the starting price, then claim 20% off, free pickup, or window tint with Sean on WhatsApp.",
     primaryCta: "See my price (60s)",
     secondaryCta: "WhatsApp Sean",
     proofPoints: ["60-second quote", "No commitment", "Sean reviews each setup"],
@@ -1429,12 +1429,12 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const phoneCaptured = isLikelyRealPhone(phone);
   const bonusEligible = policyBonusEligible && phoneCaptured;
   const premiumBonusLabel = bonusEligible
-    ? "5% saving, free pickup, or free tint unlocked"
-    : "5% saving, free pickup, or free tint available";
+    ? "20% saving, free pickup, or free tint unlocked"
+    : "20% saving, free pickup, or free tint available";
 
   // ── Gamified 20% unlock pricing — MARGIN-NEUTRAL ANCHOR ─────────────────
   // `estimate` is the TRUE price Sean honors → that's the unlocked target.
-  // The displayed pre-unlock anchor (`listPrice`) is ~11% higher, rounded to
+  // The displayed pre-unlock anchor (`listPrice`) is ~25% higher, rounded to
   // the nearest 10 so a clean "20% OFF" reads correctly. Savings = anchor −
   // target. The WhatsApp message and Google Ads VALUES always use targetPrice.
   const targetPrice = estimate;
@@ -1929,14 +1929,14 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
         value: estimate ?? undefined,
         currency: "AED",
       });
-    } else if (isSelectedSetupClick) {
-      // Qualified: a real estimate is on screen → fire the PRIMARY conversion
-      // and pass the AED value for value-based bidding.
-      trackGoogleAdsConversion(GOOGLE_ADS_QUALIFIED_WHATSAPP_SEND_TO, estimate ?? undefined);
-    } else {
-      // Pre-quote tap → keep as the SECONDARY (observe-only) generic signal.
-      trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO);
     }
+
+    // NOTE: top-of-funnel / generic WhatsApp taps intentionally do NOT fire a
+    // Google Ads conversion — they stay analytics-only via the dataLayer/funnel
+    // events above. The only Google Ads conversions are the PRIMARY Submit-lead
+    // (on unlock, see handleUnlockDiscount) and the SECONDARY qualified send (on
+    // the post-quote "Send my locked-in price" button, see handleSendLockedInPrice).
+    // GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO is intentionally retained (now unused).
   };
 
   const handleWhatsApp = (placement: string) => {
@@ -2000,9 +2000,12 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   };
 
   const handleSendLockedInPrice = () => {
-    // Reuses the qualified-WhatsApp path: a real estimate is on screen, so this
-    // fires GOOGLE_ADS_QUALIFIED_WHATSAPP_SEND_TO with value = estimate (= targetPrice).
+    // Pushes the dataLayer/funnel WhatsApp events for analytics visibility.
     trackWhatsAppContact("result_unlock_send");
+    // SECONDARY Google Ads conversion: the qualified post-quote WhatsApp send.
+    // Submit-lead (on unlock) stays the single PRIMARY; this is configured as a
+    // secondary conversion in the account so it won't affect bidding/double-count.
+    trackGoogleAdsConversion(GOOGLE_ADS_QUALIFIED_WHATSAPP_SEND_TO, targetPrice ?? undefined);
     window.open(buildWhatsAppUrl(buildLockedInWhatsAppMessage()), "_blank", "noopener,noreferrer");
   };
 
@@ -2442,7 +2445,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
                 <div className="mt-3 grid grid-cols-3 gap-1.5">
                   {[
-                    { icon: BadgePercent, label: isTikTokVariant ? "TikTok bonus" : "5% off setup" },
+                    { icon: BadgePercent, label: isTikTokVariant ? "TikTok bonus" : "20% off setup" },
                     { icon: Truck, label: "Free pickup" },
                     { icon: Sparkles, label: "Free tint" },
                   ].map(({ icon: Icon, label }) => (
@@ -2535,7 +2538,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                   {[
                     {
                       icon: BadgePercent,
-                      label: isTikTokVariant ? "TikTok bonus" : "5% off setup",
+                      label: isTikTokVariant ? "TikTok bonus" : "20% off setup",
                       sub: isTikTokVariant ? "Claim option" : "Any package",
                     },
                     {
@@ -3394,7 +3397,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                   placement="trust_cta_post_handovers"
                   onEstimate={handleEstimateCta}
                   onWhatsApp={requestWhatsApp}
-                  microcopy="Bonuses worth AED 3,000+ · No upsell"
+                  microcopy="Bonuses worth AED 4,550+ · No upsell"
                 />
               </div>
             </div>
