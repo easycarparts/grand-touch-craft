@@ -15,6 +15,7 @@ import {
   BadgeCheck,
   BadgePercent,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -55,7 +56,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PhoneInputWithCountry } from "@/components/PhoneInputWithCountry";
@@ -115,9 +115,8 @@ const TEL_HREF = "tel:+971567191045";
 const GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO = "AW-17684563059/KqOWCJfDoLAcEPOI1PBB";
 // Post-quote ("qualified") WhatsApp tap — the user has a real AED estimate on
 // screen. This is a PRIMARY (bid) conversion and carries the quote value.
-// TODO(google-ads): replace with the real send_to once the new "Qualified
-// WhatsApp (post-quote)" conversion action is created (see audit Experiment #1).
-const GOOGLE_ADS_QUALIFIED_WHATSAPP_SEND_TO = "AW-17684563059/QUALIFIED_WHATSAPP_PLACEHOLDER";
+// "Qualified WhatsApp (post-quote)" conversion action (id 7649703525).
+const GOOGLE_ADS_QUALIFIED_WHATSAPP_SEND_TO = "AW-17684563059/q_bgCOXs1L8cEPOI1PBB";
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
 
 const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVariantConfig> = {
@@ -281,7 +280,7 @@ const topOffers: Array<{
   icon: typeof Truck;
   text: string;
 }> = [
-  { icon: BadgePercent, text: "Claim 5% off your full PPF setup" },
+  { icon: BadgePercent, text: "Claim 20% off your full PPF setup" },
   { icon: Truck, text: "Free pickup & drop-off across Dubai" },
   { icon: Sparkles, text: "Free window tint upgrade available" },
   { icon: ShieldCheck, text: "10 & 12-year warranty options available" },
@@ -293,7 +292,7 @@ const tiktokTopOffers: Array<{
   text: string;
 }> = [
   { icon: MousePointerClick, text: "Tap 3 choices to reveal your PPF setup" },
-  { icon: BadgePercent, text: "TikTok bonus: 5% off, pickup, or tint" },
+  { icon: BadgePercent, text: "TikTok bonus: 20% off, pickup, or tint" },
   { icon: MessageCircle, text: "WhatsApp Sean with your setup pre-written" },
   { icon: ShieldCheck, text: "10 & 12-year warranty options available" },
   { icon: Zap, text: "Built for mobile - no long form required" },
@@ -359,39 +358,51 @@ const trustFaqs: Array<{ question: string; answer: string }> = [
   },
 ];
 
-const includedFreeItems: Array<{ title: string; description: string }> = [
+// NOTE: the `value` AED figures below are PLACEHOLDERS — confirm/adjust with the
+// owner before launch. They drive the Step 4 "value stack" total in ONE place.
+const includedFreeItems: Array<{ title: string; description: string; value: number }> = [
   {
     title: "Multi-stage paint correction",
     description: "Panels hand-polished so the film bonds to flawless paint.",
+    value: 1500,
   },
   {
     title: "Full interior & exterior detail",
     description: "Showroom-clean handover, inside and out.",
+    value: 600,
   },
   {
     title: "Headlight & door-sill protection",
     description: "The two spots that scratch first — covered.",
+    value: 400,
   },
   {
     title: "Leather interior ceramic coat",
     description: "Spill-resistant seats, easier to wipe clean.",
+    value: 700,
   },
   {
     title: "Wheel ceramic coating",
     description: "Brake dust rinses off in seconds.",
+    value: 500,
   },
   {
     title: "Lifetime PPF inspection",
     description: "Drop in anytime — we recheck edges & corners for life.",
+    value: 600,
   },
 ];
 
-const resultValueHighlights = [
-  "Multi-stage correction",
-  "Interior & exterior detail",
-  "Headlights + door sills",
-  "Lifetime PPF support",
-];
+// Free pickup (sourced from topOffers) folded into the value stack. PLACEHOLDER value.
+const freePickupStackItem = {
+  title: "Free pickup & drop-off across Dubai",
+  description: "Dubai-wide, by Sean's team — at a time that suits you.",
+  value: 250,
+};
+
+// The full Step 4 value stack = free inclusions + pickup. Total ≈ AED 4,550.
+const valueStackItems = [...includedFreeItems, freePickupStackItem];
+const valueStackTotal = valueStackItems.reduce((sum, item) => sum + item.value, 0);
 
 const buildWhatsAppUrl = (message: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
@@ -1243,6 +1254,11 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const [formStatus, setFormStatus] = useState<"idle" | "saving" | "saved" | "error" | "invalid_phone">("idle");
   const [preChatOpen, setPreChatOpen] = useState(false);
   const [pendingWaPlacement, setPendingWaPlacement] = useState<string | null>(null);
+  // Gamified "unlock 20% off" mechanic on the result step.
+  const [discountUnlocked, setDiscountUnlocked] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
+  const [animatedPrice, setAnimatedPrice] = useState<number | null>(null);
+  const priceRafRef = useRef<number | null>(null);
   const flowPanelRef = useRef<HTMLDivElement>(null);
   const pageStartedAtRef = useRef<number>(Date.now());
   const activeSectionRef = useRef<string>("calculator");
@@ -1262,11 +1278,18 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
   const [vehicleAttentionFired, setVehicleAttentionFired] = useState(false);
   const [animatedVehiclePlaceholder, setAnimatedVehiclePlaceholder] = useState(
-    "Example: Range Rover Sport, Patrol, 911...",
+    "Example: 2026 Range Rover Sport, 2025 Patrol...",
   );
   const [isVehicleFocused, setIsVehicleFocused] = useState(false);
   const vehiclePlaceholderExamples = useMemo(
-    () => ["Range Rover Sport", "Nissan Patrol", "Porsche 911 GT3", "AMG G63", "BMW M5", "Tesla Model X"],
+    () => [
+      "2026 Range Rover Sport",
+      "2025 Nissan Patrol",
+      "2024 Porsche 911 GT3",
+      "2023 AMG G63",
+      "2026 BMW M5",
+      "2025 Tesla Model X",
+    ],
     [],
   );
 
@@ -1338,7 +1361,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
   useEffect(() => {
     if (!size) {
-      setAnimatedVehiclePlaceholder("Example: Range Rover Sport, Patrol, 911...");
+      setAnimatedVehiclePlaceholder("Example: 2026 Range Rover Sport, 2025 Patrol...");
       return;
     }
     if (vehicle.length > 0 || isVehicleFocused) return;
@@ -1404,11 +1427,22 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const isComplete = Boolean(size && finish && warrantyYears && estimate !== null);
   const policyBonusEligible = Boolean(size && warrantyYears);
   const phoneCaptured = isLikelyRealPhone(phone);
-  const phoneAttempted = localPhoneDigits(phone).length > 0;
   const bonusEligible = policyBonusEligible && phoneCaptured;
   const premiumBonusLabel = bonusEligible
     ? "5% saving, free pickup, or free tint unlocked"
     : "5% saving, free pickup, or free tint available";
+
+  // ── Gamified 20% unlock pricing — MARGIN-NEUTRAL ANCHOR ─────────────────
+  // `estimate` is the TRUE price Sean honors → that's the unlocked target.
+  // The displayed pre-unlock anchor (`listPrice`) is ~11% higher, rounded to
+  // the nearest 10 so a clean "20% OFF" reads correctly. Savings = anchor −
+  // target. The WhatsApp message and Google Ads VALUES always use targetPrice.
+  const targetPrice = estimate;
+  const listPrice = estimate !== null ? Math.round(estimate / 0.8 / 10) * 10 : null;
+  const discountSavings =
+    listPrice !== null && targetPrice !== null ? listPrice - targetPrice : null;
+  const firstName = name.trim().split(/\s+/)[0] ?? "";
+  const canUnlock = name.trim().length >= 2 && phoneCaptured;
 
   const trackEvent = useCallback(
     (eventName: string, payload: Record<string, unknown> = {}) => {
@@ -1910,6 +1944,68 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
   };
 
+  // Tasteful count from the anchor down to the discounted price (~1.1s, easeOut).
+  const runPriceCountdown = useCallback((from: number, to: number) => {
+    if (
+      typeof window === "undefined" ||
+      typeof requestAnimationFrame === "undefined" ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+    ) {
+      setAnimatedPrice(to);
+      return;
+    }
+    const duration = 1100;
+    const start = performance.now();
+    if (priceRafRef.current) cancelAnimationFrame(priceRafRef.current);
+    const tick = (nowTs: number) => {
+      const t = Math.min(1, (nowTs - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setAnimatedPrice(Math.round(from + (to - from) * eased));
+      if (t < 1) {
+        priceRafRef.current = requestAnimationFrame(tick);
+      } else {
+        setAnimatedPrice(to);
+        priceRafRef.current = null;
+      }
+    };
+    priceRafRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (priceRafRef.current) cancelAnimationFrame(priceRafRef.current);
+    },
+    [],
+  );
+
+
+  // The locked-in WhatsApp message — uses the captured name and the DISCOUNTED
+  // targetPrice, and flags the 20% online discount. Kept separate from the
+  // generic `whatsAppMessage` so the higher-funnel pre-chat path is untouched.
+  const buildLockedInWhatsAppMessage = () => {
+    const setupParts = [selectedSize?.label, finish?.toLowerCase(), selectedPackage?.title].filter(
+      Boolean,
+    );
+    const lines = [
+      `Hi Sean, it's ${name.trim() || "a customer"} — I unlocked the 20% online discount on the full PPF calculator.`,
+      vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
+      setupParts.length ? `Setup: ${setupParts.join(", ")}.` : "",
+      listPrice !== null ? `Was ${formatAED(listPrice)}.` : "",
+      targetPrice !== null
+        ? `My locked-in price: ${formatAED(targetPrice)} (20% online discount applied, excl. VAT).`
+        : "",
+      "Can you confirm my final price and earliest slot?",
+    ].filter(Boolean);
+    return lines.join(" ");
+  };
+
+  const handleSendLockedInPrice = () => {
+    // Reuses the qualified-WhatsApp path: a real estimate is on screen, so this
+    // fires GOOGLE_ADS_QUALIFIED_WHATSAPP_SEND_TO with value = estimate (= targetPrice).
+    trackWhatsAppContact("result_unlock_send");
+    window.open(buildWhatsAppUrl(buildLockedInWhatsAppMessage()), "_blank", "noopener,noreferrer");
+  };
+
   /**
    * Skippable, two-step pre-chat nudge. When a visitor taps a *direct* WhatsApp
    * entry point BEFORE finishing the calculator, we intercept with one soft step
@@ -1948,34 +2044,59 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     handleWhatsApp(pendingWaPlacement ?? "prechat_skip");
   };
 
-  const handleBonusForm = async (event: FormEvent<HTMLFormElement>) => {
+  /**
+   * Hard-gated "unlock 20% off" submit on the result step. Name (>=2 chars) and
+   * a valid number are REQUIRED — there is no blank-WhatsApp path here anymore.
+   * On success we persist the lead, fire the lead event + Submit-lead conversion
+   * (value = targetPrice) + a `discount_unlocked` dataLayer event, and play the
+   * gamified price reveal. The WhatsApp handoff is now a deliberate second tap.
+   */
+  const handleUnlockDiscount = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isComplete || !estimate || !size || !finish || !selectedPackage) return;
-
-    if (!phoneAttempted) {
-      trackEvent("guided_bonus_whatsapp_no_details", buildPayload());
-      handleWhatsApp("result_bonus_cta_no_details");
+    if (
+      !isComplete ||
+      estimate === null ||
+      targetPrice === null ||
+      listPrice === null ||
+      !size ||
+      !finish ||
+      !selectedPackage
+    ) {
       return;
     }
+    if (discountUnlocked || unlocking) return;
 
+    if (name.trim().length < 2) {
+      setFormStatus("error");
+      return;
+    }
     if (!phoneCaptured) {
       setFormStatus("invalid_phone");
       trackEvent("guided_invalid_phone_blocked", {
-        capture_location: "result_bonus_form",
+        capture_location: "result_discount_unlock",
         ...buildPayload(),
       });
       return;
     }
 
+    setUnlocking(true);
     setFormStatus("saving");
+
+    // Gamified payoff: this is the moment the big price cuts from the full anchor
+    // (`listPrice`) down to the discounted `targetPrice`, and the value stack
+    // checks off. Count-down respects prefers-reduced-motion (snaps to final).
+    setDiscountUnlocked(true);
+    setAnimatedPrice(listPrice);
+    runPriceCountdown(listPrice, targetPrice);
+
     trackEvent("save_quote_submitted", {
-      form_type: "guided_bonus_claim",
+      form_type: "guided_discount_unlock",
       ...buildPayload(),
-      has_name: Boolean(name.trim()),
-      has_phone: Boolean(phone.trim()),
+      has_name: true,
+      has_phone: true,
     });
     trackEvent("lead_form_submitted", {
-      form_type: "guided_bonus_claim",
+      form_type: "guided_discount_unlock",
       ...buildPayload(),
     });
 
@@ -1987,8 +2108,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       vehicleModel: vehicle.trim(),
       payload: {
         service_name: variantConfig.bonusClaimServiceName,
-        service_price: estimate,
-        final_price: estimate,
+        service_price: targetPrice,
+        final_price: targetPrice,
+        list_price: listPrice,
+        discount_savings: discountSavings,
         package_name: selectedPackage.title,
         finish,
         vehicle_size: size,
@@ -1998,38 +2121,29 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       },
     });
 
-    if (result.ok) {
-      setFormStatus("saved");
-      if (isTikTokVariant) {
-        trackTikTokSubmitForm({
-          content_name: "TikTok Guided Full PPF Calculator",
-          content_category: "PPF",
-          value: estimate,
-          currency: "AED",
-        });
-        trackTikTokEvent("Contact", {
-          content_name: "TikTok Guided Full PPF Calculator",
-          content_category: "PPF",
-          contact_channel: "form_submit",
-          button_location: "result_bonus_form",
-          value: estimate,
-          currency: "AED",
-        });
-      } else {
-        trackGoogleAdsConversion(GOOGLE_ADS_SUBMIT_LEAD_SEND_TO, estimate ?? undefined);
-      }
-      const handoffPlacement = "result_bonus_form_saved";
-      trackEvent("guided_lead_saved_whatsapp_handoff", {
-        cta_location: handoffPlacement,
-        ...buildPayload(),
+    // New gamification dataLayer event (value = discounted targetPrice).
+    trackEvent("discount_unlocked", {
+      ...buildPayload(),
+      value: targetPrice,
+      currency: "AED",
+      list_price: listPrice,
+      discount_savings: discountSavings,
+    });
+
+    // Submit-lead PRIMARY conversion — value = discounted targetPrice.
+    if (isTikTokVariant) {
+      trackTikTokSubmitForm({
+        content_name: "TikTok Guided Full PPF Calculator",
+        content_category: "PPF",
+        value: targetPrice,
+        currency: "AED",
       });
-      window.setTimeout(() => {
-        trackWhatsAppContact(handoffPlacement);
-        window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
-      }, 350);
     } else {
-      setFormStatus("error");
+      trackGoogleAdsConversion(GOOGLE_ADS_SUBMIT_LEAD_SEND_TO, targetPrice);
     }
+
+    setUnlocking(false);
+    setFormStatus(result.ok ? "saved" : "error");
   };
 
   /**
@@ -2788,10 +2902,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                           <BadgeCheck className="h-4 w-4 shrink-0 text-[#f7b52b] sm:mt-0.5 sm:h-5 sm:w-5" />
                           <div className="min-w-0 flex-1">
                             <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#f7b52b] sm:text-base sm:tracking-[0.14em]">
-                              Lock 5% off, free tint or pickup
+                              Save your number — unlock 20% off next
                             </p>
                             <p className="mt-0.5 hidden text-xs leading-5 text-slate-300 sm:block">
-                              Sean WhatsApps your 5% saving, free tint, or pickup claim.
+                              Add your number now, then claim your 20% online discount on the next step.
                             </p>
                           </div>
                         </div>
@@ -2847,8 +2961,16 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                       Edit setup
                     </button>
 
-                    {/* Price hero */}
-                    <div className="rounded-2xl border border-[#f7b52b]/30 bg-[radial-gradient(circle_at_top_left,rgba(247,181,43,0.24),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(8,8,8,0.96))] p-3.5 sm:rounded-[24px] sm:p-4">
+                    {/* Combined offer + unlock card — the DISCOUNT is the hero,
+                        and the name/number fields are glued directly to it. */}
+                    <div
+                      className={cn(
+                        "relative overflow-hidden rounded-2xl border-2 p-3.5 transition-colors duration-500 sm:rounded-[24px] sm:p-4",
+                        discountUnlocked
+                          ? "border-[#25D366]/55 bg-[radial-gradient(circle_at_top_left,rgba(37,211,102,0.18),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(8,8,8,0.96))] shadow-[0_0_36px_rgba(37,211,102,0.16)]"
+                          : "border-[#f7b52b]/60 bg-[radial-gradient(circle_at_top_left,rgba(247,181,43,0.22),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(8,8,8,0.96))] shadow-[0_0_36px_rgba(247,181,43,0.16)]",
+                      )}
+                    >
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {[selectedSize?.label, finish, selectedPackage?.title]
                           .filter(Boolean)
@@ -2861,241 +2983,278 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                             </span>
                           ))}
                       </div>
-                      <p className="mt-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/50 sm:mt-4 sm:text-[10px]">
-                        Your starting price
-                      </p>
-                      <p className="mt-0.5 text-[2.4rem] font-black leading-none tracking-tight sm:mt-1 sm:text-[3.8rem]">
-                        {estimate ? formatAED(estimate) : "Setup ready"}
-                      </p>
-                      <p className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:mt-2 sm:text-[10px] sm:tracking-[0.16em]">
-                        Excludes VAT · Sean confirms final price
-                      </p>
-                    </div>
 
-                    <div className="mt-2.5 grid grid-cols-2 gap-1.5 rounded-2xl border border-white/10 bg-black/28 p-2.5 sm:mt-3 sm:gap-2 sm:p-3">
-                      {resultValueHighlights.map((item) => (
-                        <div key={item} className="flex min-w-0 items-center gap-1.5">
-                          <Check className="h-3.5 w-3.5 shrink-0 text-[#25D366]" />
-                          <span className="truncate text-[10px] font-bold leading-tight text-slate-200 sm:text-[11px]">
-                            {item}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Subtle FREE add-ons modal trigger (informational, not a CTA) */}
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            trackEvent("guided_free_addons_opened", buildPayload())
-                          }
-                          className="mt-2 flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-1.5 text-left transition hover:border-[#f7b52b]/40 hover:bg-white/[0.05] sm:mt-2.5"
-                        >
-                          <span className="flex min-w-0 items-center gap-2.5">
-                            <Gift className="h-4 w-4 shrink-0 text-[#f7b52b]/80" />
-                            <span className="min-w-0 truncate text-xs font-semibold text-slate-300">
-                              <span className="font-black text-[#f7b52b]">FREE</span> with your setup ·
-                              <span className="text-slate-400"> 7 add-ons + pickup</span>
+                      {discountUnlocked && listPrice !== null && targetPrice !== null ? (
+                        /* ---------- POST-UNLOCK: locked-in green price ---------- */
+                        <>
+                          <div className="mt-3 flex items-center gap-2 sm:mt-3.5">
+                            <span className="text-sm font-bold text-white/40 line-through sm:text-base">
+                              {formatAED(listPrice)}
                             </span>
-                          </span>
-                          <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                            See
-                            <ArrowRight className="h-3 w-3" />
-                          </span>
-                        </button>
-                      </DialogTrigger>
-                      <DialogContent className="max-h-[85vh] overflow-y-auto border-[#f7b52b]/25 bg-[#0c0c0c] text-white sm:max-w-md">
-                        <DialogHeader>
-                          <DialogTitle className="text-2xl font-black text-white">
-                            Included free with your setup
-                          </DialogTitle>
-                          <DialogDescription className="text-sm text-slate-400">
-                            Standard on every full PPF — no upgrade required.
-                          </DialogDescription>
-                        </DialogHeader>
-
-                        <div
-                          className="rounded-2xl border border-[#25D366]/30 bg-[#25D366]/[0.08] p-3 animate-fade-up motion-reduce:animate-none"
-                          style={{ animationDelay: "60ms", animationFillMode: "both" }}
-                        >
-                          <div className="flex items-start gap-3">
-                            <Truck
-                              className="mt-0.5 h-5 w-5 shrink-0 text-[#25D366] animate-guided-reveal-check motion-reduce:animate-none"
-                              style={{ animationDelay: "260ms" }}
-                            />
-                            <div>
-                              <p className="text-sm font-black text-white">
-                                Free pickup & drop-off
-                              </p>
-                              <p className="mt-0.5 text-xs leading-5 text-slate-300">
-                                Dubai-wide, by Sean's team — at a time that suits you.
-                              </p>
-                            </div>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#25D366] ring-1 ring-[#25D366]/40 sm:text-[10px]">
+                              <BadgePercent className="h-3 w-3" />
+                              20% OFF
+                            </span>
                           </div>
-                        </div>
 
-                        <ul className="space-y-1">
-                          {includedFreeItems.map((item, index) => {
-                            const delay = 0.34 + index * 0.3;
-                            return (
-                              <li
-                                key={item.title}
-                                className="flex items-start gap-3 rounded-xl px-2 py-2 animate-guided-reveal-row motion-reduce:animate-none"
-                                style={{ animationDelay: `${delay}s` }}
-                              >
-                                <span
-                                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#f7b52b]/15 animate-guided-reveal-check motion-reduce:animate-none"
-                                  style={{ animationDelay: `${delay + 0.08}s` }}
-                                >
-                                  <Check className="h-3 w-3 text-[#f7b52b]" />
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-black text-white">{item.title}</p>
-                                  <p className="mt-0.5 text-xs leading-5 text-slate-400">
-                                    {item.description}
-                                  </p>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
+                          <p className="mt-1 text-[9px] font-black uppercase tracking-[0.22em] text-white/50 sm:text-[10px]">
+                            Your locked-in price
+                          </p>
 
-                        <p
-                          className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 animate-fade-in motion-reduce:animate-none"
-                          style={{
-                            animationDelay: `${0.34 + includedFreeItems.length * 0.3}s`,
-                            animationFillMode: "both",
-                          }}
-                        >
-                          All included with your selected setup · No upsell
-                        </p>
-                      </DialogContent>
-                    </Dialog>
+                          <p className="mt-0.5 text-[2.6rem] font-black leading-none tracking-tight text-[#25D366] transition-colors duration-500 sm:mt-1 sm:text-[4rem]">
+                            {formatAED(animatedPrice ?? targetPrice)}
+                          </p>
 
-                    {/* Locked / Unlocked bonus state — the primary visual prompt */}
-                    <div
-                      className={cn(
-                        "relative mt-2 overflow-hidden rounded-2xl border-2 p-3 transition-colors duration-500 sm:mt-2.5 sm:p-3.5",
-                        phoneCaptured
-                          ? "border-[#25D366]/55 bg-[radial-gradient(circle_at_top_right,rgba(37,211,102,0.22),rgba(37,211,102,0.06))] shadow-[0_0_32px_rgba(37,211,102,0.18)]"
-                          : "border-[#f7b52b]/65 bg-[radial-gradient(circle_at_top_right,rgba(247,181,43,0.22),rgba(247,181,43,0.06))] shadow-[0_0_36px_rgba(247,181,43,0.20)] animate-guided-free-pulse motion-reduce:animate-none",
-                      )}
-                    >
-                      <div className="flex items-start gap-3 sm:gap-4">
-                        <div
-                          className={cn(
-                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors duration-500 sm:h-10 sm:w-10",
-                            phoneCaptured
-                              ? "bg-[#25D366]/20 ring-[#25D366]/40"
-                              : "bg-[#f7b52b]/20 ring-[#f7b52b]/40",
-                          )}
-                        >
-                          {phoneCaptured ? (
-                            <BadgeCheck className="h-5 w-5 text-[#25D366]" />
-                          ) : (
-                            <Lock className="h-5 w-5 text-[#f7b52b]" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
+                          {discountSavings !== null ? (
+                            <div
+                              className="mt-2 animate-fade-up motion-reduce:animate-none"
+                              style={{ animationDelay: "0.45s", animationFillMode: "both" }}
+                            >
+                              <span className="inline-flex flex-wrap items-center gap-1.5 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-[#25D366] ring-1 ring-[#25D366]/45 sm:text-[11px]">
+                                <BadgePercent className="h-3.5 w-3.5" />
+                                20% off + extras locked in · save {formatAED(discountSavings)} + ≈{formatAED(valueStackTotal)} free
+                              </span>
+                            </div>
+                          ) : null}
+
+                          <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
+                            Excludes VAT · Sean confirms final price
+                          </p>
+                        </>
+                      ) : targetPrice !== null && listPrice !== null ? (
+                        /* ---------- PRE-UNLOCK: full price strikes out, discounted price is the hero ---------- */
+                        <>
+                          {/* Full price — de-emphasised, with a line that draws across it */}
+                          <p className="mt-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/40 sm:mt-3.5 sm:text-[10px]">
+                            Full setup price
+                          </p>
+                          <div className="relative mt-0.5 inline-block">
+                            <span className="text-2xl font-black leading-none tracking-tight text-white/45 sm:text-3xl">
+                              {formatAED(listPrice)}
+                            </span>
+                            <span
+                              aria-hidden="true"
+                              className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#f7b52b] shadow-[0_0_10px_rgba(247,181,43,0.7)] animate-guided-strike motion-reduce:animate-none"
+                              style={{ animationDelay: "0.4s" }}
+                            />
+                          </div>
+
+                          {/* Discounted price — the hero, clean white for max contrast */}
                           <p
+                            className="mt-2.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/55 animate-guided-anchor-up motion-reduce:animate-none sm:text-[10px]"
+                            style={{ animationDelay: "0.75s" }}
+                          >
+                            Your price today
+                          </p>
+                          <p
+                            className="mt-0.5 text-[2.6rem] font-black leading-none tracking-tight text-white animate-guided-price-in motion-reduce:animate-none sm:mt-1 sm:text-[4rem]"
+                            style={{ animationDelay: "0.7s" }}
+                          >
+                            {formatAED(targetPrice)}
+                          </p>
+
+                          {discountSavings !== null ? (
+                            <div
+                              className="mt-2 animate-fade-up motion-reduce:animate-none"
+                              style={{ animationDelay: "0.95s", animationFillMode: "both" }}
+                            >
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#25D366] ring-1 ring-[#25D366]/45 sm:text-xs">
+                                <BadgePercent className="h-3.5 w-3.5" />
+                                Save {formatAED(discountSavings)} · 20% off
+                              </span>
+                            </div>
+                          ) : null}
+
+                          <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
+                            Excludes VAT · Sean confirms final price
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-3 text-[2.6rem] font-black leading-none tracking-tight text-white sm:mt-3.5 sm:text-[4rem]">
+                          Setup ready
+                        </p>
+                      )}
+
+                      {/* VALUE STACK — free inclusions + total, shown in both states */}
+                      <div
+                        className={cn(
+                          "mt-3 rounded-xl border p-2.5 transition-colors duration-500 sm:mt-3.5 sm:p-3",
+                          discountUnlocked
+                            ? "border-[#25D366]/30 bg-[#25D366]/[0.06]"
+                            : "border-white/10 bg-black/25",
+                        )}
+                      >
+                        <p
+                          className={cn(
+                            "text-[9px] font-black uppercase tracking-[0.16em] transition-colors duration-500 sm:text-[10px]",
+                            discountUnlocked ? "text-[#25D366]" : "text-[#f7b52b]",
+                          )}
+                        >
+                          {discountUnlocked
+                            ? "Extras locked in — included free"
+                            : "What's included free with your setup"}
+                        </p>
+                        <ul className="mt-1.5 space-y-0.5">
+                          {valueStackItems.map((item, index) => (
+                            <li
+                              key={item.title}
+                              className={cn(
+                                "flex items-center justify-between gap-2",
+                                discountUnlocked &&
+                                  "animate-guided-reveal-row motion-reduce:animate-none",
+                              )}
+                              style={
+                                discountUnlocked
+                                  ? { animationDelay: `${index * 0.07}s`, animationFillMode: "both" }
+                                  : undefined
+                              }
+                            >
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <Check
+                                  className={cn(
+                                    "h-3.5 w-3.5 shrink-0 transition-colors duration-500",
+                                    discountUnlocked ? "text-[#25D366]" : "text-[#f7b52b]/70",
+                                  )}
+                                />
+                                <span className="truncate text-[11px] font-semibold leading-tight text-slate-200 sm:text-xs">
+                                  {item.title}
+                                </span>
+                              </span>
+                              <span className="flex shrink-0 items-center gap-1.5">
+                                <span className="text-[10px] font-bold text-white/35 line-through sm:text-[11px]">
+                                  {formatAED(item.value)}
+                                </span>
+                                <span className="rounded-full bg-[#25D366]/15 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-[#25D366] sm:text-[9px]">
+                                  Free
+                                </span>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/10 pt-2">
+                          <span className="text-[10px] font-black uppercase tracking-[0.1em] text-white/55 sm:text-[11px]">
+                            ≈{formatAED(valueStackTotal)} of extras
+                          </span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.1em] text-[#25D366] sm:text-[11px]">
+                            included free
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Lock cue + animated arrow pointing into the fields below */}
+                      {discountUnlocked ? (
+                        <div className="mt-3 flex items-center gap-2 border-t border-[#25D366]/25 pt-3 sm:mt-3.5">
+                          <BadgeCheck className="h-5 w-5 shrink-0 text-[#25D366] animate-guided-reveal-check motion-reduce:animate-none" />
+                          <p className="text-sm font-black leading-tight text-white sm:text-base">
+                            Your <span className="text-[#25D366]">20% is locked in</span>
+                            {firstName ? `, ${firstName}.` : "."}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="mt-4 sm:mt-5">
+                          <div className="rounded-xl bg-[#f7b52b] px-3 py-2.5 shadow-[0_12px_34px_rgba(247,181,43,0.32)] animate-guided-cue-pulse motion-reduce:animate-none sm:px-4 sm:py-3">
+                            <p className="flex items-center justify-center gap-1.5 text-center text-[13px] font-black leading-tight text-black sm:text-[15px]">
+                              <Lock className="h-4 w-4 shrink-0" />
+                              Enter your details below to get {targetPrice !== null ? formatAED(targetPrice) : "this price"}
+                            </p>
+                            <p className="mt-0.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-black/65 sm:text-[11px]">
+                              10 seconds · no payment now · price held for you
+                            </p>
+                          </div>
+                          <ChevronDown className="mx-auto mt-1 h-5 w-5 text-[#f7b52b] animate-bounce motion-reduce:animate-none" />
+                        </div>
+                      )}
+
+                      {/* Fields + button (pre) OR green Send button (post) */}
+                      {discountUnlocked ? (
+                        <div className="mt-3 animate-fade-up motion-reduce:animate-none">
+                          <Button
+                            type="button"
+                            size="lg"
+                            onClick={handleSendLockedInPrice}
+                            className="h-12 w-full bg-[#25D366] font-black text-white shadow-[0_18px_48px_rgba(37,211,102,0.32)] hover:bg-[#20bf5d]"
+                          >
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            Send my locked-in price to Sean
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                          <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-[11px]">
+                            Valid today · Sean confirms your final price on WhatsApp
+                          </p>
+                        </div>
+                      ) : (
+                        <form onSubmit={handleUnlockDiscount} className="mt-3">
+                          <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5">
+                            <Input
+                              value={name}
+                              onChange={(event) => {
+                                setName(event.target.value);
+                                if (formStatus === "error" || formStatus === "invalid_phone") {
+                                  setFormStatus("idle");
+                                }
+                              }}
+                              placeholder="Your name"
+                              aria-label="Your name"
+                              className="h-11 border-white/20 bg-white/[0.05] text-white placeholder:text-slate-500 focus-visible:border-[#f7b52b]/70 focus-visible:ring-[#f7b52b]/30"
+                            />
+                            <PhoneInputWithCountry
+                              value={phone}
+                              onChange={(value) => {
+                                setPhone(value);
+                                if (formStatus === "invalid_phone" || formStatus === "error") {
+                                  setFormStatus("idle");
+                                }
+                              }}
+                              onFocus={() => setIsPhoneFocused(true)}
+                              onBlur={() => setIsPhoneFocused(false)}
+                              placeholder={animatedPhonePlaceholder}
+                              className="border-white/20 bg-white/[0.05]"
+                              ariaLabel="Your WhatsApp number"
+                            />
+                          </div>
+
+                          <Button
+                            type="submit"
+                            size="lg"
+                            disabled={!canUnlock || unlocking}
                             className={cn(
-                              "text-[9px] font-black uppercase tracking-[0.2em] transition-colors duration-500 sm:text-[10px] sm:tracking-[0.22em]",
-                              phoneCaptured ? "text-[#25D366]" : "text-[#f7b52b]",
+                              "mt-2.5 h-12 w-full font-black text-black shadow-[0_18px_48px_rgba(247,181,43,0.32)]",
+                              "bg-[#f7b52b] hover:bg-[#ffc94f]",
+                              "disabled:bg-white/10 disabled:text-white/45 disabled:shadow-none",
+                              canUnlock && !unlocking
+                                ? "animate-guided-free-pulse motion-reduce:animate-none"
+                                : "",
                             )}
                           >
-                            {phoneCaptured ? "Bonus unlocked" : "Bonus locked"}
-                          </p>
-                          <p className="mt-0.5 text-base font-black leading-tight text-white sm:text-xl">
-                            {phoneCaptured ? (
-                              <>
-                                <span className="text-[#25D366]">5% saving</span>, pickup, or tint
-                              </>
+                            {unlocking ? (
+                              "Unlocking..."
                             ) : (
                               <>
-                                Unlock <span className="text-[#f7b52b]">5% saving</span>, pickup, or tint
+                                <Lock className="mr-2 h-4 w-4" />
+                                Lock in my 20% discount
+                                <Sparkles className="ml-2 h-4 w-4" />
                               </>
                             )}
-                          </p>
-                          <p className="mt-1 text-[11px] leading-snug text-slate-300 sm:text-xs sm:leading-4">
-                            {phoneCaptured
-                              ? "Sean WhatsApps your confirmation shortly."
-                              : "Add your number below to claim it ↓"}
-                          </p>
-                        </div>
-                      </div>
+                          </Button>
+                          {formStatus === "error" && name.trim().length < 2 ? (
+                            <p className="mt-2 text-xs text-red-300 sm:text-sm">
+                              Please add your name to lock in your price.
+                            </p>
+                          ) : null}
+                          {formStatus === "invalid_phone" ? (
+                            <p className="mt-2 text-xs text-red-300 sm:text-sm">
+                              Please enter a valid WhatsApp number to lock in your price.
+                            </p>
+                          ) : null}
+                          {formStatus === "error" && name.trim().length >= 2 ? (
+                            <p className="mt-2 text-xs text-amber-300 sm:text-sm">
+                              Your 20% is locked in — we'll save it when you message Sean.
+                            </p>
+                          ) : null}
+                        </form>
+                      )}
                     </div>
 
-                    {/* Compact form — primary action */}
-                    <form
-                      onSubmit={handleBonusForm}
-                      className="mt-2 rounded-2xl border border-[#f7b52b]/30 bg-[#f7b52b]/[0.04] p-3 animate-guided-attention motion-reduce:animate-none sm:mt-2.5 sm:rounded-[20px] sm:p-3"
-                    >
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#f7b52b] sm:text-sm sm:tracking-[0.16em]">
-                        {phoneCaptured ? "Name optional — bonus unlocked" : "Add details or WhatsApp now"}
-                      </p>
-                      <p className="mt-0.5 text-[11px] leading-snug text-slate-300 sm:mt-1 sm:text-xs sm:leading-5">
-                        Leave it blank to WhatsApp Sean now, or add a real number so we can save the bonus claim.
-                      </p>
-
-                      <div className="mt-2 grid gap-2 sm:grid-cols-2 sm:gap-2.5">
-                        <Input
-                          value={name}
-                          onChange={(event) => setName(event.target.value)}
-                          placeholder="Your name"
-                          className={cn(
-                            "h-10 border-white/15 bg-white/[0.04] text-white placeholder:text-slate-500 transition-colors duration-500",
-                          )}
-                        />
-                        <PhoneInputWithCountry
-                          value={phone}
-                          onChange={(value) => {
-                            setPhone(value);
-                            if (formStatus === "invalid_phone" || formStatus === "error") {
-                              setFormStatus("idle");
-                            }
-                          }}
-                          onFocus={() => setIsPhoneFocused(true)}
-                          onBlur={() => {
-                            setIsPhoneFocused(false);
-                            void handlePhoneCapture();
-                          }}
-                          placeholder={animatedPhonePlaceholder}
-                          className={cn(
-                            "bg-white/[0.04] transition-colors duration-500",
-                            phoneCaptured ? "border-white/15" : "border-[#f7b52b]/55",
-                          )}
-                          ariaLabel="Phone for final claim"
-                        />
-                      </div>
-
-                      <Button
-                        type="submit"
-                        size="lg"
-                        disabled={formStatus === "saving"}
-                        className="mt-2.5 h-11 w-full bg-[#25D366] font-black text-white shadow-[0_18px_48px_rgba(37,211,102,0.32)] hover:bg-[#20bf5d]"
-                      >
-                        <MessageCircle className="mr-2 h-4 w-4" />
-                        {formStatus === "saving"
-                          ? "Saving..."
-                          : formStatus === "saved"
-                            ? "Saved — opening WhatsApp..."
-                            : phoneCaptured
-                              ? "Save & open WhatsApp"
-                              : "Open WhatsApp"}
-                      </Button>
-                      {formStatus === "error" ? (
-                        <p className="mt-2 text-xs text-red-300 sm:text-sm">
-                          Could not save yet. WhatsApp Sean instead.
-                        </p>
-                      ) : null}
-                      {formStatus === "invalid_phone" ? (
-                        <p className="mt-2 text-xs text-red-300 sm:text-sm">
-                          Please enter a real WhatsApp number, or clear the phone field and press the button to WhatsApp Sean.
-                        </p>
-                      ) : null}
-                    </form>
                   </div>
                 ) : null}
               </div>
@@ -3987,32 +4146,48 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
           Guides toward the price-first route without blocking the channel; a
           completed quote bypasses this entirely (see requestWhatsApp). */}
       <Dialog open={preChatOpen} onOpenChange={setPreChatOpen}>
-        <DialogContent className="border-[#f7b52b]/25 bg-[#0c0c0c] text-white sm:max-w-sm">
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-[#f7b52b]/25 bg-[#0c0c0c] text-white sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black">Get an exact price first?</DialogTitle>
+            <DialogTitle className="text-2xl font-black leading-tight">
+              Get your exact price first —{" "}
+              <span className="text-[#f7b52b]">takes 60 seconds</span>
+            </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Build your setup in ~60 seconds and Sean replies on WhatsApp already knowing your car,
-              finish and warranty — no back-and-forth.
+              You're one tap from your real number. Most people get their price before they message.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-2 flex flex-col gap-2">
+
+          <ul className="mt-1 flex flex-col gap-2.5 text-sm text-slate-200">
+            <li className="flex items-start gap-2.5">
+              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
+              <span>Instant price — no waiting for a reply</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
+              <span>Tailored to your car, size &amp; finish</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
+              <span>Then chat with your real number in hand</span>
+            </li>
+          </ul>
+
+          <div className="mt-4 flex flex-col items-center gap-3">
             <Button
               type="button"
               onClick={handlePreChatToCalculator}
-              className="h-12 gap-2 bg-[#f7b52b] font-black text-black hover:bg-[#ffc94f]"
+              className="h-14 w-full gap-2 rounded-xl bg-[#f7b52b] text-base font-black text-black shadow-lg shadow-[#f7b52b]/20 hover:bg-[#ffc94f]"
             >
               {variantConfig.primaryCta}
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5" />
             </Button>
-            <Button
+            <button
               type="button"
-              variant="ghost"
               onClick={handlePreChatContinue}
-              className="h-10 gap-2 border border-[#25D366]/45 bg-transparent font-bold text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
+              className="text-xs font-medium text-slate-500 underline underline-offset-4 transition-colors hover:text-slate-300"
             >
-              <MessageCircle className="h-4 w-4" />
-              Just message Sean
-            </Button>
+              Skip — just message on WhatsApp
+            </button>
           </div>
         </DialogContent>
       </Dialog>
