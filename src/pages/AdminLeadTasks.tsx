@@ -438,12 +438,14 @@ const AdminLeadTasks = () => {
     handleFollowupStatusChange,
     handleLeadAssignment,
     handleLeadDetailsSave,
+    handleLeadSourceSave,
     handleLogOutreach,
     handleQualityChange,
     handleStatusChange,
     isLoading,
     isRefreshing,
     leadDetailsDrafts,
+    leadSourceDrafts,
     leadScheduleDrafts,
     loadLeadDesk,
     noteDrafts,
@@ -457,6 +459,7 @@ const AdminLeadTasks = () => {
     taskSummary,
     updateFollowupDraft,
     updateLeadDetailsDraft,
+    updateLeadSourceDraft,
     updateLeadScheduleDraft,
   } = useLeadTaskBoardData();
   const [searchParams] = useSearchParams();
@@ -699,6 +702,8 @@ const AdminLeadTasks = () => {
                     leadDetailsDrafts={leadDetailsDrafts}
                     setLeadDetailsDrafts={setLeadDetailsDrafts}
                     updateLeadDetailsDraft={updateLeadDetailsDraft}
+                    leadSourceDrafts={leadSourceDrafts}
+                    updateLeadSourceDraft={updateLeadSourceDraft}
                     leadScheduleDrafts={leadScheduleDrafts}
                     updateLeadScheduleDraft={updateLeadScheduleDraft}
                     setLeadScheduleDrafts={setLeadScheduleDrafts}
@@ -713,6 +718,7 @@ const AdminLeadTasks = () => {
                     onCreateFollowup={handleCreateFollowup}
                     onFollowupStatusChange={handleFollowupStatusChange}
                     onLeadDetailsSave={handleLeadDetailsSave}
+                    onLeadSourceSave={handleLeadSourceSave}
                     onRequestDeleteLead={(lead) => setLeadPendingDelete(lead)}
                   />
                 </div>

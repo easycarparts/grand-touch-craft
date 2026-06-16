@@ -138,6 +138,15 @@ export type LeadDetailsDraft = {
   vehicleLabel: string;
 };
 
+export type LeadSourceDraft = {
+  sourcePlatform: string;
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+  externalCampaignName: string;
+  gclid: string;
+};
+
 export type LeadTaskLead = LeadRow & {
   assignedAdmin: AdminUserOption | null;
   displayIntentScore: number;
@@ -403,6 +412,20 @@ export const makeDefaultFollowupDraft = (assignedTo: string | null, currentAdmin
 
 export const makeLeadScheduleDraft = (lead: Pick<LeadRow, "expected_delivery_at">): LeadScheduleDraft => ({
   expectedDeliveryAt: toDatetimeLocalValue(lead.expected_delivery_at),
+});
+
+export const makeLeadSourceDraft = (
+  lead: Pick<
+    LeadRow,
+    "source_platform" | "utm_source" | "utm_medium" | "utm_campaign" | "external_campaign_name" | "gclid"
+  >,
+): LeadSourceDraft => ({
+  sourcePlatform: lead.source_platform || "manual",
+  utmSource: lead.utm_source || "",
+  utmMedium: lead.utm_medium || "",
+  utmCampaign: lead.utm_campaign || "",
+  externalCampaignName: lead.external_campaign_name || "",
+  gclid: lead.gclid || "",
 });
 
 export const makeLeadDetailsDraft = (
@@ -868,6 +891,7 @@ export const useLeadTaskBoardData = () => {
   const [leadScheduleDrafts, setLeadScheduleDrafts] = useState<Record<string, LeadScheduleDraft>>({});
   const [estimateDrafts, setEstimateDrafts] = useState<Record<string, string>>({});
   const [leadDetailsDrafts, setLeadDetailsDrafts] = useState<Record<string, LeadDetailsDraft>>({});
+  const [leadSourceDrafts, setLeadSourceDrafts] = useState<Record<string, LeadSourceDraft>>({});
   const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1261,6 +1285,25 @@ export const useLeadTaskBoardData = () => {
     }));
   }, []);
 
+  const updateLeadSourceDraft = useCallback((lead: LeadRow, patch: Partial<LeadSourceDraft>) => {
+    setLeadSourceDrafts((current) => {
+      const nextDraft = {
+        ...(current[lead.id] ?? makeLeadSourceDraft(lead)),
+        ...patch,
+      };
+
+      if (patch.sourcePlatform === "google") {
+        nextDraft.utmSource = nextDraft.utmSource || "google";
+        nextDraft.utmMedium = nextDraft.utmMedium || "paid_search";
+      }
+
+      return {
+        ...current,
+        [lead.id]: nextDraft,
+      };
+    });
+  }, []);
+
   const handleLeadDetailsSave = useCallback(
     async (lead: LeadTaskLead) => {
       if (!supabase) return;
@@ -1302,6 +1345,54 @@ export const useLeadTaskBoardData = () => {
       void loadLeadDesk(true);
     },
     [leadDetailsDrafts, loadLeadDesk, setSaving, toast],
+  );
+
+  const handleLeadSourceSave = useCallback(
+    async (lead: LeadTaskLead) => {
+      if (!supabase) return;
+
+      const draft = leadSourceDrafts[lead.id] ?? makeLeadSourceDraft(lead);
+      const sourcePlatform = draft.sourcePlatform.trim() || null;
+      const isGoogle = sourcePlatform?.toLowerCase() === "google";
+      const utmSource = draft.utmSource.trim() || (isGoogle ? "google" : null);
+      const utmMedium = draft.utmMedium.trim() || (isGoogle ? "paid_search" : null);
+      const utmCampaign = draft.utmCampaign.trim() || null;
+      const externalCampaignName = draft.externalCampaignName.trim() || utmCampaign;
+      const gclid = draft.gclid.trim() || null;
+      const saveKey = `source:${lead.id}`;
+
+      setSaving(saveKey, true);
+      const { error } = await supabase
+        .from("leads")
+        .update({
+          source_platform: sourcePlatform,
+          utm_source: utmSource,
+          utm_medium: utmMedium,
+          utm_campaign: utmCampaign,
+          external_campaign_name: externalCampaignName,
+          gclid,
+          last_activity_at: new Date().toISOString(),
+        })
+        .eq("id", lead.id);
+      setSaving(saveKey, false);
+
+      if (error) {
+        toast({ title: "Source update failed", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      setLeadSourceDrafts((current) => {
+        const next = { ...current };
+        delete next[lead.id];
+        return next;
+      });
+      toast({
+        title: "Lead source updated",
+        description: isGoogle ? "This lead will now be included in Google Ads reporting." : "The source attribution was saved.",
+      });
+      void loadLeadDesk(true);
+    },
+    [leadSourceDrafts, loadLeadDesk, setSaving, toast],
   );
 
   const handleDeleteLead = useCallback(
@@ -1427,6 +1518,7 @@ export const useLeadTaskBoardData = () => {
     setEstimateDrafts,
     leadDetailsDrafts,
     setLeadDetailsDrafts,
+    leadSourceDrafts,
     savingKeys,
     taskItems,
     taskLeads,
@@ -1436,6 +1528,7 @@ export const useLeadTaskBoardData = () => {
     updateFollowupDraft,
     updateLeadScheduleDraft,
     updateLeadDetailsDraft,
+    updateLeadSourceDraft,
     loadLeadDesk,
     handleAddNote,
     handleCreateFollowup,
@@ -1447,6 +1540,7 @@ export const useLeadTaskBoardData = () => {
     handleQualityChange,
     handleEstimateSave,
     handleLeadDetailsSave,
+    handleLeadSourceSave,
     handleDeleteLead,
   };
 };
