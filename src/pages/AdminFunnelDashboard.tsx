@@ -41,11 +41,17 @@ import { Input } from "@/components/ui/input";
 import { AdminShell } from "@/components/admin/AdminShell";
 import {
   FUNNEL_EVENTS_UPDATED_EVENT,
-  removeStoredFunnelSession,
   readStoredFunnelEvents,
   resetFunnelBrowserState,
   type FunnelEventRecord,
 } from "@/lib/funnel-analytics";
+import {
+  excludeFunnelSessionFromReporting,
+  isEventRecordExcluded,
+  isSessionScopeExcluded,
+  loadFunnelSessionExclusions,
+  type FunnelSessionExclusion,
+} from "@/lib/funnel-session-exclusions";
 import { useToast } from "@/hooks/use-toast";
 import {
   countQuoteSelections,
@@ -858,7 +864,8 @@ const AdminFunnelDashboard = () => {
   const [copiedTrackingUrl, setCopiedTrackingUrl] = useState<string | null>(null);
   const [leadSnapshots, setLeadSnapshots] = useState<LeadSnapshotRecord[]>([]);
   const [rollupSessionRows, setRollupSessionRows] = useState<SessionRow[]>([]);
-  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [sessionExclusions, setSessionExclusions] = useState<FunnelSessionExclusion[]>([]);
+  const [excludingSessionId, setExcludingSessionId] = useState<string | null>(null);
 
   const refreshRecords = async () => {
     if (!supabase) {
@@ -868,7 +875,7 @@ const AdminFunnelDashboard = () => {
       return;
     }
 
-    const [eventsResult, snapshotsResult, rollupsResult] = await Promise.all([
+    const [eventsResult, snapshotsResult, rollupsResult, exclusionsResult] = await Promise.all([
       supabase
         .from("lead_events")
         .select(
@@ -888,6 +895,7 @@ const AdminFunnelDashboard = () => {
         )
         .order("ended_at", { ascending: false })
         .limit(1000),
+      loadFunnelSessionExclusions(),
     ]);
 
     if (eventsResult.error) {
@@ -922,6 +930,8 @@ const AdminFunnelDashboard = () => {
         ((rollupsResult.data ?? []) as Array<Record<string, unknown>>).map(mapRollupToSessionRow),
       );
     }
+
+    setSessionExclusions(exclusionsResult);
 
     setRecords(
       ((eventsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => {
@@ -1041,13 +1051,18 @@ const AdminFunnelDashboard = () => {
   );
   const dashboardBaseline = activeBaseline;
 
+  const visibleRecords = useMemo(
+    () => records.filter((record) => !isEventRecordExcluded(record, sessionExclusions)),
+    [records, sessionExclusions],
+  );
+
   const filteredRecords = useMemo(() => {
     const todayDubai = getDubaiDateKey(new Date());
     const yesterdayDubai = shiftDateKey(todayDubai, -1);
     const last7Start = shiftDateKey(todayDubai, -6);
     const last30Start = shiftDateKey(todayDubai, -29);
 
-    return records.filter((record) => {
+    return visibleRecords.filter((record) => {
       const matchesFunnel =
         selectedFunnel === "all" || record.funnel_name === selectedFunnel;
 
@@ -1087,7 +1102,7 @@ const AdminFunnelDashboard = () => {
 
       return true;
     });
-  }, [records, selectedFunnel, datePreset, customStartDate, customEndDate, activeBaseline]);
+  }, [visibleRecords, selectedFunnel, datePreset, customStartDate, customEndDate, activeBaseline]);
 
   const filteredRollupSessionRows = useMemo(() => {
     const todayDubai = getDubaiDateKey(new Date());
@@ -1096,6 +1111,19 @@ const AdminFunnelDashboard = () => {
     const last30Start = shiftDateKey(todayDubai, -29);
 
     return rollupSessionRows.filter((row) => {
+      if (
+        isSessionScopeExcluded(
+          {
+            sessionId: row.sessionId,
+            landingPageVariant: row.landingPageVariant,
+            pathname: row.pathname,
+          },
+          sessionExclusions,
+        )
+      ) {
+        return false;
+      }
+
       const matchesFunnel = selectedFunnel === "all" || row.funnelName === selectedFunnel;
 
       if (!matchesFunnel) return false;
@@ -1131,6 +1159,7 @@ const AdminFunnelDashboard = () => {
     });
   }, [
     rollupSessionRows,
+    sessionExclusions,
     selectedFunnel,
     datePreset,
     customStartDate,
@@ -1507,54 +1536,40 @@ const AdminFunnelDashboard = () => {
     return filteredRecords.filter((record) => matchesFocusedSessionScope(record, focusedSession));
   }, [filteredRecords, focusedSession, focusedSessionId]);
 
-  const deleteSession = async (scopedKey: string) => {
+  const excludeSessionFromReporting = async (scopedKey: string) => {
     const session = sessionRows.find((row) => row.scopedKey === scopedKey);
     const label = session ? getSessionPrimaryLabel(session) : formatCompactId(scopedKey);
     const confirmed = window.confirm(
-      `Delete funnel session ${label}?\n\nThis removes the tracked funnel events for this session from reporting. It does not delete CRM leads, notes, tasks, or won/lost job history.`,
+      `Hide funnel session ${label} from reporting?\n\nThis removes it from funnel stats and session lists. Raw events stay in the database for audit, and CRM leads are not changed.`,
     );
 
     if (!confirmed) return;
     if (!session) return;
 
-    setDeletingSessionId(scopedKey);
+    setExcludingSessionId(scopedKey);
 
     try {
-      if (supabase) {
-        // Scope by session + page identity only. funnel_name in the DB can still use a legacy
-        // value while the dashboard normalizes v2 traffic to ppf_full_ppf_guided_calculator_v2.
-        const { data, error } = await supabase
-          .from("lead_events")
-          .delete()
-          .eq("session_id", session.sessionId)
-          .eq("landing_page_variant", session.landingPageVariant)
-          .eq("pathname", session.pathname)
-          .select("id");
-        if (error) throw error;
-        if (!data?.length) {
-          throw new Error("No funnel events were deleted for this session scope.");
-        }
-      }
-
-      removeStoredFunnelSession(session.sessionId);
-      setRecords((current) => current.filter((record) => !matchesFocusedSessionScope(record, session)));
-      setRollupSessionRows((current) => current.filter((row) => row.scopedKey !== scopedKey));
+      const exclusions = await excludeFunnelSessionFromReporting({
+        sessionId: session.sessionId,
+        landingPageVariant: session.landingPageVariant,
+        pathname: session.pathname,
+      });
+      setSessionExclusions(exclusions);
       setSelectedSessionId("all");
-      await refreshRecords();
 
       toast({
-        title: "Session deleted",
-        description: `${label} was removed from funnel reporting.`,
+        title: "Session hidden from reporting",
+        description: `${label} will no longer affect funnel stats.`,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown delete error";
+      const message = error instanceof Error ? error.message : "Unknown hide error";
       toast({
-        title: "Session delete failed",
+        title: "Could not hide session",
         description: message,
         variant: "destructive",
       });
     } finally {
-      setDeletingSessionId(null);
+      setExcludingSessionId(null);
     }
   };
 
@@ -2445,11 +2460,11 @@ const AdminFunnelDashboard = () => {
                   variant="outline"
                   size="sm"
                   className="border-red-400/20 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100"
-                  onClick={() => void deleteSession(focusedSession.scopedKey)}
-                  disabled={deletingSessionId === focusedSession.scopedKey}
+                  onClick={() => void excludeSessionFromReporting(focusedSession.scopedKey)}
+                  disabled={excludingSessionId === focusedSession.scopedKey}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  {deletingSessionId === focusedSession.scopedKey ? "Deleting" : "Delete test session"}
+                  {excludingSessionId === focusedSession.scopedKey ? "Hiding" : "Hide from stats"}
                 </Button>
               ) : null}
             </div>
@@ -2890,13 +2905,13 @@ const AdminFunnelDashboard = () => {
                                 className="h-8 border-red-400/20 bg-red-500/10 px-2 text-[11px] text-red-200 hover:bg-red-500/20 hover:text-red-100"
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  void deleteSession(row.scopedKey);
+                                  void excludeSessionFromReporting(row.scopedKey);
                                 }}
-                                disabled={deletingSessionId === row.scopedKey}
-                                title="Delete this session from funnel reporting"
+                                disabled={excludingSessionId === row.scopedKey}
+                                title="Hide this session from funnel reporting and stats"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
-                                <span className="sr-only">Delete session</span>
+                                <span className="sr-only">Hide session from stats</span>
                               </Button>
                             </TableCell>
                           </TableRow>
