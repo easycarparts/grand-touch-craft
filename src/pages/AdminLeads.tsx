@@ -217,11 +217,25 @@ type ManualLeadDraft = {
   vehicleModel: string;
   vehicleYear: string;
   sourcePlatform: string;
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+  externalCampaignName: string;
+  gclid: string;
   leadSourceType: "manual" | "api_import" | "google_sheet_import";
   assignedTo: string;
   notes: string;
   followupDueAt: string;
   followupChannel: FollowupChannel;
+};
+
+type LeadSourceDraft = {
+  sourcePlatform: string;
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+  externalCampaignName: string;
+  gclid: string;
 };
 
 type LeadDetailsDraft = {
@@ -266,6 +280,17 @@ const leadStatusOptions: LeadStatus[] = [
 
 const leadQualityOptions: LeadQuality[] = ["unreviewed", "high", "medium", "low", "spam"];
 const followupChannelOptions: FollowupChannel[] = ["call", "whatsapp", "sms", "email", "manual"];
+const leadSourcePlatformOptions = [
+  { value: "google", label: "Google Ads" },
+  { value: "meta", label: "Meta" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "website", label: "Website" },
+  { value: "whatsapp", label: "WhatsApp direct" },
+  { value: "phone", label: "Phone call" },
+  { value: "walk_in", label: "Walk-in" },
+  { value: "referral", label: "Referral" },
+  { value: "manual", label: "Manual / other" },
+];
 
 const formatTokenLabel = (value: string) =>
   value
@@ -873,11 +898,30 @@ const makeDefaultManualLeadDraft = (currentAdminId?: string): ManualLeadDraft =>
   vehicleModel: "",
   vehicleYear: "",
   sourcePlatform: "walk_in",
+  utmSource: "",
+  utmMedium: "",
+  utmCampaign: "",
+  externalCampaignName: "",
+  gclid: "",
   leadSourceType: "manual",
   assignedTo: currentAdminId || "unassigned",
   notes: "",
   followupDueAt: "",
   followupChannel: "call",
+});
+
+const makeLeadSourceDraft = (
+  lead: Pick<
+    LeadRow,
+    "source_platform" | "utm_source" | "utm_medium" | "utm_campaign" | "external_campaign_name" | "gclid"
+  >,
+): LeadSourceDraft => ({
+  sourcePlatform: lead.source_platform || "manual",
+  utmSource: lead.utm_source || "",
+  utmMedium: lead.utm_medium || "",
+  utmCampaign: lead.utm_campaign || "",
+  externalCampaignName: lead.external_campaign_name || "",
+  gclid: lead.gclid || "",
 });
 
 const makeLeadDetailsDraft = (
@@ -933,6 +977,7 @@ const AdminLeads = () => {
   const [followupDrafts, setFollowupDrafts] = useState<Record<string, FollowupDraft>>({});
   const [estimateDrafts, setEstimateDrafts] = useState<Record<string, string>>({});
   const [leadDetailsDrafts, setLeadDetailsDrafts] = useState<Record<string, LeadDetailsDraft>>({});
+  const [leadSourceDrafts, setLeadSourceDrafts] = useState<Record<string, LeadSourceDraft>>({});
   const [leadScheduleDrafts, setLeadScheduleDrafts] = useState<Record<string, LeadScheduleDraft>>({});
   const [manualLeadDraft, setManualLeadDraft] = useState<ManualLeadDraft>(() =>
     makeDefaultManualLeadDraft(adminProfile?.id),
@@ -1536,6 +1581,31 @@ const AdminLeads = () => {
     }));
   };
 
+  const updateLeadSourceDraft = (
+    lead: Pick<
+      LeadRow,
+      "id" | "source_platform" | "utm_source" | "utm_medium" | "utm_campaign" | "external_campaign_name" | "gclid"
+    >,
+    patch: Partial<LeadSourceDraft>,
+  ) => {
+    setLeadSourceDrafts((current) => {
+      const nextDraft = {
+        ...(current[lead.id] ?? makeLeadSourceDraft(lead)),
+        ...patch,
+      };
+
+      if (patch.sourcePlatform === "google") {
+        nextDraft.utmSource = nextDraft.utmSource || "google";
+        nextDraft.utmMedium = nextDraft.utmMedium || "paid_search";
+      }
+
+      return {
+        ...current,
+        [lead.id]: nextDraft,
+      };
+    });
+  };
+
   const updateLeadScheduleDraft = (
     lead: Pick<LeadRow, "id" | "expected_delivery_at">,
     patch: Partial<LeadScheduleDraft>,
@@ -1733,6 +1803,61 @@ const AdminLeads = () => {
     });
 
     setLeadDetailsDrafts((current) => {
+      const next = { ...current };
+      delete next[lead.id];
+      return next;
+    });
+
+    void loadLeadDesk({ refresh: true });
+  };
+
+  const handleLeadSourceSave = async (lead: DisplayLeadRow) => {
+    if (!supabase) return;
+
+    const draft = leadSourceDrafts[lead.id] ?? makeLeadSourceDraft(lead);
+    const sourcePlatform = draft.sourcePlatform.trim() || null;
+    const isGoogle = sourcePlatform?.toLowerCase() === "google";
+    const utmSource = draft.utmSource.trim() || (isGoogle ? "google" : null);
+    const utmMedium = draft.utmMedium.trim() || (isGoogle ? "paid_search" : null);
+    const utmCampaign = draft.utmCampaign.trim() || null;
+    const externalCampaignName = draft.externalCampaignName.trim() || utmCampaign;
+    const gclid = draft.gclid.trim() || null;
+
+    const saveKey = `source:${lead.id}`;
+    setSaving(saveKey, true);
+
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        source_platform: sourcePlatform,
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_campaign: utmCampaign,
+        external_campaign_name: externalCampaignName,
+        gclid,
+        last_activity_at: new Date().toISOString(),
+      })
+      .eq("id", lead.id);
+
+    setSaving(saveKey, false);
+
+    if (error) {
+      toast({
+        title: "Source update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Lead source updated",
+      description: isGoogle
+        ? "This lead will now be included in Google Ads reporting."
+        : "The source attribution was saved.",
+    });
+
+    setLeadSourceDrafts((current) => {
       const next = { ...current };
       delete next[lead.id];
       return next;
@@ -2078,6 +2203,8 @@ const AdminLeads = () => {
     setSaving(saveKey, true);
 
     const now = new Date().toISOString();
+    const isGoogleLead = manualLeadDraft.sourcePlatform === "google";
+    const utmCampaign = manualLeadDraft.utmCampaign.trim() || null;
     const leadInsert = {
       full_name: manualLeadDraft.fullName.trim() || null,
       phone: manualLeadDraft.phone.trim() || null,
@@ -2086,6 +2213,11 @@ const AdminLeads = () => {
       vehicle_model: manualLeadDraft.vehicleModel.trim() || null,
       vehicle_year: manualLeadDraft.vehicleYear.trim() || null,
       source_platform: manualLeadDraft.sourcePlatform.trim() || "manual",
+      utm_source: manualLeadDraft.utmSource.trim() || (isGoogleLead ? "google" : null),
+      utm_medium: manualLeadDraft.utmMedium.trim() || (isGoogleLead ? "paid_search" : null),
+      utm_campaign: utmCampaign,
+      external_campaign_name: manualLeadDraft.externalCampaignName.trim() || utmCampaign,
+      gclid: manualLeadDraft.gclid.trim() || null,
       lead_source_type: manualLeadDraft.leadSourceType,
       assigned_to: manualLeadDraft.assignedTo === "unassigned" ? null : manualLeadDraft.assignedTo,
       status: "new" as LeadStatus,
@@ -2468,12 +2600,50 @@ const AdminLeads = () => {
                     placeholder="Email"
                     className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
                   />
-                  <Input
+                  <Select
                     value={manualLeadDraft.sourcePlatform}
-                    onChange={(event) =>
-                      setManualLeadDraft((current) => ({ ...current, sourcePlatform: event.target.value }))
+                    onValueChange={(value) =>
+                      setManualLeadDraft((current) => ({
+                        ...current,
+                        sourcePlatform: value,
+                        utmSource: value === "google" && !current.utmSource ? "google" : current.utmSource,
+                        utmMedium: value === "google" && !current.utmMedium ? "paid_search" : current.utmMedium,
+                      }))
                     }
-                    placeholder="walk_in, organic_call, referral..."
+                  >
+                    <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                      <SelectValue placeholder="Source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leadSourcePlatformOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={manualLeadDraft.utmCampaign}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, utmCampaign: event.target.value }))
+                    }
+                    placeholder="Google campaign name (optional)"
+                    className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                  />
+                  <Input
+                    value={manualLeadDraft.externalCampaignName}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, externalCampaignName: event.target.value }))
+                    }
+                    placeholder="External campaign override (optional)"
+                    className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+                  />
+                  <Input
+                    value={manualLeadDraft.gclid}
+                    onChange={(event) =>
+                      setManualLeadDraft((current) => ({ ...current, gclid: event.target.value }))
+                    }
+                    placeholder="GCLID (optional)"
                     className="border-white/10 bg-black/20 text-white placeholder:text-slate-500"
                   />
                   <Input
@@ -2908,6 +3078,8 @@ const AdminLeads = () => {
                               leadDetailsDrafts={leadDetailsDrafts}
                               setLeadDetailsDrafts={setLeadDetailsDrafts}
                               updateLeadDetailsDraft={updateLeadDetailsDraft}
+                              leadSourceDrafts={leadSourceDrafts}
+                              updateLeadSourceDraft={updateLeadSourceDraft}
                               leadScheduleDrafts={leadScheduleDrafts}
                               updateLeadScheduleDraft={updateLeadScheduleDraft}
                               setLeadScheduleDrafts={setLeadScheduleDrafts}
@@ -2922,6 +3094,7 @@ const AdminLeads = () => {
                               onCreateFollowup={handleCreateFollowup}
                               onFollowupStatusChange={handleFollowupStatusChange}
                               onLeadDetailsSave={handleLeadDetailsSave}
+                              onLeadSourceSave={handleLeadSourceSave}
                               onRequestDeleteLead={setLeadPendingDelete}
                             />
                           </TableCell>

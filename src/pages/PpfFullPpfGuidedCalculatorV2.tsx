@@ -95,6 +95,8 @@ type GuidedCalculatorVariantConfig = {
   headlineAccent: string;
   mobileIntro: string;
   desktopIntro: string;
+  campaignIntro?: string;
+  campaignTerms?: string[];
   primaryCta: string;
   secondaryCta: string;
   proofPoints: string[];
@@ -110,13 +112,9 @@ type PpfFullPpfGuidedCalculatorProps = {
 const WHATSAPP_NUMBER = "971567191045";
 const DISPLAY_PHONE = "+971 56 719 1045";
 const TEL_HREF = "tel:+971567191045";
-// Generic, pre-quote WhatsApp tap. Kept as a SECONDARY (observe-only) signal in
-// Google Ads so raw volume is preserved without training Smart Bidding on it.
-const GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO = "AW-17684563059/KqOWCJfDoLAcEPOI1PBB";
-// Post-quote ("qualified") WhatsApp tap — the user has a real AED estimate on
-// screen. This is a PRIMARY (bid) conversion and carries the quote value.
-// "Qualified WhatsApp (post-quote)" conversion action (id 7649703525).
-const GOOGLE_ADS_QUALIFIED_WHATSAPP_SEND_TO = "AW-17684563059/q_bgCOXs1L8cEPOI1PBB";
+// WhatsApp-only taps use a SECONDARY (observe-only) Google Ads action.
+// The primary conversion is the name + phone unlock form.
+const GOOGLE_ADS_SECONDARY_WHATSAPP_SEND_TO = "AW-17684563059/q_bgCOXs1L8cEPOI1PBB";
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
 
 const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVariantConfig> = {
@@ -128,22 +126,25 @@ const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVaria
     calculatorType: "guided_full_ppf",
     pageUrl: "https://www.grandtouchauto.ae/ppf-full-ppf-calculator-guided-v2",
     seo: {
-      title: "Guided Full PPF Quote Dubai | Grand Touch Auto",
+      title: "PPF Dubai Price Calculator | Full Car Paint Protection Film",
       description:
-        "See your full car PPF price in Dubai, build a premium setup step by step, and claim a Grand Touch bonus with Sean on WhatsApp.",
+        "Use the Grand Touch PPF Dubai calculator to estimate full car paint protection film pricing, full body PPF options, STEK film, and your 20% online discount.",
       keywords:
-        "full car PPF price Dubai, guided PPF quote Dubai, premium PPF Dubai, full body PPF Dubai, STEK PPF Dubai, PPF offer Dubai",
-      ogTitle: "Full Car PPF Price Dubai",
+        "ppf dubai, paint protection film dubai, ppf price dubai, ppf cost dubai, full body ppf dubai, full car ppf dubai, full car PPF price Dubai, car ppf dubai, car paint protection film dubai, premium PPF Dubai, STEK PPF Dubai, PPF installation Dubai, PPF installer Dubai",
+      ogTitle: "PPF Dubai Price Calculator",
       ogDescription:
-        "Build your full PPF setup, reveal the starting price, and claim 20% off, pickup, or tint with Sean on WhatsApp.",
+        "Build your full PPF setup, unlock the 20% online discount, and ask Sean to confirm your paint protection film install in Dubai.",
     },
     eyebrow: "Premium PPF - Dubai",
     headline: "Full Car PPF Price",
     headlineAccent: "in Dubai.",
     mobileIntro:
-      "Build your setup, see the starting price, then claim 20% off, free pickup, or window tint with Sean on WhatsApp.",
+      "Build your setup, see the starting PPF Dubai price, then claim 20% off, free pickup, or window tint with Sean on WhatsApp.",
     desktopIntro:
-      "Build your full-body PPF setup, see the starting price, then claim 20% off, free pickup, or window tint with Sean on WhatsApp.",
+      "Use this PPF Dubai calculator to estimate full car paint protection film pricing for your car, SUV, or sports car, then lock in 20% off, free pickup, or window tint with Sean on WhatsApp.",
+    campaignIntro:
+      "Built for Dubai drivers comparing paint protection film, full body PPF, STEK PPF, and full car PPF installation costs.",
+    campaignTerms: ["PPF Dubai", "Paint protection film", "PPF price", "Full body PPF"],
     primaryCta: "See my price (60s)",
     secondaryCta: "WhatsApp Sean",
     proofPoints: ["60-second quote", "No commitment", "Sean reviews each setup"],
@@ -1266,6 +1267,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const viewedSectionsRef = useRef<Set<string>>(new Set());
   const maxScrollPercentRef = useRef(0);
   const resultStepStartedAtRef = useRef<number | null>(null);
+  const googleSubmitLeadConversionTrackedRef = useRef(false);
+  const googleWhatsAppConversionTrackedRef = useRef(false);
 
   const sizeGridRef = useRef<HTMLDivElement>(null);
   const sizeCardRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -1453,6 +1456,30 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       });
     },
     [funnelContext],
+  );
+
+  const trackGoogleSubmitLeadConversion = useCallback(
+    (value?: number) => {
+      if (isTikTokVariant || googleSubmitLeadConversionTrackedRef.current) return;
+      googleSubmitLeadConversionTrackedRef.current = true;
+      trackGoogleAdsConversion(GOOGLE_ADS_SUBMIT_LEAD_SEND_TO, value);
+    },
+    [isTikTokVariant],
+  );
+
+  const trackGoogleSecondaryWhatsAppConversion = useCallback(
+    (value?: number) => {
+      if (
+        isTikTokVariant ||
+        googleSubmitLeadConversionTrackedRef.current ||
+        googleWhatsAppConversionTrackedRef.current
+      ) {
+        return;
+      }
+      googleWhatsAppConversionTrackedRef.current = true;
+      trackGoogleAdsConversion(GOOGLE_ADS_SECONDARY_WHATSAPP_SEND_TO, value);
+    },
+    [isTikTokVariant],
   );
 
   const buildPayload = useCallback(
@@ -1812,12 +1839,6 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       capture_location: "warranty_bonus_lock",
       ...buildPayload(),
     });
-    trackEvent("lead_form_submitted", {
-      form_type: "guided_phone_only",
-      capture_location: "warranty_bonus_lock",
-      ...buildPayload(),
-    });
-
     await captureLeadSnapshot({
       snapshotType: "contact",
       context: funnelContext,
@@ -1931,16 +1952,13 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       });
     }
 
-    // NOTE: top-of-funnel / generic WhatsApp taps intentionally do NOT fire a
-    // Google Ads conversion — they stay analytics-only via the dataLayer/funnel
-    // events above. The only Google Ads conversions are the PRIMARY Submit-lead
-    // (on unlock, see handleUnlockDiscount) and the SECONDARY qualified send (on
-    // the post-quote "Send my locked-in price" button, see handleSendLockedInPrice).
-    // GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO is intentionally retained (now unused).
+    // Google Ads WhatsApp conversion is fired by handleWhatsApp/handleSendLockedInPrice
+    // as a secondary signal only. The submit-lead form remains the single primary conversion.
   };
 
   const handleWhatsApp = (placement: string) => {
     trackWhatsAppContact(placement);
+    trackGoogleSecondaryWhatsAppConversion(estimate ?? undefined);
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
   };
 
@@ -2002,10 +2020,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const handleSendLockedInPrice = () => {
     // Pushes the dataLayer/funnel WhatsApp events for analytics visibility.
     trackWhatsAppContact("result_unlock_send");
-    // SECONDARY Google Ads conversion: the qualified post-quote WhatsApp send.
-    // Submit-lead (on unlock) stays the single PRIMARY; this is configured as a
-    // secondary conversion in the account so it won't affect bidding/double-count.
-    trackGoogleAdsConversion(GOOGLE_ADS_QUALIFIED_WHATSAPP_SEND_TO, targetPrice ?? undefined);
+    trackGoogleSecondaryWhatsAppConversion(targetPrice ?? undefined);
     window.open(buildWhatsAppUrl(buildLockedInWhatsAppMessage()), "_blank", "noopener,noreferrer");
   };
 
@@ -2098,10 +2113,6 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       has_name: true,
       has_phone: true,
     });
-    trackEvent("lead_form_submitted", {
-      form_type: "guided_discount_unlock",
-      ...buildPayload(),
-    });
 
     const result = await captureLeadSnapshot({
       snapshotType: "submit",
@@ -2124,25 +2135,32 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       },
     });
 
-    // New gamification dataLayer event (value = discounted targetPrice).
-    trackEvent("discount_unlocked", {
-      ...buildPayload(),
-      value: targetPrice,
-      currency: "AED",
-      list_price: listPrice,
-      discount_savings: discountSavings,
-    });
+    if (result.ok) {
+      trackEvent("lead_form_submitted", {
+        form_type: "guided_discount_unlock",
+        ...buildPayload(),
+      });
 
-    // Submit-lead PRIMARY conversion — value = discounted targetPrice.
-    if (isTikTokVariant) {
-      trackTikTokSubmitForm({
-        content_name: "TikTok Guided Full PPF Calculator",
-        content_category: "PPF",
+      // New gamification dataLayer event (value = discounted targetPrice).
+      trackEvent("discount_unlocked", {
+        ...buildPayload(),
         value: targetPrice,
         currency: "AED",
+        list_price: listPrice,
+        discount_savings: discountSavings,
       });
-    } else {
-      trackGoogleAdsConversion(GOOGLE_ADS_SUBMIT_LEAD_SEND_TO, targetPrice);
+
+      // Submit-lead PRIMARY conversion - value = discounted targetPrice.
+      if (isTikTokVariant) {
+        trackTikTokSubmitForm({
+          content_name: "TikTok Guided Full PPF Calculator",
+          content_category: "PPF",
+          value: targetPrice,
+          currency: "AED",
+        });
+      } else {
+        trackGoogleSubmitLeadConversion(targetPrice);
+      }
     }
 
     setUnlocking(false);
@@ -2442,6 +2460,25 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                 <p className="mt-3 text-xs leading-5 text-slate-300">
                   {variantConfig.mobileIntro}
                 </p>
+                {variantConfig.campaignIntro ? (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                    <p className="text-[11px] leading-5 text-slate-300">
+                      {variantConfig.campaignIntro}
+                    </p>
+                    {variantConfig.campaignTerms?.length ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {variantConfig.campaignTerms.map((term) => (
+                          <span
+                            key={term}
+                            className="rounded-full border border-[#f7b52b]/25 bg-[#f7b52b]/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#f7b52b]"
+                          >
+                            {term}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className="mt-3 grid grid-cols-3 gap-1.5">
                   {[
@@ -2533,6 +2570,25 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                 <p className="mt-3 max-w-xl text-base leading-7 text-slate-200">
                   {variantConfig.desktopIntro}
                 </p>
+                {variantConfig.campaignIntro ? (
+                  <div className="mt-4 max-w-xl rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
+                    <p className="text-sm leading-6 text-slate-300">
+                      {variantConfig.campaignIntro}
+                    </p>
+                    {variantConfig.campaignTerms?.length ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {variantConfig.campaignTerms.map((term) => (
+                          <span
+                            key={term}
+                            className="rounded-full border border-[#f7b52b]/25 bg-[#f7b52b]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#f7b52b]"
+                          >
+                            {term}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className="mt-4 grid grid-cols-3 gap-2.5">
                   {[

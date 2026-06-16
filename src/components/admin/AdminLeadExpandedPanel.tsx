@@ -57,6 +57,27 @@ type LeadSnapshotSummary = {
   payload: Record<string, unknown>;
 };
 
+type LeadSourceDraft = {
+  sourcePlatform: string;
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+  externalCampaignName: string;
+  gclid: string;
+};
+
+const leadSourcePlatformOptions = [
+  { value: "google", label: "Google Ads" },
+  { value: "meta", label: "Meta" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "website", label: "Website" },
+  { value: "whatsapp", label: "WhatsApp direct" },
+  { value: "phone", label: "Phone call" },
+  { value: "walk_in", label: "Walk-in" },
+  { value: "referral", label: "Referral" },
+  { value: "manual", label: "Manual / other" },
+];
+
 const compactSelectTriggerClass = "h-9 border-white/10 bg-black/20 px-3 text-sm text-white";
 const compactInputClass = "h-9 border-white/10 bg-black/20 px-3 text-sm text-white placeholder:text-slate-500";
 const compactTextareaClass = "min-h-[96px] border-white/10 bg-black/20 text-sm text-white placeholder:text-slate-500";
@@ -84,6 +105,15 @@ const readPayloadNumber = (payload: Record<string, unknown> | null | undefined, 
 
   return null;
 };
+
+const makeLeadSourceDraft = (lead: LeadTaskLead): LeadSourceDraft => ({
+  sourcePlatform: lead.source_platform || "manual",
+  utmSource: lead.utm_source || "",
+  utmMedium: lead.utm_medium || "",
+  utmCampaign: lead.utm_campaign || "",
+  externalCampaignName: lead.external_campaign_name || "",
+  gclid: lead.gclid || "",
+});
 
 const buildCrmActivityItems = (lead: LeadTaskLead, adminUsersById: Map<string, AdminUserOption>) => [
   ...lead.notes.map((note) => {
@@ -140,6 +170,8 @@ export type AdminLeadExpandedPanelProps = {
   leadDetailsDrafts: Record<string, LeadDetailsDraft>;
   setLeadDetailsDrafts: Dispatch<SetStateAction<Record<string, LeadDetailsDraft>>>;
   updateLeadDetailsDraft: (lead: LeadTaskLead, patch: Partial<LeadDetailsDraft>) => void;
+  leadSourceDrafts: Record<string, LeadSourceDraft>;
+  updateLeadSourceDraft: (lead: LeadTaskLead, patch: Partial<LeadSourceDraft>) => void;
   leadScheduleDrafts: Record<string, LeadScheduleDraft>;
   updateLeadScheduleDraft: (lead: LeadTaskLead, patch: Partial<LeadScheduleDraft>) => void;
   setLeadScheduleDrafts: Dispatch<SetStateAction<Record<string, LeadScheduleDraft>>>;
@@ -154,6 +186,7 @@ export type AdminLeadExpandedPanelProps = {
   onCreateFollowup: (lead: LeadTaskLead) => void;
   onFollowupStatusChange: (leadId: string, followupId: string, status: "open" | "done" | "cancelled") => void;
   onLeadDetailsSave: (lead: LeadTaskLead) => void;
+  onLeadSourceSave: (lead: LeadTaskLead) => void;
   onRequestDeleteLead: (lead: LeadTaskLead) => void;
 };
 
@@ -172,6 +205,8 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
     leadDetailsDrafts,
     setLeadDetailsDrafts,
     updateLeadDetailsDraft,
+    leadSourceDrafts,
+    updateLeadSourceDraft,
     leadScheduleDrafts,
     updateLeadScheduleDraft,
     setLeadScheduleDrafts,
@@ -186,10 +221,12 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
     onCreateFollowup,
     onFollowupStatusChange,
     onLeadDetailsSave,
+    onLeadSourceSave,
     onRequestDeleteLead,
   } = props;
 
   const [latestSnapshot, setLatestSnapshot] = useState<LeadSnapshotSummary | null>(null);
+  const leadSourceDraft = leadSourceDrafts[lead.id] ?? makeLeadSourceDraft(lead);
 
   useEffect(() => {
     let cancelled = false;
@@ -1510,9 +1547,102 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                           <span className="text-white">{lead.utm_source || "Not captured"}</span>
                                         </p>
                                         <p>
+                                          <span className="text-slate-500">UTM medium:</span>{" "}
+                                          <span className="text-white">{lead.utm_medium || "Not captured"}</span>
+                                        </p>
+                                        <p>
+                                          <span className="text-slate-500">gclid:</span>{" "}
+                                          <span className="text-white">{lead.gclid || "Not captured"}</span>
+                                        </p>
+                                        <p>
                                           <span className="text-slate-500">fbclid:</span>{" "}
                                           <span className="text-white">{lead.fbclid || "Not captured"}</span>
                                         </p>
+                                      </div>
+                                      <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/5 p-3">
+                                        <p className="text-xs uppercase tracking-[0.16em] text-primary">
+                                          Edit attribution
+                                        </p>
+                                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                          <Select
+                                            value={leadSourceDraft.sourcePlatform}
+                                            onValueChange={(value) =>
+                                              updateLeadSourceDraft(lead, {
+                                                sourcePlatform: value,
+                                                utmSource:
+                                                  value === "google" && !leadSourceDraft.utmSource
+                                                    ? "google"
+                                                    : leadSourceDraft.utmSource,
+                                                utmMedium:
+                                                  value === "google" && !leadSourceDraft.utmMedium
+                                                    ? "paid_search"
+                                                    : leadSourceDraft.utmMedium,
+                                              })
+                                            }
+                                          >
+                                            <SelectTrigger className={compactSelectTriggerClass}>
+                                              <SelectValue placeholder="Source" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {leadSourcePlatformOptions.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                  {option.label}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <Input
+                                            value={leadSourceDraft.utmCampaign}
+                                            onChange={(event) =>
+                                              updateLeadSourceDraft(lead, { utmCampaign: event.target.value })
+                                            }
+                                            placeholder="Campaign name"
+                                            className={compactInputClass}
+                                          />
+                                          <Input
+                                            value={leadSourceDraft.utmSource}
+                                            onChange={(event) =>
+                                              updateLeadSourceDraft(lead, { utmSource: event.target.value })
+                                            }
+                                            placeholder="UTM source"
+                                            className={compactInputClass}
+                                          />
+                                          <Input
+                                            value={leadSourceDraft.utmMedium}
+                                            onChange={(event) =>
+                                              updateLeadSourceDraft(lead, { utmMedium: event.target.value })
+                                            }
+                                            placeholder="UTM medium"
+                                            className={compactInputClass}
+                                          />
+                                          <Input
+                                            value={leadSourceDraft.externalCampaignName}
+                                            onChange={(event) =>
+                                              updateLeadSourceDraft(lead, {
+                                                externalCampaignName: event.target.value,
+                                              })
+                                            }
+                                            placeholder="External campaign override"
+                                            className={compactInputClass}
+                                          />
+                                          <Input
+                                            value={leadSourceDraft.gclid}
+                                            onChange={(event) =>
+                                              updateLeadSourceDraft(lead, { gclid: event.target.value })
+                                            }
+                                            placeholder="GCLID"
+                                            className={compactInputClass}
+                                          />
+                                        </div>
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          className="mt-3 bg-primary text-black hover:bg-primary/90"
+                                          onClick={() => void onLeadSourceSave(lead)}
+                                          disabled={Boolean(savingKeys[`source:${lead.id}`])}
+                                        >
+                                          Save attribution
+                                        </Button>
                                       </div>
                                       <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3">
                                         <p className="text-xs uppercase tracking-[0.16em] text-slate-500">

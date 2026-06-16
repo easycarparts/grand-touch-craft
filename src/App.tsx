@@ -35,6 +35,7 @@ import PpfDubaiQuoteV1 from "./pages/PpfDubaiQuoteV1";
 import PpfTikTokGuidedQuote from "./pages/PpfTikTokGuidedQuote";
 import PpfTikTokGuidedFunnel from "./pages/PpfTikTokGuidedFunnel";
 import AdminFunnelDashboard from "./pages/AdminFunnelDashboard";
+import AdminGoogleAdsDashboard from "./pages/AdminGoogleAdsDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminLeads from "./pages/AdminLeads";
 import AdminLeadTasks from "./pages/AdminLeadTasks";
@@ -130,6 +131,14 @@ function App() {
               element={
                 <RequireAdmin>
                   <AdminFunnelDashboard />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/google-ads-dashboard"
+              element={
+                <RequireAdmin>
+                  <AdminGoogleAdsDashboard />
                 </RequireAdmin>
               }
             />

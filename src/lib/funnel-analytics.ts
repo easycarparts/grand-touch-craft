@@ -103,6 +103,25 @@ const normalizeHash = (value: string) => value.replace(/^#/, "").trim();
 const sanitizePayload = (payload: Record<string, unknown> = {}) =>
   Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
 
+const normalizeFunnelName = ({
+  funnelName,
+  landingPageVariant,
+  pathname,
+}: {
+  funnelName: string;
+  landingPageVariant: string;
+  pathname: string;
+}) => {
+  if (
+    landingPageVariant === "google_full_ppf_guided_calculator_v2" ||
+    pathname.includes("/ppf-full-ppf-calculator-guided-v2")
+  ) {
+    return "ppf_full_ppf_guided_calculator_v2";
+  }
+
+  return funnelName;
+};
+
 const normalizePhoneForIdentity = (value: string | undefined) => (value ?? "").replace(/\D/g, "");
 
 const getLeadScopedIdentity = (context: FunnelTrackingContext, phone: string | undefined) => {
@@ -223,11 +242,14 @@ export const createFunnelTrackingContext = ({
   const sessionStorageRef = getSessionStorageRef();
   const hash = typeof window !== "undefined" ? window.location.hash || "" : "";
 
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const normalizedFunnelName = normalizeFunnelName({ funnelName, landingPageVariant, pathname });
+
   return {
-    funnelName,
+    funnelName: normalizedFunnelName,
     landingPageVariant,
     sourcePlatform: inferSourcePlatform(attribution, defaultSourcePlatform),
-    pathname: typeof window !== "undefined" ? window.location.pathname : "",
+    pathname,
     hash,
     entrySection: normalizeHash(hash) || "default",
     sessionId: getOrCreateId(sessionStorageRef, FUNNEL_SESSION_ID_STORAGE_KEY, "sess"),
@@ -317,6 +339,11 @@ export const clearStoredFunnelEvents = () => {
   } catch {
     // Ignore.
   }
+};
+
+export const removeStoredFunnelSession = (sessionId: string) => {
+  const nextRecords = readStoredFunnelEvents().filter((record) => record.session_id !== sessionId);
+  persistStoredFunnelEvents(nextRecords);
 };
 
 export const resetFunnelBrowserState = () => {

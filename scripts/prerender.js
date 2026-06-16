@@ -255,20 +255,21 @@ const pages = [
   },
   {
     path: "/ppf-full-ppf-calculator-guided",
-    title: "Full Car PPF Price Dubai | Grand Touch Auto",
+    title: "PPF Dubai Price Calculator | Full Car Paint Protection Film",
     description:
-      "See your full car PPF price in Dubai, build a premium setup step by step, and claim 5% off, pickup, or tint with Sean on WhatsApp.",
+      "Use the Grand Touch PPF Dubai calculator to estimate full car paint protection film pricing, full body PPF options, STEK film, and install support.",
     keywords:
-      "full car PPF price Dubai, guided PPF quote Dubai, premium PPF Dubai, full body PPF Dubai, STEK PPF Dubai, PPF offer Dubai",
-    ogTitle: "Full Car PPF Price Dubai | Grand Touch",
+      "ppf dubai, paint protection film dubai, ppf price dubai, ppf cost dubai, full body ppf dubai, full car ppf dubai, full car PPF price Dubai, car ppf dubai, car paint protection film dubai, premium PPF Dubai, STEK PPF Dubai, PPF installation Dubai, PPF installer Dubai",
+    ogTitle: "PPF Dubai Price Calculator | Grand Touch",
     ogDescription:
-      "Choose vehicle size, finish, and warranty package, then reveal a premium PPF setup with a direct WhatsApp bonus claim.",
+      "Choose vehicle size, finish, and warranty package, then reveal a premium paint protection film setup with Sean on WhatsApp.",
     seoBody: `
-        <h1>Full car PPF price in Dubai</h1>
+        <h1>PPF Dubai price calculator</h1>
         <p>Build a premium full-car PPF setup step by step with Grand Touch Auto before asking Sean to confirm the exact price, bonus, and next slot.</p>
+        <p>This guided calculator is built for Dubai drivers comparing paint protection film, PPF price, PPF cost, full body PPF, car paint protection film, STEK PPF, and premium PPF installation in Dubai.</p>
         <h2>What the guided flow covers</h2>
         <ul>
-          <li>Vehicle size selection for full body PPF</li>
+          <li>Vehicle size selection for full body PPF and full car PPF</li>
           <li>Gloss or matte finish direction</li>
           <li>5-year, 10-year, and 12-year warranty packages</li>
           <li>Premium bonuses such as 5% off, pickup and drop-off, tint, ceramic extras, and lifetime inspection support</li>
@@ -278,6 +279,34 @@ const pages = [
     `,
     noscriptExtra:
       "<p><strong>Enable JavaScript</strong> to use the guided full PPF quote flow and WhatsApp handoff.</p>",
+  },
+  {
+    path: "/ppf-full-ppf-calculator-guided-v2",
+    title: "PPF Dubai Price Calculator | Full Car Paint Protection Film",
+    description:
+      "Use the Grand Touch PPF Dubai calculator to estimate full car paint protection film pricing, full body PPF options, STEK film, and your 20% online discount.",
+    keywords:
+      "ppf dubai, paint protection film dubai, ppf price dubai, ppf cost dubai, full body ppf dubai, full car ppf dubai, full car PPF price Dubai, car ppf dubai, car paint protection film dubai, premium PPF Dubai, STEK PPF Dubai, PPF installation Dubai, PPF installer Dubai",
+    ogTitle: "PPF Dubai Price Calculator | Grand Touch",
+    ogDescription:
+      "Choose vehicle size, finish, and warranty package, then unlock a 20% online paint protection film discount with a direct WhatsApp handoff.",
+    seoBody: `
+        <h1>PPF Dubai price calculator</h1>
+        <p>Build a premium full-car PPF setup step by step with Grand Touch Auto, unlock the 20% online discount, and send your locked-in price to Sean on WhatsApp.</p>
+        <p>This V2 funnel is built for Dubai drivers comparing paint protection film, PPF price, PPF cost, full body PPF, car paint protection film, STEK PPF, and premium PPF installation in Dubai.</p>
+        <h2>What the V2 guided flow covers</h2>
+        <ul>
+          <li>Vehicle size selection for full body PPF and full car PPF</li>
+          <li>Gloss or matte finish direction</li>
+          <li>5-year, 10-year, and 12-year warranty packages</li>
+          <li>A name and WhatsApp unlock step for the primary lead conversion</li>
+          <li>A secondary WhatsApp handoff after the price is locked in</li>
+        </ul>
+        <h2>Why this page exists</h2>
+        <p>This Google PPC funnel separates the primary form-submit conversion from the secondary WhatsApp handoff so Google Ads can optimise toward submitted leads.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the guided full PPF V2 quote flow and WhatsApp handoff.</p>",
   },
   {
     path: "/ppf-tiktok-full-car-ppf",

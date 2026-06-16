@@ -64,6 +64,9 @@ export const AdminShell = ({
             <NavLink to="/admin/funnel-dashboard" className={navLinkClass}>
               Funnel dashboard
             </NavLink>
+            <NavLink to="/admin/google-ads-dashboard" className={navLinkClass}>
+              Google Ads
+            </NavLink>
           </div>
         </div>
 

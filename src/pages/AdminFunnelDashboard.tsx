@@ -9,6 +9,7 @@ import {
   MessageCircle,
   MousePointerClick,
   RefreshCw,
+  Trash2,
   Users,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
@@ -40,10 +41,12 @@ import { Input } from "@/components/ui/input";
 import { AdminShell } from "@/components/admin/AdminShell";
 import {
   FUNNEL_EVENTS_UPDATED_EVENT,
+  removeStoredFunnelSession,
   readStoredFunnelEvents,
   resetFunnelBrowserState,
   type FunnelEventRecord,
 } from "@/lib/funnel-analytics";
+import { useToast } from "@/hooks/use-toast";
 import {
   countQuoteSelections,
   formatVideoEngagement,
@@ -96,6 +99,7 @@ const chartConfig = {
 };
 
 type SessionRow = {
+  scopedKey: string;
   sessionId: string;
   visitorId: string;
   startedAt: string;
@@ -160,16 +164,37 @@ type LeadSnapshotRecord = {
   capturedAt: string;
 };
 
+const getSessionScopedKey = ({
+  sessionId,
+  funnelName,
+  landingPageVariant,
+  pathname,
+}: {
+  sessionId: string;
+  funnelName: string;
+  landingPageVariant: string;
+  pathname: string;
+}) => [sessionId, funnelName, landingPageVariant, pathname].join("::");
+
 const mapRollupToSessionRow = (row: Record<string, unknown>): SessionRow => {
+  const sessionId = String(row.session_id || "");
+  const landingPageVariant = String(row.landing_page_variant || "");
+  const pathname = String(row.pathname || "");
+  const funnelName = normalizeFunnelName({
+    funnelName: String(row.funnel_name || ""),
+    landingPageVariant,
+    pathname,
+  });
   const baseRow: SessionRow = {
-    sessionId: String(row.session_id || ""),
+    scopedKey: getSessionScopedKey({ sessionId, funnelName, landingPageVariant, pathname }),
+    sessionId,
     visitorId: String(row.visitor_id || ""),
     startedAt: String(row.started_at || row.ended_at || ""),
     endedAt: String(row.ended_at || row.started_at || ""),
-    funnelName: String(row.funnel_name || ""),
+    funnelName,
     sourcePlatform: String(row.source_platform || ""),
-    landingPageVariant: String(row.landing_page_variant || ""),
-    pathname: String(row.pathname || ""),
+    landingPageVariant,
+    pathname,
     events: Number(row.events || 0),
     leadSubmitted: Boolean(row.lead_submitted),
     whatsappClicked: Boolean(row.whatsapp_clicked),
@@ -320,11 +345,14 @@ const TIKTOK_QUOTE_FUNNEL_TRACKING_URL = `${SITE_ORIGIN}/ppf-tiktok-quote_2?utm_
 const TIKTOK_GUIDED_CALCULATOR_TRACKING_URL = `${SITE_ORIGIN}/ppf-tiktok-full-car-ppf?utm_source=tiktok&utm_medium=paid_social&utm_campaign=tiktok_full_ppf_guided&utm_id=__CAMPAIGN_ID__`;
 /** Google PPC full PPF calculator URL. Funnel filter: `ppf_full_ppf_calculator`. Google may append `gclid`. */
 const FULL_PPF_CALCULATOR_TRACKING_URL = `${SITE_ORIGIN}/ppf-full-ppf-calculator?utm_source=google&utm_medium=paid_search&utm_campaign=ppf_calculator_ab_may_2026`;
+/** Google PPC guided full PPF calculator V2 URL. Funnel filter: `ppf_full_ppf_guided_calculator_v2`. Google may append `gclid`. */
+const FULL_PPF_GUIDED_CALCULATOR_V2_TRACKING_URL = `${SITE_ORIGIN}/ppf-full-ppf-calculator-guided-v2?utm_source=google&utm_medium=paid_search&utm_campaign=ppf_guided_calculator_v2_june_2026`;
 
 const knownFunnelOptions = [
   "ppf_dubai_quote",
   "ppf_full_ppf_calculator",
   "ppf_full_ppf_guided_calculator",
+  "ppf_full_ppf_guided_calculator_v2",
   "ppf_tiktok_guided_calculator",
   "ppf_tiktok_quote",
   "ppf_tiktok_guided_quote",
@@ -353,6 +381,7 @@ const funnelLabels: Record<string, string> = {
   ppf_dubai_quote: "PPF Dubai Quote",
   ppf_full_ppf_calculator: "Full PPF Calculator",
   ppf_full_ppf_guided_calculator: "Guided Full PPF Calculator",
+  ppf_full_ppf_guided_calculator_v2: "Guided Full PPF Calculator V2",
   ppf_tiktok_guided_calculator: "TikTok Guided PPF Calculator",
   ppf_tiktok_quote: "TikTok PPF Quote",
   ppf_tiktok_guided_quote: "TikTok Guided Quote",
@@ -368,6 +397,25 @@ type DashboardDatePreset =
   | "last_7_days"
   | "last_30_days"
   | "custom";
+
+const normalizeFunnelName = ({
+  funnelName,
+  landingPageVariant,
+  pathname,
+}: {
+  funnelName: string;
+  landingPageVariant: string;
+  pathname: string;
+}) => {
+  if (
+    landingPageVariant === "google_full_ppf_guided_calculator_v2" ||
+    pathname.includes("/ppf-full-ppf-calculator-guided-v2")
+  ) {
+    return "ppf_full_ppf_guided_calculator_v2";
+  }
+
+  return funnelName;
+};
 
 const getDubaiDateKey = (date: Date) =>
   new Intl.DateTimeFormat(DUBAI_LOCALE, {
@@ -439,20 +487,25 @@ const getIntentBand = (score: number) => {
 const isFullPpfCalculatorSession = (row: SessionRow) =>
   row.landingPageVariant === "google_full_ppf_calculator" ||
   row.landingPageVariant === "google_full_ppf_guided_calculator" ||
+  row.landingPageVariant === "google_full_ppf_guided_calculator_v2" ||
   row.landingPageVariant === "tiktok_full_ppf_guided_calculator" ||
   row.pathname.includes("/ppf-tiktok-full-car-ppf") ||
+  row.pathname.includes("/ppf-full-ppf-calculator-guided-v2") ||
   row.pathname.includes("/ppf-full-ppf-calculator-guided") ||
   row.pathname.includes("/ppf-full-ppf-calculator");
 
 const isGuidedCalculatorRow = (row: Pick<SessionRow, "landingPageVariant" | "pathname">) =>
   row.landingPageVariant === "google_full_ppf_guided_calculator" ||
+  row.landingPageVariant === "google_full_ppf_guided_calculator_v2" ||
   row.landingPageVariant === "tiktok_full_ppf_guided_calculator" ||
   row.pathname.includes("/ppf-tiktok-full-car-ppf") ||
+  row.pathname.includes("/ppf-full-ppf-calculator-guided-v2") ||
   row.pathname.includes("/ppf-full-ppf-calculator-guided");
 
 const isFullPpfCalculatorSelected = (selectedFunnel: string) =>
   selectedFunnel === "ppf_full_ppf_calculator" ||
   selectedFunnel === "ppf_full_ppf_guided_calculator" ||
+  selectedFunnel === "ppf_full_ppf_guided_calculator_v2" ||
   selectedFunnel === "ppf_tiktok_guided_calculator";
 
 const getDropOffHint = (row: SessionRow) => {
@@ -788,6 +841,7 @@ const summarizePayload = (record: FunnelEventRecord) => {
 };
 
 const AdminFunnelDashboard = () => {
+  const { toast } = useToast();
   const [records, setRecords] = useState<FunnelEventRecord[]>([]);
   const [selectedFunnel, setSelectedFunnel] = useState<string>("all");
   const [selectedSessionId, setSelectedSessionId] = useState<string>("all");
@@ -804,6 +858,7 @@ const AdminFunnelDashboard = () => {
   const [copiedTrackingUrl, setCopiedTrackingUrl] = useState<string | null>(null);
   const [leadSnapshots, setLeadSnapshots] = useState<LeadSnapshotRecord[]>([]);
   const [rollupSessionRows, setRollupSessionRows] = useState<SessionRow[]>([]);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   const refreshRecords = async () => {
     if (!supabase) {
@@ -869,29 +924,37 @@ const AdminFunnelDashboard = () => {
     }
 
     setRecords(
-      ((eventsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
-        id: String(row.external_event_id || row.id),
-        timestamp: String(row.occurred_at),
-        event_name: String(row.event_name),
-        funnel_name: String(row.funnel_name),
-        landing_page_variant: String(row.landing_page_variant || ""),
-        source_platform: String(row.source_platform || ""),
-        pathname: String(row.pathname || ""),
-        session_id: String(row.session_id),
-        visitor_id: String(row.visitor_id || ""),
-        attribution: (row.attribution as FunnelEventRecord["attribution"]) || {
-          utm_source: "",
-          utm_medium: "",
-          utm_campaign: "",
-          utm_term: "",
-          utm_content: "",
-          utm_id: "",
-          gclid: "",
-          fbclid: "",
-          ttclid: "",
-        },
-        payload: (row.payload as FunnelEventRecord["payload"]) || {},
-      })),
+      ((eventsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => {
+        const landingPageVariant = String(row.landing_page_variant || "");
+        const pathname = String(row.pathname || "");
+        return {
+          id: String(row.external_event_id || row.id),
+          timestamp: String(row.occurred_at),
+          event_name: String(row.event_name),
+          funnel_name: normalizeFunnelName({
+            funnelName: String(row.funnel_name),
+            landingPageVariant,
+            pathname,
+          }),
+          landing_page_variant: landingPageVariant,
+          source_platform: String(row.source_platform || ""),
+          pathname,
+          session_id: String(row.session_id),
+          visitor_id: String(row.visitor_id || ""),
+          attribution: (row.attribution as FunnelEventRecord["attribution"]) || {
+            utm_source: "",
+            utm_medium: "",
+            utm_campaign: "",
+            utm_term: "",
+            utm_content: "",
+            utm_id: "",
+            gclid: "",
+            fbclid: "",
+            ttclid: "",
+          },
+          payload: (row.payload as FunnelEventRecord["payload"]) || {},
+        };
+      }),
     );
   };
 
@@ -1088,7 +1151,14 @@ const AdminFunnelDashboard = () => {
     }
 
     for (const record of filteredRecords) {
-      const current = grouped.get(record.session_id) || {
+      const scopedKey = getSessionScopedKey({
+        sessionId: record.session_id,
+        funnelName: record.funnel_name,
+        landingPageVariant: record.landing_page_variant,
+        pathname: record.pathname,
+      });
+      const current = grouped.get(scopedKey) || {
+        scopedKey,
         sessionId: record.session_id,
         visitorId: record.visitor_id,
         startedAt: record.timestamp,
@@ -1262,7 +1332,7 @@ const AdminFunnelDashboard = () => {
         current.lastCheckpointReason = record.payload.checkpoint_reason;
       }
 
-      grouped.set(record.session_id, current);
+      grouped.set(scopedKey, current);
     }
 
     const eventSessionRows = Array.from(grouped.values())
@@ -1321,12 +1391,12 @@ const AdminFunnelDashboard = () => {
 
     const rowsBySession = new Map<string, SessionRow>();
     for (const row of filteredRollupSessionRows) {
-      rowsBySession.set(row.sessionId, row);
+      rowsBySession.set(row.scopedKey, row);
     }
     for (const row of eventSessionRows) {
-      const rollupRow = rowsBySession.get(row.sessionId);
+      const rollupRow = rowsBySession.get(row.scopedKey);
       if (!rollupRow) {
-        rowsBySession.set(row.sessionId, row);
+        rowsBySession.set(row.scopedKey, row);
         continue;
       }
 
@@ -1374,7 +1444,7 @@ const AdminFunnelDashboard = () => {
         lastCheckpointReason: rollupRow.lastCheckpointReason || row.lastCheckpointReason,
       };
 
-      rowsBySession.set(row.sessionId, {
+      rowsBySession.set(row.scopedKey, {
         ...mergedRow,
         intentScore: getIntentScore(mergedRow),
       });
@@ -1410,36 +1480,108 @@ const AdminFunnelDashboard = () => {
   }, [sessionRows, sessionSearch, sessionStatusFilter]);
 
   const focusedSessionId = useMemo(
-    () => (selectedSessionId === "all" ? filteredSessionRows[0]?.sessionId ?? "all" : selectedSessionId),
+    () => (selectedSessionId === "all" ? filteredSessionRows[0]?.scopedKey ?? "all" : selectedSessionId),
     [filteredSessionRows, selectedSessionId],
   );
 
   const focusedSession = useMemo(
-    () => filteredSessionRows.find((row) => row.sessionId === focusedSessionId) ?? null,
+    () => filteredSessionRows.find((row) => row.scopedKey === focusedSessionId) ?? null,
     [filteredSessionRows, focusedSessionId],
   );
 
+  const matchesFocusedSessionScope = (record: FunnelEventRecord, session: SessionRow) =>
+    record.session_id === session.sessionId &&
+    record.funnel_name === session.funnelName &&
+    record.landing_page_variant === session.landingPageVariant &&
+    record.pathname === session.pathname;
+
   const filteredSessionRecords = useMemo(() => {
     if (focusedSessionId === "all") return filteredRecords;
-    return filteredRecords.filter((record) => record.session_id === focusedSessionId);
-  }, [filteredRecords, focusedSessionId]);
+    if (!focusedSession) return [];
+    return filteredRecords.filter((record) => matchesFocusedSessionScope(record, focusedSession));
+  }, [filteredRecords, focusedSession, focusedSessionId]);
 
   const focusedSessionRecords = useMemo(() => {
     if (focusedSessionId === "all") return [];
-    return filteredRecords.filter((record) => record.session_id === focusedSessionId);
-  }, [filteredRecords, focusedSessionId]);
+    if (!focusedSession) return [];
+    return filteredRecords.filter((record) => matchesFocusedSessionScope(record, focusedSession));
+  }, [filteredRecords, focusedSession, focusedSessionId]);
+
+  const deleteSession = async (scopedKey: string) => {
+    const session = sessionRows.find((row) => row.scopedKey === scopedKey);
+    const label = session ? getSessionPrimaryLabel(session) : formatCompactId(scopedKey);
+    const confirmed = window.confirm(
+      `Delete funnel session ${label}?\n\nThis removes the tracked funnel events for this session from reporting. It does not delete CRM leads, notes, tasks, or won/lost job history.`,
+    );
+
+    if (!confirmed) return;
+    if (!session) return;
+
+    setDeletingSessionId(scopedKey);
+
+    try {
+      if (supabase) {
+        // Scope by session + page identity only. funnel_name in the DB can still use a legacy
+        // value while the dashboard normalizes v2 traffic to ppf_full_ppf_guided_calculator_v2.
+        const { data, error } = await supabase
+          .from("lead_events")
+          .delete()
+          .eq("session_id", session.sessionId)
+          .eq("landing_page_variant", session.landingPageVariant)
+          .eq("pathname", session.pathname)
+          .select("id");
+        if (error) throw error;
+        if (!data?.length) {
+          throw new Error("No funnel events were deleted for this session scope.");
+        }
+      }
+
+      removeStoredFunnelSession(session.sessionId);
+      setRecords((current) => current.filter((record) => !matchesFocusedSessionScope(record, session)));
+      setRollupSessionRows((current) => current.filter((row) => row.scopedKey !== scopedKey));
+      setSelectedSessionId("all");
+      await refreshRecords();
+
+      toast({
+        title: "Session deleted",
+        description: `${label} was removed from funnel reporting.`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown delete error";
+      toast({
+        title: "Session delete failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
 
   useEffect(() => {
     if (selectedSessionId === "all") return;
-    if (filteredSessionRows.some((row) => row.sessionId === selectedSessionId)) return;
+    if (filteredSessionRows.some((row) => row.scopedKey === selectedSessionId)) return;
     setSelectedSessionId("all");
   }, [filteredSessionRows, selectedSessionId]);
 
   const totals = useMemo(() => {
     const visitors = countUnique(filteredRecords.map((record) => record.visitor_id));
-    const sessions = countUnique(filteredRecords.map((record) => record.session_id));
+    const sessions = sessionRows.length || countUnique(filteredRecords.map((record) => record.session_id));
     const leadSubmits = filteredRecords.filter((record) => record.event_name === "lead_form_submitted").length;
     const whatsappClicks = filteredRecords.filter((record) => isWhatsappEvent(record.event_name)).length;
+    const sessionsWithIntent = sessionRows.filter((row) => Number.isFinite(row.intentScore));
+    const sessionsWithDuration = sessionRows.filter((row) => Number.isFinite(row.durationMs) && row.durationMs > 0);
+    const averageIntentScore = sessionsWithIntent.length
+      ? Math.round(
+          sessionsWithIntent.reduce((sum, row) => sum + row.intentScore, 0) / sessionsWithIntent.length,
+        )
+      : 0;
+    const averageDurationMs = sessionsWithDuration.length
+      ? Math.round(
+          sessionsWithDuration.reduce((sum, row) => sum + row.durationMs, 0) /
+            sessionsWithDuration.length,
+        )
+      : 0;
 
     return {
       events: filteredRecords.length,
@@ -1447,13 +1589,16 @@ const AdminFunnelDashboard = () => {
       sessions,
       leadSubmits,
       whatsappClicks,
+      averageIntentScore,
+      averageDurationMs,
     };
-  }, [filteredRecords]);
+  }, [filteredRecords, sessionRows]);
 
   const funnelStepData = useMemo(
     () => {
       const activeJourneySteps =
         selectedFunnel === "ppf_full_ppf_guided_calculator" ||
+        selectedFunnel === "ppf_full_ppf_guided_calculator_v2" ||
         selectedFunnel === "ppf_tiktok_guided_calculator"
           ? fullPpfGuidedCalculatorJourneySteps
           : isFullPpfCalculatorSelected(selectedFunnel)
@@ -1790,6 +1935,36 @@ const AdminFunnelDashboard = () => {
               </div>
             </div>
 
+            <div className="rounded-xl border border-primary/25 bg-primary/[0.04] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                Guided V2 calculator URL (Google PPC)
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-400">
+                Use this for the new guided V2 Google test. Sessions bucket under{" "}
+                <span className="font-mono text-white">ppf_full_ppf_guided_calculator_v2</span> so it
+                stays separate from the original guided calculator; <code className="text-primary/90">gclid</code>{" "}
+                and UTMs are captured on first paint.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <code className="min-h-11 min-w-0 flex-1 break-all rounded-lg border border-white/10 bg-black/50 p-3 text-[11px] leading-relaxed text-slate-200">
+                  {FULL_PPF_GUIDED_CALCULATOR_V2_TRACKING_URL}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 shrink-0 border-white/15 bg-black/30 text-white hover:bg-white/10"
+                  onClick={() =>
+                    void handleCopyTrackingUrl(
+                      FULL_PPF_GUIDED_CALCULATOR_V2_TRACKING_URL,
+                      "full_ppf_guided_calculator_v2",
+                    )
+                  }
+                >
+                  {copiedTrackingUrl === "full_ppf_guided_calculator_v2" ? "Copied" : "Copy URL"}
+                </Button>
+              </div>
+            </div>
+
             <div className="rounded-xl border border-white/10 bg-black/25 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                 TikTok tracking URL (production)
@@ -1864,6 +2039,12 @@ const AdminFunnelDashboard = () => {
                 Test TikTok funnel:{" "}
                 <Link className="text-primary hover:underline" to="/ppf-tiktok-quote_2">
                   /ppf-tiktok-quote_2
+                </Link>
+              </span>
+              <span>
+                Test guided V2 calculator:{" "}
+                <Link className="text-primary hover:underline" to="/ppf-full-ppf-calculator-guided-v2">
+                  /ppf-full-ppf-calculator-guided-v2
                 </Link>
               </span>
               <span>
@@ -2134,7 +2315,7 @@ const AdminFunnelDashboard = () => {
           </div>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
           <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
             <div className="flex items-center gap-3">
               <Activity className="h-5 w-5 text-primary" />
@@ -2155,6 +2336,20 @@ const AdminFunnelDashboard = () => {
               <span className="text-sm text-slate-400">Tracked sessions</span>
             </div>
             <p className="mt-4 text-3xl font-semibold text-white">{totals.sessions}</p>
+          </Card>
+          <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
+            <div className="flex items-center gap-3">
+              <Activity className="h-5 w-5 text-primary" />
+              <span className="text-sm text-slate-400">Avg intent</span>
+            </div>
+            <p className="mt-4 text-3xl font-semibold text-white">{totals.averageIntentScore}/100</p>
+          </Card>
+          <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
+            <div className="flex items-center gap-3">
+              <Clock3 className="h-5 w-5 text-primary" />
+              <span className="text-sm text-slate-400">Avg time</span>
+            </div>
+            <p className="mt-4 text-3xl font-semibold text-white">{formatDurationMs(totals.averageDurationMs)}</p>
           </Card>
           <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
             <div className="flex items-center gap-3">
@@ -2240,9 +2435,24 @@ const AdminFunnelDashboard = () => {
               <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Focused session</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">Session detail</h2>
             </div>
-            <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
-              {focusedSession ? getSessionPrimaryLabel(focusedSession) : "No session selected"}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
+                {focusedSession ? getSessionPrimaryLabel(focusedSession) : "No session selected"}
+              </Badge>
+              {focusedSession ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-red-400/20 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100"
+                  onClick={() => void deleteSession(focusedSession.scopedKey)}
+                  disabled={deletingSessionId === focusedSession.scopedKey}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {deletingSessionId === focusedSession.scopedKey ? "Deleting" : "Delete test session"}
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           {focusedSession ? (
@@ -2548,7 +2758,7 @@ const AdminFunnelDashboard = () => {
                 <SelectContent>
                   <SelectItem value="all">Most recent matching session</SelectItem>
                   {filteredSessionRows.map((row) => (
-                    <SelectItem key={row.sessionId} value={row.sessionId}>
+                    <SelectItem key={row.scopedKey} value={row.scopedKey}>
                       {getSessionPrimaryLabel(row)}
                     </SelectItem>
                   ))}
@@ -2573,6 +2783,7 @@ const AdminFunnelDashboard = () => {
                         <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Duration</TableHead>
                         <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Estimate</TableHead>
                         <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Drop-off</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -2582,23 +2793,26 @@ const AdminFunnelDashboard = () => {
                         const sessionStatus = getSessionStatus(row);
                         const intentBand = getIntentBand(row.intentScore);
                         const vehicleIdentity = getVehicleIdentityLabel(row);
-                        const isActive = row.sessionId === focusedSessionId;
+                        const isActive = row.scopedKey === focusedSessionId;
 
                         return (
                           <TableRow
-                            key={row.sessionId}
+                            key={row.scopedKey}
                             className={`cursor-pointer border-white/10 text-xs transition-colors ${
                               isActive
                                 ? "bg-primary/10 hover:bg-primary/15"
                                 : "hover:bg-white/[0.04]"
                             }`}
-                            onClick={() => setSelectedSessionId(row.sessionId)}
+                            onClick={() => setSelectedSessionId(row.scopedKey)}
                           >
                             <TableCell className="py-3 align-top">
                               <div className="space-y-1">
                                 <div className="font-medium text-white">{getSessionPrimaryLabel(row)}</div>
                                 <div className="font-mono text-[11px] text-slate-400">
                                   {formatCompactId(row.sessionId)}
+                                </div>
+                                <div className="max-w-[180px] truncate font-mono text-[10px] text-primary/80">
+                                  {row.funnelName || row.landingPageVariant || "unknown funnel"}
                                 </div>
                                 <div className="text-[11px] text-slate-500">
                                   {getSessionSecondaryLabel(row)}
@@ -2667,6 +2881,23 @@ const AdminFunnelDashboard = () => {
                             </TableCell>
                             <TableCell className="max-w-[240px] py-3 align-top text-[11px] leading-5 text-slate-400">
                               {getDropOffHint(row)}
+                            </TableCell>
+                            <TableCell className="py-3 align-top">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 border-red-400/20 bg-red-500/10 px-2 text-[11px] text-red-200 hover:bg-red-500/20 hover:text-red-100"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void deleteSession(row.scopedKey);
+                                }}
+                                disabled={deletingSessionId === row.scopedKey}
+                                title="Delete this session from funnel reporting"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span className="sr-only">Delete session</span>
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );

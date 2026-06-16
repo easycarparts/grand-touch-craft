@@ -95,6 +95,8 @@ type GuidedCalculatorVariantConfig = {
   headlineAccent: string;
   mobileIntro: string;
   desktopIntro: string;
+  campaignIntro?: string;
+  campaignTerms?: string[];
   primaryCta: string;
   secondaryCta: string;
   proofPoints: string[];
@@ -122,22 +124,25 @@ const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVaria
     calculatorType: "guided_full_ppf",
     pageUrl: "https://www.grandtouchauto.ae/ppf-full-ppf-calculator-guided",
     seo: {
-      title: "Guided Full PPF Quote Dubai | Grand Touch Auto",
+      title: "PPF Dubai Price Calculator | Full Car Paint Protection Film",
       description:
-        "See your full car PPF price in Dubai, build a premium setup step by step, and claim a Grand Touch bonus with Sean on WhatsApp.",
+        "Use the Grand Touch PPF Dubai calculator to estimate full car paint protection film pricing, full body PPF options, STEK film, and install support.",
       keywords:
-        "full car PPF price Dubai, guided PPF quote Dubai, premium PPF Dubai, full body PPF Dubai, STEK PPF Dubai, PPF offer Dubai",
-      ogTitle: "Full Car PPF Price Dubai",
+        "ppf dubai, paint protection film dubai, ppf price dubai, ppf cost dubai, full body ppf dubai, full car ppf dubai, full car PPF price Dubai, car ppf dubai, car paint protection film dubai, premium PPF Dubai, STEK PPF Dubai, PPF installation Dubai, PPF installer Dubai",
+      ogTitle: "PPF Dubai Price Calculator",
       ogDescription:
-        "Build your full PPF setup, reveal the starting price, and claim 5% off, pickup, or tint with Sean on WhatsApp.",
+        "Build your full PPF setup, reveal the starting price, and ask Sean to confirm your paint protection film install in Dubai.",
     },
     eyebrow: "Premium PPF - Dubai",
     headline: "Full Car PPF Price",
     headlineAccent: "in Dubai.",
     mobileIntro:
-      "Build your setup, see the starting price, then claim 5% off, free pickup, or window tint with Sean on WhatsApp.",
+      "Build your setup, see the starting PPF Dubai price, then claim 5% off, free pickup, or window tint with Sean on WhatsApp.",
     desktopIntro:
-      "Build your full-body PPF setup, see the starting price, then claim 5% off, free pickup, or window tint with Sean on WhatsApp.",
+      "Use this PPF Dubai calculator to estimate full car paint protection film pricing for your car, SUV, or sports car, then claim 5% off, free pickup, or window tint with Sean on WhatsApp.",
+    campaignIntro:
+      "Built for Dubai drivers comparing paint protection film, full body PPF, STEK PPF, and full car PPF installation costs.",
+    campaignTerms: ["PPF Dubai", "Paint protection film", "PPF price", "Full body PPF"],
     primaryCta: "Get my quote",
     secondaryCta: "WhatsApp Sean",
     proofPoints: ["60-second quote", "No commitment", "Sean reviews each setup"],
@@ -2266,6 +2271,25 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
                 <p className="mt-3 text-xs leading-5 text-slate-300">
                   {variantConfig.mobileIntro}
                 </p>
+                {variantConfig.campaignIntro ? (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                    <p className="text-[11px] leading-5 text-slate-300">
+                      {variantConfig.campaignIntro}
+                    </p>
+                    {variantConfig.campaignTerms?.length ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {variantConfig.campaignTerms.map((term) => (
+                          <span
+                            key={term}
+                            className="rounded-full border border-[#f7b52b]/25 bg-[#f7b52b]/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#f7b52b]"
+                          >
+                            {term}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className="mt-3 grid grid-cols-3 gap-1.5">
                   {[
@@ -2356,6 +2380,25 @@ const PpfFullPpfGuidedCalculator = ({ variant = "google" }: PpfFullPpfGuidedCalc
                 <p className="mt-3 max-w-xl text-base leading-7 text-slate-200">
                   {variantConfig.desktopIntro}
                 </p>
+                {variantConfig.campaignIntro ? (
+                  <div className="mt-4 max-w-xl rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
+                    <p className="text-sm leading-6 text-slate-300">
+                      {variantConfig.campaignIntro}
+                    </p>
+                    {variantConfig.campaignTerms?.length ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {variantConfig.campaignTerms.map((term) => (
+                          <span
+                            key={term}
+                            className="rounded-full border border-[#f7b52b]/25 bg-[#f7b52b]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#f7b52b]"
+                          >
+                            {term}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className="mt-4 grid grid-cols-3 gap-2.5">
                   {[
