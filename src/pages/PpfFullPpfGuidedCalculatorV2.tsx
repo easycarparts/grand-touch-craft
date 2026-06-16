@@ -114,7 +114,7 @@ const DISPLAY_PHONE = "+971 56 719 1045";
 const TEL_HREF = "tel:+971567191045";
 // WhatsApp-only taps use a SECONDARY (observe-only) Google Ads action.
 // The primary conversion is the name + phone unlock form.
-const GOOGLE_ADS_SECONDARY_WHATSAPP_SEND_TO = "AW-17684563059/q_bgCOXs1L8cEPOI1PBB";
+const GOOGLE_ADS_PRE_FORM_WHATSAPP_SEND_TO = "AW-17684563059/q_bgCOXs1L8cEPOI1PBB";
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
 
 const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVariantConfig> = {
@@ -1448,11 +1448,16 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const canUnlock = name.trim().length >= 2 && phoneCaptured;
 
   const trackEvent = useCallback(
-    (eventName: string, payload: Record<string, unknown> = {}) => {
+    (
+      eventName: string,
+      payload: Record<string, unknown> = {},
+      options: { emitToTagManagers?: boolean } = {},
+    ) => {
       trackFunnelEvent({
         eventName,
         context: funnelContext,
         payload,
+        emitToTagManagers: options.emitToTagManagers,
       });
     },
     [funnelContext],
@@ -1467,7 +1472,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     [isTikTokVariant],
   );
 
-  const trackGoogleSecondaryWhatsAppConversion = useCallback(
+  const trackGooglePreFormWhatsAppConversion = useCallback(
     (value?: number) => {
       if (
         isTikTokVariant ||
@@ -1477,7 +1482,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
         return;
       }
       googleWhatsAppConversionTrackedRef.current = true;
-      trackGoogleAdsConversion(GOOGLE_ADS_SECONDARY_WHATSAPP_SEND_TO, value);
+      trackGoogleAdsConversion(GOOGLE_ADS_PRE_FORM_WHATSAPP_SEND_TO, value);
     },
     [isTikTokVariant],
   );
@@ -1936,10 +1941,14 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       ...buildPayload(),
     };
 
-    trackEvent("whatsapp_click", eventPayload);
+    // Keep V2 WhatsApp behaviour visible in admin/Supabase without pushing the
+    // generic event names into Google tag/GTM, where old conversion rules can
+    // turn every WhatsApp tap into an extra Google Ads conversion.
+    trackEvent("whatsapp_click", eventPayload, { emitToTagManagers: false });
     trackEvent(
       isSelectedSetupClick ? "selected_price_whatsapp_click" : "general_whatsapp_click",
       eventPayload,
+      { emitToTagManagers: false },
     );
 
     if (isTikTokVariant) {
@@ -1952,13 +1961,13 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       });
     }
 
-    // Google Ads WhatsApp conversion is fired by handleWhatsApp/handleSendLockedInPrice
-    // as a secondary signal only. The submit-lead form remains the single primary conversion.
+    // Google Ads WhatsApp conversion is fired explicitly by handleWhatsApp only
+    // for pre-form WhatsApp bypasses. Post-submit handoff stays analytics-only.
   };
 
   const handleWhatsApp = (placement: string) => {
     trackWhatsAppContact(placement);
-    trackGoogleSecondaryWhatsAppConversion(estimate ?? undefined);
+    trackGooglePreFormWhatsAppConversion(estimate ?? undefined);
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
   };
 
@@ -2018,9 +2027,9 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   };
 
   const handleSendLockedInPrice = () => {
-    // Pushes the dataLayer/funnel WhatsApp events for analytics visibility.
+    // Analytics/admin only. The form submit already captured the lead, so the
+    // post-submit WhatsApp handoff must not fire a Google Ads conversion.
     trackWhatsAppContact("result_unlock_send");
-    trackGoogleSecondaryWhatsAppConversion(targetPrice ?? undefined);
     window.open(buildWhatsAppUrl(buildLockedInWhatsAppMessage()), "_blank", "noopener,noreferrer");
   };
 

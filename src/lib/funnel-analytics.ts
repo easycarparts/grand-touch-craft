@@ -68,6 +68,7 @@ type TrackFunnelEventInput = {
   privatePayload?: Record<string, unknown>;
   metaStandardEvent?: MetaStandardEvent;
   metaPayload?: Record<string, unknown>;
+  emitToTagManagers?: boolean;
 };
 
 const FUNNEL_EVENT_STORAGE_KEY = "grand-touch-funnel-events-v1";
@@ -438,6 +439,7 @@ export const trackFunnelEvent = ({
   privatePayload = {},
   metaStandardEvent,
   metaPayload,
+  emitToTagManagers = true,
 }: TrackFunnelEventInput): FunnelEventRecord => {
   const cleanPayload = sanitizePayload(payload);
   const cleanPrivatePayload = sanitizePayload(privatePayload);
@@ -486,25 +488,27 @@ export const trackFunnelEvent = ({
       ...cleanPayload,
     });
 
-    window.dataLayer = window.dataLayer || [];
-    try {
-      window.dataLayer.push({
-        event: eventName,
-        ...eventPayload,
-      });
-    } catch (error) {
-      console.warn("Failed to push funnel event to dataLayer", error);
-    }
-
-    if (window.gtag) {
+    if (emitToTagManagers) {
+      window.dataLayer = window.dataLayer || [];
       try {
-        window.gtag("event", eventName, eventPayload);
+        window.dataLayer.push({
+          event: eventName,
+          ...eventPayload,
+        });
       } catch (error) {
-        console.warn("Failed to send funnel event to gtag", error);
+        console.warn("Failed to push funnel event to dataLayer", error);
+      }
+
+      if (window.gtag) {
+        try {
+          window.gtag("event", eventName, eventPayload);
+        } catch (error) {
+          console.warn("Failed to send funnel event to gtag", error);
+        }
       }
     }
 
-    if (window.fbq) {
+    if (emitToTagManagers && window.fbq) {
       const cleanMetaPayload = sanitizePayload({
         funnel_name: context.funnelName,
         landing_page_variant: context.landingPageVariant,
