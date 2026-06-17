@@ -24,6 +24,7 @@ function getArticleSlug(id: number) {
     11: "ppf-warranty-claims-dubai",
     12: "ppf-cost-dubai-pricing-guide",
     13: "matte-vs-gloss-ppf-dubai",
+    14: "nissan-patrol-ppf-dubai",
   };
   return slugMap[id] ?? `article-${id}`;
 }
@@ -207,6 +208,20 @@ const blogPosts = [
     readTime: "8 min read",
     category: "Protection",
     image: "/ppf-featured-ppf-dubai-full-front-vs-full-body-option-1.png",
+    featured: false,
+  },
+  {
+    id: 14,
+    title: "Nissan Patrol PPF in Dubai: Coverage, Cost Factors, and Finish Choices",
+    excerpt:
+      "A practical Dubai guide for Nissan Patrol owners comparing front PPF, full body PPF, gloss or matte film, and quote factors before booking.",
+    content:
+      "A Nissan Patrol is exactly the kind of SUV where PPF needs to be planned properly.",
+    author: "Sean, Grand Touch Auto",
+    publishedAt: "2026-06-17",
+    readTime: "8 min read",
+    category: "Protection",
+    image: "/ppf-size-suv-nissan-patrol-gloss.png",
     featured: false,
   },
 ];

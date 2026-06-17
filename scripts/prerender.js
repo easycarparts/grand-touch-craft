@@ -232,6 +232,20 @@ const blogArticlePages = [
       "How finish choice affects quote conversations",
     ],
   }),
+  makeBlogArticlePage({
+    slug: "nissan-patrol-ppf-dubai",
+    title: "Nissan Patrol PPF in Dubai: Coverage, Cost Factors, and Finish Choices",
+    description:
+      "A practical Dubai guide for Nissan Patrol owners comparing front PPF, full body PPF, gloss or matte film, and quote factors before booking.",
+    keywords:
+      "Nissan Patrol PPF Dubai, SUV PPF Dubai, car PPF Dubai, paint protection film Dubai, luxury SUV PPF, PPF quote Dubai",
+    image: "/ppf-size-suv-nissan-patrol-gloss.png",
+    highlights: [
+      "When full front PPF makes sense for a Nissan Patrol",
+      "When full body PPF is worth considering on a large Dubai SUV",
+      "How gloss, matte, prep, and vehicle size affect the quote",
+    ],
+  }),
 ];
 
 const g700CustomizerPage = {

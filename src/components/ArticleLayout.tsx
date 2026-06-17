@@ -219,6 +219,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       11: 'ppf-warranty-claims-dubai',
       12: 'ppf-cost-dubai-pricing-guide',
       13: 'matte-vs-gloss-ppf-dubai',
+      14: 'nissan-patrol-ppf-dubai',
     };
     return slugMap[id] || `article-${id}`;
   };
