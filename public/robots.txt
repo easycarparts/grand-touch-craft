@@ -19,7 +19,12 @@ Crawl-delay: 1
 # Sitemap
 Sitemap: https://www.grandtouchauto.ae/sitemap.xml
 
-# Disallow admin areas (if any)
+# Disallow admin, backend, and internal pages
 Disallow: /admin/
 Disallow: /api/
 Disallow: /private/
+Disallow: /partners/
+Disallow: /partner/
+Disallow: /thank-you
+Disallow: /thankyou
+Disallow: /bookings
