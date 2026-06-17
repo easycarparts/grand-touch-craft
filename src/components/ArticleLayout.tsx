@@ -30,6 +30,8 @@ type CrossLinkDef = { to: string; label: string; skipIds?: number[] };
 function crossLinksForArticle(articleId: number, category: string): { to: string; label: string }[] {
   const items: CrossLinkDef[] = [
     { to: "/ppf-cost-calculator", label: "PPF cost calculator Dubai" },
+    { to: "/ppf-full-ppf-calculator-guided-v2", label: "Guided PPF price calculator" },
+    { to: "/ppf-dubai-quote", label: "Request a PPF Dubai quote" },
     { to: "/blog/ppf-vs-ceramic-dubai", label: "PPF vs ceramic in Dubai" },
   ];
   if (category === "Detailing") {
@@ -41,6 +43,7 @@ function crossLinksForArticle(articleId: number, category: string): { to: string
     );
   } else if (category === "Customization") {
     items.push(
+      { to: "/g700-customizer", label: "G700 PPF and customization tool" },
       { to: "/blog/custom-vinyl-wraps", label: "Custom vinyl wraps guide", skipIds: [4] },
       { to: "/blog/ppf-vs-ceramic-coating", label: "PPF vs ceramic coating (comparison)" },
       { to: "/blog/matte-vs-gloss-ppf-dubai", label: "Gloss vs matte PPF in Dubai" },
@@ -447,11 +450,23 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
               <Card className="p-6 md:p-7 bg-card/50 border-border/60">
                 <h3 className="text-lg font-semibold mb-2">Next step for PPF planning</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Use the calculator to estimate your range, then compare key guides before confirming.
+                  Use the calculator or guided quote flow to estimate your range, then compare key guides before confirming.
                 </p>
                 <div className="space-y-2 text-sm mb-5">
                   <Link to="/ppf-cost-calculator" className="text-primary hover:underline block">
                     PPF cost calculator Dubai
+                  </Link>
+                  <Link to="/ppf-full-ppf-calculator-guided-v2" className="text-primary hover:underline block">
+                    Guided PPF price calculator V2
+                  </Link>
+                  <Link to="/ppf-full-ppf-calculator-guided" className="text-primary hover:underline block">
+                    Guided PPF price calculator
+                  </Link>
+                  <Link to="/ppf-dubai-quote" className="text-primary hover:underline block">
+                    Request a PPF Dubai quote
+                  </Link>
+                  <Link to="/g700-customizer" className="text-primary hover:underline block">
+                    Jetour G700 PPF customizer
                   </Link>
                   <Link to="/blog/ppf-dubai-full-front-vs-full-body" className="text-primary hover:underline block">
                     Front vs full body coverage guide
@@ -469,9 +484,14 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
                     How long PPF lasts in Dubai heat
                   </Link>
                 </div>
-                <Button asChild>
-                  <Link to="/ppf-cost-calculator">Get your PPF estimate</Link>
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button asChild>
+                    <Link to="/ppf-full-ppf-calculator-guided-v2">Use guided PPF calculator</Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link to="/ppf-cost-calculator">Get quick PPF estimate</Link>
+                  </Button>
+                </div>
               </Card>
             </div>
           ) : null}

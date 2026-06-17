@@ -17,6 +17,252 @@ function escapeAttr(text) {
 
 const baseUrl = "https://www.grandtouchauto.ae";
 
+function makeBlogArticlePage({
+  slug,
+  title,
+  description,
+  keywords,
+  image,
+  highlights,
+}) {
+  return {
+    path: `/blog/${slug}`,
+    title: `${title} | Grand Touch Auto Blog`,
+    description,
+    keywords,
+    ogTitle: title,
+    ogDescription: description,
+    image,
+    ogImageAlt: `${title} - Grand Touch Auto Dubai`,
+    seoBody: `
+        <h1>${title}</h1>
+        <p>${description}</p>
+        <h2>What this Dubai guide covers</h2>
+        <ul>
+          ${highlights.map((item) => `<li>${item}</li>`).join("\n          ")}
+        </ul>
+        <h2>Plan your next step</h2>
+        <p>Compare the related Grand Touch Auto guides, use the PPF cost calculator for a practical estimate, or request a direct PPF quote when you are ready to speak with Sean.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to read the full article, browse related guides, and use the quote tools.</p>",
+  };
+}
+
+const blogArticlePages = [
+  makeBlogArticlePage({
+    slug: "ceramic-coating-guide",
+    title: "The Complete Guide to Ceramic Coating: Protection That Lasts",
+    description:
+      "Learn how ceramic coating protects gloss, makes washing easier, and fits into a Dubai paint protection plan for luxury vehicles.",
+    keywords:
+      "ceramic coating Dubai, car ceramic coating Dubai, luxury car detailing Dubai, paint protection Dubai",
+    image: "/service-ceramic.jpg",
+    highlights: [
+      "What ceramic coating does and what it does not do",
+      "Where ceramic coating fits next to PPF",
+      "Maintenance expectations for Dubai heat and dust",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "ppf-vs-ceramic-coating",
+    title: "Paint Protection Film vs Ceramic Coating: Which is Right for You?",
+    description:
+      "Compare paint protection film and ceramic coating so you can choose the right protection for chips, gloss, washing, and budget.",
+    keywords:
+      "PPF vs ceramic coating Dubai, paint protection film Dubai, ceramic coating Dubai, car paint protection Dubai",
+    image: "/blog-hero-ppf-vs-ceramic-comparison.png",
+    highlights: [
+      "The difference between impact protection and gloss protection",
+      "When PPF is the correct first layer",
+      "When ceramic coating is enough for your car",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "paint-correction-techniques",
+    title: "Advanced Paint Correction Techniques for Luxury Vehicles",
+    description:
+      "Understand professional paint correction for luxury cars in Dubai, including swirl removal, gloss restoration, and prep before coating or PPF.",
+    keywords:
+      "paint correction Dubai, luxury car detailing Dubai, swirl removal Dubai, car polish Dubai",
+    image: "/service-correction.jpg",
+    highlights: [
+      "Why correction quality affects the final finish",
+      "How prep changes ceramic coating and PPF results",
+      "What luxury car owners should inspect before booking",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "custom-vinyl-wraps",
+    title: "Custom Vinyl Wraps: Transforming Your Vehicle's Appearance",
+    description:
+      "Explore custom vinyl wraps, finish changes, and how wraps compare with colour PPF for Dubai drivers who want a new look.",
+    keywords:
+      "vinyl wrap Dubai, custom car wrap Dubai, colour PPF Dubai, matte wrap Dubai",
+    image: "/service-wrap.jpg",
+    highlights: [
+      "How wraps change appearance without repainting",
+      "Where colour PPF may be a better premium option",
+      "Finish and maintenance considerations in Dubai",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "performance-tuning",
+    title: "Performance Tuning: Unlocking Your Engine's Potential",
+    description:
+      "A practical guide to professional performance tuning, ECU optimisation, and supporting upgrades for Dubai performance cars.",
+    keywords:
+      "performance tuning Dubai, ECU tuning Dubai, luxury car performance Dubai, car upgrades Dubai",
+    image: "/service-performance.jpg",
+    highlights: [
+      "Why tuning should be matched to the car and driving use",
+      "Supporting maintenance before power upgrades",
+      "How exterior protection fits performance builds",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "classic-car-restoration",
+    title: "Classic Car Restoration: Bringing History Back to Life",
+    description:
+      "See how classic car restoration combines bodywork, paint, detailing, and careful protection planning for Dubai collectors.",
+    keywords:
+      "classic car restoration Dubai, car restoration Dubai, classic car paint Dubai, restoration workshop Dubai",
+    image: "/service-restoration.jpg",
+    highlights: [
+      "How restoration moves from inspection to finish",
+      "Why paint and trim choices need planning",
+      "Where PPF or ceramic coating can protect restored paint",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "is-ppf-worth-it-dubai",
+    title: "Is PPF Worth the Investment for Dubai Car Owners?",
+    description:
+      "A Dubai-focused look at whether paint protection film is worth it for new cars, luxury SUVs, daily drivers, and long-term owners.",
+    keywords:
+      "is PPF worth it Dubai, PPF Dubai, car PPF Dubai, new car PPF Dubai, luxury car PPF Dubai",
+    image: "/blog-hero-ppf-worth-dubai.png",
+    highlights: [
+      "The Dubai risks that make PPF more relevant",
+      "When full body PPF is worth considering",
+      "How to compare PPF cost against ownership goals",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "ppf-vs-ceramic-dubai",
+    title: "PPF vs Ceramic in Dubai: Which One Do You Really Need?",
+    description:
+      "Understand the real difference between PPF and ceramic coating in Dubai so you choose the right protection for heat, sand, chips, and gloss.",
+    keywords:
+      "PPF vs ceramic Dubai, paint protection film Dubai, ceramic coating Dubai, Dubai heat paint protection",
+    image: "/blog-hero-ppf-ceramic-dubai-choice.png",
+    highlights: [
+      "Why PPF and ceramic solve different problems",
+      "How Dubai heat, sand, and road use change the decision",
+      "When to combine both for premium protection",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "ppf-dubai-full-front-vs-full-body",
+    title: "Full Front vs Full Body PPF in Dubai: Which Coverage Actually Makes Sense?",
+    description:
+      "Compare full front and full body PPF coverage in Dubai so you choose the right protection for your car, budget, and ownership goals.",
+    keywords:
+      "full front PPF Dubai, full body PPF Dubai, car PPF Dubai, PPF coverage Dubai, paint protection film Dubai",
+    image: "/ppf-featured-ppf-dubai-full-front-vs-full-body-option-1.png",
+    highlights: [
+      "What full front PPF usually covers",
+      "When full body PPF is worth the extra spend",
+      "How Dubai roads and parking affect coverage choice",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "ppf-longevity-dubai-heat",
+    title: "How Long Does PPF Actually Last in Dubai Heat?",
+    description:
+      "Set realistic expectations for paint protection film durability in Dubai heat, UV, sand, washing, and daily driving.",
+    keywords:
+      "PPF warranty Dubai, PPF maintenance Dubai, Dubai heat paint protection, PPF longevity Dubai",
+    image: "/ppf-featured-ppf-longevity-dubai-heat-option-1.png",
+    highlights: [
+      "How heat and UV affect film over time",
+      "Maintenance habits that help PPF last longer",
+      "When inspection or warranty support matters",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "ppf-warranty-claims-dubai",
+    title: "PPF Warranty Claims in Dubai: What Actually Gets Covered?",
+    description:
+      "Learn what PPF warranty claims usually cover in Dubai, what installers need to see, and how to avoid avoidable warranty issues.",
+    keywords:
+      "PPF warranty Dubai, paint protection film warranty Dubai, PPF installer Dubai, PPF maintenance Dubai",
+    image: "/ppf-featured-ppf-warranty-claims-dubai.png",
+    highlights: [
+      "Common PPF warranty coverage issues",
+      "What documentation helps a claim",
+      "Why install quality matters before warranty terms",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "ppf-cost-dubai-pricing-guide",
+    title: "PPF Cost in Dubai: Complete Pricing Guide for Luxury Cars 2026",
+    description:
+      "Get real PPF pricing context for Dubai luxury cars, including coverage levels, vehicle size, film choice, and quote quality.",
+    keywords:
+      "PPF cost Dubai, PPF price Dubai, paint protection film Dubai price, car PPF Dubai, luxury car PPF Dubai",
+    image: "/ppf-featured-ppf-cost-dubai-pricing-guide-option-1.png",
+    highlights: [
+      "What drives PPF price in Dubai",
+      "How full front and full body pricing compare",
+      "How to spot a fair quote versus a risky cheap quote",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "matte-vs-gloss-ppf-dubai",
+    title: "Gloss vs Matte PPF in Dubai: Which Finish Should You Choose?",
+    description:
+      "Compare gloss and matte PPF in Dubai so you can choose the finish that fits your car, your style, and your real-world use.",
+    keywords:
+      "matte PPF Dubai, gloss PPF Dubai, colour PPF Dubai, car PPF Dubai, STEK PPF Dubai",
+    image: "/ppf-featured-ppf-dubai-full-front-vs-full-body-option-1.png",
+    highlights: [
+      "How gloss and matte PPF change the car visually",
+      "Which finish is easier to live with in Dubai",
+      "How finish choice affects quote conversations",
+    ],
+  }),
+];
+
+const g700CustomizerPage = {
+  path: "/g700-customizer",
+  title: "G700 PPF & Customization Dubai | Grand Touch Auto",
+  description:
+    "Compare gloss or matte PPF, blackout or paint-matched trim, accessories, and pricing direction for your Jetour G700 before requesting a quote in Dubai.",
+  keywords:
+    "G700 PPF Dubai, Jetour G700 PPF Dubai, G700 customizer Dubai, G700 accessories Dubai, G700 blackout package Dubai, G700 matte PPF Dubai, G700 gloss PPF Dubai",
+  ogTitle: "G700 PPF & Customization Dubai",
+  ogDescription:
+    "Compare colours, gloss or matte PPF, blackout trim, paint-matched options, and G700 accessories before sending your build to Grand Touch Auto.",
+  image: "/g700-orange.png",
+  ogImageAlt: "Jetour G700 PPF and customization in Dubai",
+  seoBody: `
+        <h1>Jetour G700 PPF and customization in Dubai</h1>
+        <p>Use the Grand Touch G700 customizer to compare gloss PPF, matte PPF, blackout trim, paint-matched finishes, accessories, and quote direction before speaking with Sean.</p>
+        <h2>What the G700 customizer covers</h2>
+        <ul>
+          <li>Gloss and matte PPF directions for the Jetour G700</li>
+          <li>Blackout and paint-matched trim concepts</li>
+          <li>Accessory ideas including roof, lighting, sill, step, and storage upgrades</li>
+          <li>Direct WhatsApp quote handoff for the selected build</li>
+        </ul>
+        <h2>Related PPF planning</h2>
+        <p>G700 owners can also compare PPF pricing, full body protection, and Dubai heat protection through the Grand Touch PPF calculators and blog guides.</p>
+    `,
+  noscriptExtra:
+    "<p><strong>Enable JavaScript</strong> to use the interactive G700 customizer and send your selected build.</p>",
+};
+
 const pages = [
   {
     path: "/",
@@ -173,6 +419,8 @@ const pages = [
     noscriptExtra:
       "<p><strong>Enable JavaScript</strong> to browse all articles and related recommendations.</p>",
   },
+  g700CustomizerPage,
+  ...blogArticlePages,
   {
     path: "/ppf-cost-calculator",
     title: "PPF Cost Calculator Dubai | Full Body & Front PPF Price Estimate",
@@ -465,6 +713,27 @@ function applyPage(html, page) {
     /<meta property="og:description" content="[^"]*" \/>/,
     `<meta property="og:description" content="${escapeAttr(page.ogDescription)}" />`
   );
+  if (page.image) {
+    const image = page.image.startsWith("http") ? page.image : `${baseUrl}${page.image}`;
+    out = out.replace(
+      /<meta property="og:image" content="[^"]*" \/>/,
+      `<meta property="og:image" content="${escapeAttr(image)}" />`
+    );
+    out = out.replace(
+      /<meta name="twitter:image" content="[^"]*" \/>/,
+      `<meta name="twitter:image" content="${escapeAttr(image)}" />`
+    );
+  }
+  if (page.ogImageAlt) {
+    out = out.replace(
+      /<meta property="og:image:alt" content="[^"]*" \/>/,
+      `<meta property="og:image:alt" content="${escapeAttr(page.ogImageAlt)}" />`
+    );
+    out = out.replace(
+      /<meta name="twitter:image:alt" content="[^"]*" \/>/,
+      `<meta name="twitter:image:alt" content="${escapeAttr(page.ogImageAlt)}" />`
+    );
+  }
   out = out.replace(
     /<meta property="og:url" content="[^"]*" \/>/,
     `<meta property="og:url" content="${escapeAttr(canonical)}" />`

@@ -103,7 +103,7 @@ Get 2-3 quotes. **15-25k AED full front luxury SUV** = normal Dubai 2026.
 
 ## Get Your Custom PPF Quote
 
-Start with our [PPF cost calculator](/ppf-cost-calculator) for a fast estimate by coverage and car size, then WhatsApp Sean at Grand Touch Auto for a no-pressure breakdown: car model, coverage options, exact film pricing. Dubai delivery, clean room install, STEK/GYEON stocked.
+Start with our [PPF cost calculator](/ppf-cost-calculator) for a fast estimate by coverage and car size. If you want the campaign-style step-by-step flow, use the [guided PPF price calculator](/ppf-full-ppf-calculator-guided-v2). If you already know your car and coverage, go straight to the [PPF Dubai quote page](/ppf-dubai-quote), then WhatsApp Sean at Grand Touch Auto for a no-pressure breakdown: car model, coverage options, exact film pricing. Dubai delivery, clean room install, STEK/GYEON stocked.
 
 **Book consultation**—see samples, discuss your Range Rover/Porsche needs, get pricing that fits.`,
     author: "Sean, Grand Touch Auto",

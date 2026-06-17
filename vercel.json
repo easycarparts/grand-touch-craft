@@ -39,6 +39,14 @@
       "dest": "/sitemap.xml"
     },
     {
+      "src": "/g700-customizer",
+      "dest": "/g700-customizer/index.html"
+    },
+    {
+      "src": "/blog/([^/]+)",
+      "dest": "/blog/$1/index.html"
+    },
+    {
       "handle": "filesystem"
     },
     {

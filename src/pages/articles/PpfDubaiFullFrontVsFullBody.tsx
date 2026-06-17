@@ -94,7 +94,7 @@ That is why we always look at:
 
 A clean install matters whether you choose full front or full body.
 
-If you want to see our approach, start with our **[PPF cost calculator in Dubai](/ppf-cost-calculator)**.
+If you want to see our approach, start with our **[PPF cost calculator in Dubai](/ppf-cost-calculator)** or use the **[guided PPF price calculator](/ppf-full-ppf-calculator-guided-v2)** when you want the full body setup flow with Sean.
 
 ## Quick decision checklist
 Use this before you book:
@@ -136,7 +136,7 @@ Choose the coverage that matches your actual exposure.
 
 That is how you get better value, better protection, and a result that makes sense long after the install is finished.
 
-Start with **[PPF cost calculator in Dubai](/ppf-cost-calculator)** if you want help choosing the right coverage for your car.
+Start with **[PPF cost calculator in Dubai](/ppf-cost-calculator)** if you want help choosing the right coverage for your car, or request a direct **[PPF Dubai quote](/ppf-dubai-quote)** when you already know the coverage you want.
 
 `,
     author: "Sean, Grand Touch Auto",

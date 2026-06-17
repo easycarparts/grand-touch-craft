@@ -1,6 +1,7 @@
 import type { Plugin } from "vite";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import fs from "fs";
 import path from "path";
 
 /** Deep links like /ppf-cost-calculator need index.html when serving static `dist/` (vite preview / some static hosts). */
@@ -15,6 +16,15 @@ function spaFallbackPlugin(): Plugin {
         if (urlPath.startsWith("/@") || urlPath.startsWith("/src") || urlPath.startsWith("/node_modules"))
           return next();
         if (urlPath.includes(".") && urlPath !== "/index.html") return next();
+        if (urlPath !== "/") {
+          const routeDir = path.join(__dirname, "dist", decodeURIComponent(urlPath).replace(/^\/+/, ""));
+          const routeIndex = path.join(routeDir, "index.html");
+          if (fs.existsSync(routeIndex)) {
+            const query = raw.includes("?") ? `?${raw.split("?").slice(1).join("?")}` : "";
+            req.url = `${urlPath.replace(/\/$/, "")}/index.html${query}`;
+            return next();
+          }
+        }
         req.url = "/index.html";
         next();
       });

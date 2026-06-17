@@ -99,7 +99,7 @@ The protection job is similar. The finish job is different.
 
 That is why your decision should be based on the car, the color, and the look you want after the install.
 
-If you want a broader view of coverage and product choices, start with our **[PPF cost calculator in Dubai](/ppf-cost-calculator)**.
+If you want a broader view of coverage and product choices, start with our **[PPF cost calculator in Dubai](/ppf-cost-calculator)**. Jetour G700 owners can also compare gloss, matte, blackout, and paint-matched directions in the **[G700 PPF customizer](/g700-customizer)**.
 
 ## Practical decision checklist
 Use this before you book:
@@ -119,7 +119,7 @@ Gloss and matte PPF both protect paint.
 
 The better choice is the one that matches how you want the car to look every time you see it in daylight, shade, or Dubai traffic.
 
-If you want help deciding between the two finishes for your exact car, start with **[PPF cost calculator in Dubai](/ppf-cost-calculator)** and ask for a finish recommendation before you book.
+If you want help deciding between the two finishes for your exact car, start with **[PPF cost calculator in Dubai](/ppf-cost-calculator)** or the **[guided PPF price calculator](/ppf-full-ppf-calculator-guided-v2)** and ask for a finish recommendation before you book.
 `,
     author: "Sean, Grand Touch Auto",
     publishedAt: "2026-04-05",
