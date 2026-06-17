@@ -50,6 +50,7 @@ import Partner2B2B from "./pages/Partner2B2B";
 import TechnicalResourcesB2B from "./pages/TechnicalResourcesB2B";
 import { RequireAdmin } from "@/components/admin/RequireAdmin";
 import G700Customizer from "./pages/G700Customizer";
+import PpfInvestorProposal from "./pages/PpfInvestorProposal";
 
 const queryClient = new QueryClient();
 
@@ -176,6 +177,7 @@ function App() {
             <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />
             <Route path="/partner/M2Luxury" element={<Partner2B2B />} />
             <Route path="/partners/technical-resources-b2b" element={<TechnicalResourcesB2B />} />
+            <Route path="/private/ppf-investor-proposal" element={<PpfInvestorProposal />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
