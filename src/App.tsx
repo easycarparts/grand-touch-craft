@@ -16,6 +16,7 @@ import ThankYouPayment from "./pages/ThankYouPayment";
 import CeramicCoatingGuide from "./pages/articles/CeramicCoatingGuide";
 import PPFvsCeramic from "./pages/articles/PPFvsCeramic";
 import PpfCostCalculator from "./pages/PpfCostCalculator";
+import BestPpfStudioDubai from "./pages/BestPpfStudioDubai";
 import PpfFullPpfCalculator from "./pages/PpfFullPpfCalculator";
 import PpfFullPpfGuidedCalculator from "./pages/PpfFullPpfGuidedCalculator";
 import PpfFullPpfGuidedCalculatorV2 from "./pages/PpfFullPpfGuidedCalculatorV2";
@@ -90,6 +91,7 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/g700-customizer" element={<G700Customizer />} />
             <Route path="/ppf-dubai" element={<Navigate to="/ppf-cost-calculator" replace />} />
+            <Route path="/best-ppf-studio-dubai" element={<BestPpfStudioDubai />} />
             <Route path="/ppf-cost-calculator" element={<PpfCostCalculator />} />
             <Route path="/ppf-full-ppf-calculator" element={<PpfFullPpfCalculator />} />
             <Route path="/ppf-full-ppf-calculator-guided" element={<PpfFullPpfGuidedCalculator />} />

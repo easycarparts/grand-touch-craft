@@ -294,6 +294,9 @@ const PpfCostCalculator = () => {
                 <Link to="/blog/ppf-vs-ceramic-dubai" className="text-primary hover:underline block">
                   Read: PPF vs Ceramic in Dubai
                 </Link>
+                <Link to="/best-ppf-studio-dubai" className="text-primary hover:underline block">
+                  Read: Why Grand Touch is one of Dubai's leading certified PPF studios
+                </Link>
                 <Link
                   to="/blog/ppf-dubai-full-front-vs-full-body"
                   className="text-primary hover:underline block"

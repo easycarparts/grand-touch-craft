@@ -39,6 +39,37 @@ const Footer = () => {
             </ul>
           </div>
 
+          {/* PPF Links */}
+          <div className="space-y-4">
+            <h4 className="text-lg font-semibold text-foreground">PPF Services</h4>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  to="/best-ppf-studio-dubai"
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                >
+                  Best PPF Studio Dubai
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/ppf-full-ppf-calculator-guided-v2"
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                >
+                  Guided PPF Calculator
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/ppf-cost-calculator"
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                >
+                  PPF Cost Calculator
+                </Link>
+              </li>
+            </ul>
+          </div>
+
           {/* Contact Info */}
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-foreground">Contact</h4>
@@ -68,7 +99,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                <span>info@grandtouchautorepair.com</span>
+                <span>hello@grandtouchauto.ae</span>
               </li>
             </ul>
           </div>
@@ -81,7 +112,7 @@ const Footer = () => {
                 <Clock className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
                 <div>
                   <p>Monday - Saturday</p>
-                  <p className="text-xs">9:00 AM - 6:00 PM</p>
+                  <p className="text-xs">9:00 AM - 7:00 PM</p>
                 </div>
               </li>
               <li className="text-xs opacity-75">Sunday - Closed</li>

@@ -35,6 +35,10 @@
       "dest": "/robots.txt"
     },
     {
+      "src": "/sitemap/?",
+      "dest": "/sitemap.xml"
+    },
+    {
       "src": "/sitemap.xml",
       "dest": "/sitemap.xml"
     },

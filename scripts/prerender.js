@@ -15,6 +15,10 @@ function escapeAttr(text) {
     .replace(/"/g, "&quot;");
 }
 
+function escapeJsonScript(payload) {
+  return JSON.stringify(payload).replace(/</g, "\\u003c");
+}
+
 const baseUrl = "https://www.grandtouchauto.ae";
 
 function makeBlogArticlePage({
@@ -436,6 +440,108 @@ const pages = [
   g700CustomizerPage,
   ...blogArticlePages,
   {
+    path: "/best-ppf-studio-dubai",
+    title: "Best PPF Studio in Dubai | Certified STEK PPF | Grand Touch Studio",
+    description:
+      "Grand Touch Studio by Grand Touch Auto Repair is one of Dubai's leading certified PPF studios for STEK PPF, colour PPF, tinting, paint, and customisation.",
+    keywords:
+      "best PPF studio Dubai, best PPF installer Dubai, STEK PPF Dubai, colour PPF Dubai, paint protection film Dubai, GYEON installer Dubai, Grand Touch Studio",
+    ogTitle: "One of Dubai's Leading Certified PPF Studios",
+    ogDescription:
+      "Certified STEK and GYEON installation, Sean-led advice, warranty registration, colour PPF, tinting, paint, and customisation in DIP 2.",
+    image: "/guided-sean-with-patrols-v2.jpg",
+    ogImageAlt: "Sean at Grand Touch Studio with PPF vehicles in Dubai",
+    seoBody: `
+        <h1>One of Dubai's leading certified PPF studios</h1>
+        <p>Grand Touch Studio is the PPF, detailing, colour PPF, tinting, and customisation side of Grand Touch Auto Repair in Dubai Investment Park 2.</p>
+        <h2>Why choose Grand Touch for PPF in Dubai</h2>
+        <ul>
+          <li>Certified STEK and GYEON installer with STEK as the main PPF focus</li>
+          <li>Sean-led advice before choosing clear gloss, matte, colour PPF, or warranty route</li>
+          <li>Manufacturer warranty registration where applicable plus Grand Touch installation guarantee</li>
+          <li>Two-week inspection, six-month free refresh, and lifetime PPF inspection support</li>
+          <li>PPF, window tinting, car paint, detailing, and customisation under one accountable workshop</li>
+        </ul>
+        <h2>Package inclusions</h2>
+        <p>Grand Touch full PPF packages include multi-stage paint correction, full interior and exterior detailing, headlights and door sills protected, interior leather ceramic coating, rims ceramic coating, and lifetime inspection support. 5% VAT applies to all prices.</p>
+        <h2>Vehicles we commonly advise for PPF</h2>
+        <p>Mercedes G-Class, Tesla Cybertruck, Land Rover Defender, Porsche 911, Nissan Patrol, Toyota Land Cruiser, Lexus LX600, Jetour G700, ROX 01, Aston Martin, Rolls-Royce, and other luxury Dubai vehicles.</p>
+        <h2>Get pricing</h2>
+        <p>Use the guided PPF calculator to choose vehicle size, finish, and warranty direction, then Sean can confirm final pricing on WhatsApp.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the guided calculator, view the full studio page, and message Sean on WhatsApp.</p>",
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: "Certified PPF installation in Dubai",
+        serviceType: "Paint Protection Film installation",
+        provider: {
+          "@type": "AutoRepair",
+          name: "Grand Touch Auto Repair",
+          alternateName: "Grand Touch Studio",
+          url: "https://www.grandtouchauto.ae",
+          telephone: "+971567191045",
+          email: "hello@grandtouchauto.ae",
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "DIP 2, Dubai Investment Park - 2, Thani warehouse - 3 11b",
+            addressLocality: "Dubai",
+            addressCountry: "AE",
+          },
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: "4.9",
+            reviewCount: "80",
+          },
+        },
+        areaServed: {
+          "@type": "City",
+          name: "Dubai",
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "Is Grand Touch Auto the same as Grand Touch Studio?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Grand Touch Auto Repair is the workshop business in Dubai Investment Park. Grand Touch Studio is the PPF, detailing, colour PPF, tinting, and customisation side used on social channels.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Are you certified STEK and GYEON installers?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. Grand Touch works as a certified STEK and GYEON installer, with STEK as the main PPF focus and GYEON materials used across detailing and protection processes.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Do you offer colour PPF in Dubai?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. Grand Touch installs colour PPF as a premium alternative to a standard vinyl wrap, giving a finish change while still adding paint protection.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "How do I get PPF pricing?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Use the guided PPF calculator to choose vehicle size, finish, and warranty direction. Sean then confirms the final recommendation and quote on WhatsApp after reviewing the details.",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
     path: "/ppf-cost-calculator",
     title: "PPF Cost Calculator Dubai | Full Body & Front PPF Price Estimate",
     description:
@@ -777,6 +883,16 @@ function applyPage(html, page) {
     /(<!-- Fallback content for search engines -->\s*<noscript>\s*<div style="padding: 20px; font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto;">)([\s\S]*?)(<\/div>\s*<\/noscript>)/,
     `$1${noscriptInner}$3`
   );
+
+  if (page.jsonLd?.length) {
+    const scripts = page.jsonLd
+      .map(
+        (payload, index) =>
+          `<script type="application/ld+json" data-prerender-schema="${page.path}-${index}">${escapeJsonScript(payload)}</script>`
+      )
+      .join("\n    ");
+    out = out.replace("</head>", `    ${scripts}\n  </head>`);
+  }
 
   return out;
 }

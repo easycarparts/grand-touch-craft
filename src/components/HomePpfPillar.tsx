@@ -149,10 +149,10 @@ const HomePpfPillar = () => {
                 </Button>
               </Link>
               <Link
-                to="/ppf-cost-calculator"
+                to="/best-ppf-studio-dubai"
                 className="text-[13px] font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
               >
-                Or see PPF pricing by vehicle size &rarr;
+                Why Grand Touch is a certified PPF studio in Dubai &rarr;
               </Link>
             </div>
           </div>
