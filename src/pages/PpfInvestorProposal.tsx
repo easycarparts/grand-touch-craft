@@ -446,7 +446,7 @@ export default function PpfInvestorProposal() {
             <div className="relative mx-auto w-full max-w-md lg:max-w-none">
               <div className="relative overflow-hidden rounded-2xl border border-white/12 bg-[#111] shadow-2xl">
                 <img
-                  src="/guided-sean-with-patrols-v2.png"
+                  src="/guided-sean-with-patrols-v2.jpg"
                   alt="Sean, founder of Grand Touch"
                   className="aspect-[4/5] w-full object-cover object-top"
                 />
