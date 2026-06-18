@@ -202,6 +202,27 @@ export default {
             borderColor: "rgba(247,181,43,0.55)",
           },
         },
+        "guided-option-breathe": {
+          "0%, 100%": {
+            borderColor: "rgba(255, 255, 255, 0.14)",
+            boxShadow: "0 0 0 0 rgba(247, 181, 43, 0)",
+          },
+          "50%": {
+            borderColor: "rgba(247, 181, 43, 0.62)",
+            boxShadow:
+              "0 0 0 1px rgba(247, 181, 43, 0.22), 0 0 20px rgba(247, 181, 43, 0.14)",
+          },
+        },
+        "guided-panel-breathe": {
+          "0%, 100%": {
+            borderColor: "rgba(247, 181, 43, 0.28)",
+            boxShadow: "inset 0 0 0 0 rgba(247, 181, 43, 0)",
+          },
+          "50%": {
+            borderColor: "rgba(247, 181, 43, 0.58)",
+            boxShadow: "inset 0 0 0 1px rgba(247, 181, 43, 0.12)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.3s ease-out",
@@ -224,6 +245,8 @@ export default {
         "guided-cue-pulse": "guided-cue-pulse 2.2s ease-in-out infinite",
         "guided-marquee": "guided-marquee 38s linear infinite",
         "guided-panel-flash": "guided-panel-flash 1.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "guided-option-breathe": "guided-option-breathe 2.4s ease-in-out infinite",
+        "guided-panel-breathe": "guided-panel-breathe 2.8s ease-in-out infinite",
       },
     },
   },

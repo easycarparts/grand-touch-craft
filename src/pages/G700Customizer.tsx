@@ -3,11 +3,16 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
+  LockKeyhole,
   Maximize2,
   MessageCircle,
+  Palette,
   Play,
+  ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   Star,
+  Wrench,
 } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
@@ -430,6 +435,7 @@ const G700Customizer = () => {
   const hasAnySelection = Boolean(selectedColorId || selectedFinish || selectedTrimPackage);
   const stepsCompleted =
     (selectedColorId ? 1 : 0) + (selectedFinish ? 1 : 0) + (selectedTrimPackage ? 1 : 0);
+  const progressPercent = Math.round((stepsCompleted / 3) * 100);
   const activeColor = getColor(selectedColorId ?? "black");
   const activeFinish = selectedFinish ?? "gloss";
   const activeTrimPackage = selectedTrimPackage ?? "standard";
@@ -455,6 +461,18 @@ const G700Customizer = () => {
   const configuratorIncludedInTotal = includeConfiguratorInAccessoriesTotal && hasConfiguredBuild;
   const grandTotal =
     selectedAccessoryPricedTotal + (configuratorIncludedInTotal ? buildFromPrice : 0);
+  const buildQuestSteps = [
+    { label: "Colour", done: Boolean(selectedColorId), active: !selectedColorId },
+    { label: "Finish", done: Boolean(selectedFinish), active: Boolean(selectedColorId && !selectedFinish) },
+    {
+      label: "Trim",
+      done: Boolean(selectedTrimPackage),
+      active: Boolean(selectedColorId && selectedFinish && !selectedTrimPackage),
+    },
+  ];
+  const isColourStepActive = !selectedColorId;
+  const isFinishStepActive = Boolean(selectedColorId && !selectedFinish);
+  const isTrimStepActive = Boolean(selectedColorId && selectedFinish && !selectedTrimPackage);
 
   const nextStepLabel = useMemo(() => {
     if (!selectedColorId) return "Pick your colour";
@@ -894,52 +912,78 @@ const G700Customizer = () => {
         <div className="absolute inset-0 bg-[linear-gradient(180deg,#080808_0%,#060606_38%,#0b0b0b_100%)]" />
         <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:72px_72px]" />
 
-        {/* CONFIGURATOR - compact single-screen layout, sticky preview, no auto-scroll */}
+        {/* CONFIGURATOR - guided build studio */}
         <section ref={configuratorRef} className="relative px-3 pb-4 pt-3 sm:px-6 sm:pt-5 lg:px-8 lg:pt-8">
           <div className="container mx-auto max-w-7xl">
-            <div className="rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(10,10,10,0.98))] shadow-[0_20px_60px_rgba(0,0,0,0.4)] sm:rounded-[32px]">
-              {/* Eyebrow header with progress dots */}
-              <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6 sm:py-4 lg:px-6">
-                <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/45 sm:text-[11px]">Build studio</p>
-                  <h1 className="mt-0.5 text-lg font-bold leading-tight text-white sm:text-2xl lg:text-[28px]">
-                    Configure your G700
-                  </h1>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {[0, 1, 2].map((index) => (
+            <div className="overflow-hidden rounded-[22px] border border-white/10 bg-[radial-gradient(circle_at_18%_0%,rgba(247,181,43,0.12),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(8,8,8,0.98))] shadow-[0_22px_70px_rgba(0,0,0,0.48)] sm:rounded-[28px]">
+              <button
+                type="button"
+                onClick={hasConfiguredBuild ? openQuoteModal : scrollToConfigurator}
+                className="group flex w-full items-center gap-2 overflow-hidden border-b border-[#f7b52b]/20 bg-black/35 px-3 py-2 text-left text-[11px] backdrop-blur transition hover:bg-black/50 sm:px-5 sm:text-xs"
+              >
+                <Sparkles className="h-4 w-4 shrink-0 text-[#f7b52b] animate-guided-sparkle-twinkle motion-reduce:animate-none" />
+                <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                  {[
+                    "G700 build challenge",
+                    "3 core choices",
+                    "Sean reviews exact fitment",
+                    selectedAccessories.length
+                      ? `${selectedAccessories.length} accessories selected`
+                      : "Accessories next",
+                  ].map((item, index) => (
                     <span
-                      key={index}
+                      key={item}
                       className={cn(
-                        "h-1.5 rounded-full transition-all duration-300",
-                        index < stepsCompleted
-                          ? "w-6 bg-[#f7b52b]"
-                          : "w-3 bg-white/15",
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* 2-column layout on desktop: sticky preview (left) + compact controls (right) */}
-              <div className="flex flex-col lg:grid lg:grid-cols-[1.25fr_1fr] lg:gap-6 lg:px-6 lg:pt-4">
-                {/* Preview — sticky on mobile AND desktop so the car stays visible while experimenting */}
-                <div className="sticky top-0 z-30 bg-[linear-gradient(180deg,rgba(12,12,12,0.97),rgba(10,10,10,0.97))] shadow-[0_8px_24px_rgba(0,0,0,0.4)] backdrop-blur-md lg:top-6 lg:self-start lg:bg-transparent lg:shadow-none lg:backdrop-blur-none">
-                  <div className="px-3 pb-2 pt-2 sm:px-5 sm:pb-3 sm:pt-3 lg:p-0">
-                    <div
-                      className={cn(
-                        "relative overflow-hidden rounded-[18px] border border-white/10 sm:rounded-[24px] lg:rounded-[20px]",
-                        activeFinish === "gloss"
-                          ? "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_40%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.32))]"
-                          : "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.07),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.4))]",
+                        "flex shrink-0 items-center gap-2 font-semibold text-white/80",
+                        index > 0 && "hidden sm:flex",
                       )}
                     >
-                      <div className="relative aspect-[16/10]">
-                        <div className="absolute inset-x-[12%] bottom-6 h-10 rounded-full bg-black/60 blur-3xl sm:h-14" />
+                      {index > 0 ? <span className="text-[#f7b52b]/45">/</span> : null}
+                      {item}
+                    </span>
+                  ))}
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em]",
+                    "bg-[#f7b52b] text-black shadow-[0_0_18px_rgba(247,181,43,0.28)]",
+                  )}
+                >
+                  {hasConfiguredBuild ? "Quote" : "Build"}
+                  <ArrowRight className="h-3 w-3" />
+                </span>
+              </button>
+
+              {/* 2-column layout on desktop: sticky preview (left) + compact controls (right) */}
+              <div className="grid gap-0 lg:grid-cols-[0.94fr_1.06fr] lg:gap-4 lg:px-5 lg:py-4">
+                {/* Preview — sticky on mobile AND desktop so the car stays visible while experimenting */}
+                <div className="sticky top-0 z-30 border-b border-white/10 bg-[rgba(8,8,8,0.94)] shadow-[0_12px_30px_rgba(0,0,0,0.42)] backdrop-blur-xl lg:top-6 lg:self-start lg:border-b-0 lg:bg-transparent lg:shadow-none lg:backdrop-blur-none">
+                  <div className="px-3 pb-3 pt-3 sm:px-5 lg:p-0">
+                    <div className="mb-2 flex items-end justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
+                          G700 build studio
+                        </p>
+                        <h1 className="mt-0.5 text-2xl font-black leading-none text-white sm:text-3xl lg:text-[2.05rem]">
+                          Configure your G700
+                        </h1>
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "relative overflow-hidden rounded-[18px] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:rounded-[22px]",
+                        activeFinish === "gloss"
+                          ? "bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.20),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.42))]"
+                          : "bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.09),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.50))]",
+                      )}
+                    >
+                      <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:44px_44px]" />
+                      <div className="relative aspect-[16/10] sm:aspect-[16/8.8]">
+                        <div className="absolute inset-x-[10%] bottom-5 h-12 rounded-full bg-black/75 blur-3xl sm:h-16" />
                         <img
                           src={displayedImage}
                           alt={`G700 in ${summary}`}
-                          className="relative z-10 h-full w-full object-contain transition-opacity duration-300"
+                          className="relative z-10 h-full w-full scale-[1.03] object-contain transition-all duration-500"
                         />
                         {showVideoOverlay ? (
                           <div className="absolute inset-0 z-20">
@@ -959,13 +1003,12 @@ const G700Customizer = () => {
                             </video>
                             <div className="absolute inset-0 flex items-center justify-center p-4">
                               <Button
+                                type="button"
                                 size="lg"
-                                className="group relative h-14 rounded-2xl border-2 border-black/40 bg-white/10 px-7 text-base font-semibold text-white backdrop-blur-xl shadow-[0_10px_35px_rgba(255,255,255,0.18),inset_0_1px_0_rgba(255,255,255,0.5)] transition-all duration-300 hover:bg-white/16"
+                                className="group pointer-events-auto relative z-30 h-14 rounded-2xl border border-[#f7b52b]/45 bg-[#f7b52b] px-7 text-base font-black text-black shadow-[0_16px_45px_rgba(247,181,43,0.38)] transition-all duration-300 hover:bg-[#ffc94f]"
                                 onClick={startConfigurator}
                               >
-                                <span className="pointer-events-none absolute inset-[1px] rounded-[15px] bg-[linear-gradient(180deg,rgba(255,255,255,0.26),rgba(255,255,255,0.03))]" />
-                                <span className="pointer-events-none absolute -inset-x-4 -inset-y-2 -z-10 rounded-full bg-white/25 blur-xl" />
-                                Start the configurator
+                                Start the build
                                 <ArrowRight className="ml-2 h-4 w-4" />
                               </Button>
                             </div>
@@ -973,22 +1016,29 @@ const G700Customizer = () => {
                         ) : null}
                       </div>
                     </div>
-                    {/* Summary chip + progress status */}
-                    <div className="mt-2 flex items-center justify-between gap-2 sm:mt-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[10px] uppercase tracking-[0.18em] text-white/40 sm:text-[11px]">
-                          Your build
-                        </p>
+                    <div className="mt-2 grid grid-cols-[1fr_auto] items-center gap-2">
+                      <div className="min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-white/45 sm:text-[11px]">
+                            Your build
+                          </p>
+                          <span className="text-[10px] font-black text-[#f7b52b]">{progressPercent}%</span>
+                        </div>
+                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className="h-full rounded-full bg-[linear-gradient(90deg,#f7b52b,#e79a13)] transition-all duration-500"
+                            style={{ width: `${progressPercent}%` }}
+                          />
+                        </div>
                         <p className={cn(
-                          "mt-0.5 truncate text-sm font-semibold sm:text-base",
+                          "mt-1.5 truncate text-sm font-semibold sm:text-base",
                           hasConfiguredBuild ? "text-white" : "text-white/55",
                         )}>
                           {summary}
                         </p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1 rounded-full bg-white/5 px-2.5 py-1.5 text-[10px] uppercase tracking-[0.16em] text-white/55 sm:text-[11px]">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#f7b52b]" />
-                        {stepsCompleted}/3
+                      <div className="flex h-full min-w-[64px] items-center justify-center rounded-xl border border-[#f7b52b]/25 bg-[#f7b52b]/10 px-3 py-2">
+                        <p className="text-lg font-black leading-none text-white">{stepsCompleted}/3</p>
                       </div>
                     </div>
                   </div>
@@ -996,31 +1046,91 @@ const G700Customizer = () => {
 
                 {/* Controls column — stacked compact rows, zero scroll needed to access any option */}
                 <div className="px-4 pt-3 sm:px-6 sm:pt-4 lg:min-w-0 lg:p-0">
+                  <div className="grid grid-cols-3 gap-2">
+                    {buildQuestSteps.map((item, index) => (
+                      <div
+                        key={item.label}
+                        className={cn(
+                          "relative overflow-hidden rounded-xl border px-2.5 py-1.5",
+                          item.done
+                            ? "border-[#f7b52b]/35 bg-[#f7b52b]/10"
+                            : item.active
+                              ? "border-[#f7b52b]/55 bg-[#f7b52b]/10 shadow-[0_12px_34px_rgba(247,181,43,0.14)]"
+                              : "border-white/10 bg-black/28",
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
+                              item.done
+                                ? "bg-[#f7b52b] text-black"
+                                : item.active
+                                  ? "bg-[#f7b52b] text-black"
+                                  : "bg-white/10 text-white/45",
+                            )}
+                          >
+                            {item.done ? <Check className="h-3 w-3" strokeWidth={3} /> : index + 1}
+                          </span>
+                          <span className={cn("truncate text-[10px] font-black uppercase tracking-0 sm:text-[11px] sm:tracking-[0.08em]", item.done || item.active ? "text-white" : "text-white/45")}>
+                            {item.label}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-[10px] text-white/45">
+                          {item.done ? "Locked" : item.active ? "Active" : "Next"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                   {/* COLOUR — single row of 6 swatches */}
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/75 sm:text-xs">
-                      Colour
-                    </p>
+                  <div
+                    className={cn(
+                      "mt-3 rounded-xl border bg-black/28 p-3 transition-colors",
+                      isColourStepActive
+                        ? "animate-guided-panel-breathe motion-reduce:animate-none"
+                        : selectedColorId
+                          ? "border-[#f7b52b]/22"
+                          : "border-white/10",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Palette className="h-4 w-4 shrink-0 text-[#f7b52b]" />
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/75 sm:text-xs">
+                          Colour
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-semibold text-white/45">
+                        Pick the body tone
+                      </span>
+                    </div>
                     <div className="mt-2.5 grid grid-cols-6 gap-1.5 sm:gap-2">
-                      {colorOptions.map((option) => (
+                      {colorOptions.map((option, optionIndex) => (
                         <button
                           key={option.id}
                           type="button"
                           aria-label={option.label}
                           aria-pressed={selectedColorId === option.id}
                           onClick={() => handleColorSelect(option.id)}
+                          style={
+                            isColourStepActive && selectedColorId !== option.id
+                              ? { animationDelay: `${optionIndex * 0.14}s` }
+                              : undefined
+                          }
                           className={cn(
-                            "group relative flex flex-col items-center gap-1.5 rounded-xl border bg-black/25 py-2 transition",
+                            "group relative flex min-h-[62px] flex-col items-center justify-center gap-1 rounded-xl border bg-black/35 py-1.5 transition hover:-translate-y-0.5",
                             selectedColorId === option.id
-                              ? "border-white bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.35),0_8px_22px_rgba(255,255,255,0.08)]"
-                              : "border-white/10 hover:border-white/30 hover:bg-white/5",
+                              ? "border-[#f7b52b] bg-[#f7b52b]/10 shadow-[0_0_0_1px_rgba(247,181,43,0.28),0_10px_26px_rgba(247,181,43,0.14)]"
+                              : isColourStepActive
+                                ? "animate-guided-option-breathe motion-reduce:animate-none hover:border-[#f7b52b]/70 hover:bg-white/5"
+                                : "border-white/10 hover:border-white/30 hover:bg-white/5",
                           )}
                         >
                           <span
                             className={cn(
-                              "h-9 w-9 rounded-full border-2 transition sm:h-10 sm:w-10",
+                              "h-8 w-8 rounded-full border-2 transition sm:h-9 sm:w-9",
                               selectedColorId === option.id
-                                ? "border-white shadow-[0_0_0_3px_rgba(255,255,255,0.18)]"
+                                ? "border-white shadow-[0_0_0_3px_rgba(247,181,43,0.25)]"
                                 : "border-white/20",
                             )}
                             style={{ backgroundColor: option.swatch }}
@@ -1028,7 +1138,7 @@ const G700Customizer = () => {
                           <span
                             className={cn(
                               "hidden text-[9px] font-semibold uppercase tracking-[0.08em] transition sm:block sm:text-[10px]",
-                              selectedColorId === option.id ? "text-white" : "text-white/60",
+                              selectedColorId === option.id ? "text-[#f7b52b]" : "text-white/60",
                             )}
                           >
                             {option.label}
@@ -1039,31 +1149,56 @@ const G700Customizer = () => {
                   </div>
 
                   {/* FINISH — 2 pills side-by-side */}
-                  <div className="mt-4 sm:mt-5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/75 sm:text-xs">
-                      Finish
-                    </p>
+                  <div
+                    className={cn(
+                      "mt-3 rounded-xl border bg-black/28 p-3 transition-colors",
+                      isFinishStepActive
+                        ? "animate-guided-panel-breathe motion-reduce:animate-none"
+                        : selectedFinish
+                          ? "border-[#f7b52b]/22"
+                          : "border-white/10",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 shrink-0 text-[#f7b52b]" />
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/75 sm:text-xs">
+                          Finish
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-semibold text-white/45">
+                        PPF character
+                      </span>
+                    </div>
                     <div className="mt-2.5 grid grid-cols-2 gap-2 sm:gap-2.5">
-                      {(["gloss", "matte"] as Finish[]).map((finish) => (
+                      {(["gloss", "matte"] as Finish[]).map((finish, finishIndex) => (
                         <button
                           key={finish}
                           type="button"
                           aria-pressed={selectedFinish === finish}
                           onClick={() => handleFinishSelect(finish)}
+                          style={
+                            isFinishStepActive && selectedFinish !== finish
+                              ? { animationDelay: `${finishIndex * 0.2}s` }
+                              : undefined
+                          }
                           className={cn(
-                            "flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition sm:px-3.5 sm:py-3",
+                            "group flex min-h-[66px] flex-col items-start rounded-xl border px-3 py-2.5 text-left transition hover:-translate-y-0.5 sm:px-3.5",
                             selectedFinish === finish
-                              ? "border-white bg-white text-black shadow-[0_8px_22px_rgba(255,255,255,0.12)]"
-                              : "border-white/10 bg-black/25 text-white/75 hover:border-white/25 hover:bg-white/5 hover:text-white",
+                              ? "border-[#f7b52b] bg-[#f7b52b]/12 text-white shadow-[0_10px_26px_rgba(247,181,43,0.16)]"
+                              : isFinishStepActive
+                                ? "animate-guided-option-breathe bg-black/25 text-white/75 motion-reduce:animate-none hover:border-[#f7b52b]/70 hover:bg-white/5 hover:text-white"
+                                : "border-white/10 bg-black/25 text-white/75 hover:border-white/25 hover:bg-white/5 hover:text-white",
                           )}
                         >
-                          <span className="text-[13px] font-bold uppercase tracking-[0.14em] sm:text-sm">
+                          <span className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.14em] sm:text-sm">
+                            {finish === "gloss" ? <Sparkles className="h-4 w-4" /> : <LockKeyhole className="h-4 w-4" />}
                             {finish}
                           </span>
                           <span
                             className={cn(
-                              "mt-0.5 hidden text-[10px] leading-4 sm:block sm:text-[11px]",
-                              selectedFinish === finish ? "text-black/65" : "text-white/50",
+                              "mt-1 text-[10px] leading-4 sm:text-[11px]",
+                              selectedFinish === finish ? "text-[#f7d37b]" : "text-white/50",
                             )}
                           >
                             {finish === "gloss"
@@ -1076,12 +1211,29 @@ const G700Customizer = () => {
                   </div>
 
                   {/* TRIM — 3 compact pills in a single row */}
-                  <div className="mt-4 sm:mt-5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/75 sm:text-xs">
-                      Trim
-                    </p>
+                  <div
+                    className={cn(
+                      "mt-3 rounded-xl border bg-black/28 p-3 transition-colors",
+                      isTrimStepActive
+                        ? "animate-guided-panel-breathe motion-reduce:animate-none"
+                        : selectedTrimPackage
+                          ? "border-[#f7b52b]/22"
+                          : "border-white/10",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Wrench className="h-4 w-4 shrink-0 text-[#f7b52b]" />
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/75 sm:text-xs">
+                          Trim
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-semibold text-white/45">
+                        Exterior details
+                      </span>
+                    </div>
                     <div className="mt-2.5 grid grid-cols-3 gap-1.5 sm:gap-2">
-                      {trimPackageOptions.map(({ id: trimPackage, label }) => {
+                      {trimPackageOptions.map(({ id: trimPackage, label }, trimIndex) => {
                         const helper =
                           trimPackage === "standard"
                             ? "Factory"
@@ -1094,11 +1246,18 @@ const G700Customizer = () => {
                             type="button"
                             aria-pressed={selectedTrimPackage === trimPackage}
                             onClick={() => handleTrimPackageSelect(trimPackage)}
+                            style={
+                              isTrimStepActive && selectedTrimPackage !== trimPackage
+                                ? { animationDelay: `${trimIndex * 0.16}s` }
+                                : undefined
+                            }
                             className={cn(
-                              "flex flex-col items-start rounded-xl border px-2.5 py-2.5 text-left transition sm:px-3 sm:py-3",
+                              "flex min-h-[62px] flex-col items-start rounded-xl border px-2.5 py-2.5 text-left transition hover:-translate-y-0.5 sm:px-3",
                               selectedTrimPackage === trimPackage
-                                ? "border-[#d96a20] bg-[#d96a20] text-black shadow-[0_10px_28px_rgba(217,106,32,0.28)]"
-                                : "border-white/10 bg-black/25 text-white/80 hover:border-white/25 hover:bg-white/5 hover:text-white",
+                                ? "border-[#f7b52b] bg-[#f7b52b]/12 text-white shadow-[0_10px_26px_rgba(247,181,43,0.16)]"
+                                : isTrimStepActive
+                                  ? "animate-guided-option-breathe bg-black/25 text-white/80 motion-reduce:animate-none hover:border-[#f7b52b]/70 hover:bg-white/5 hover:text-white"
+                                  : "border-white/10 bg-black/25 text-white/80 hover:border-white/25 hover:bg-white/5 hover:text-white",
                             )}
                           >
                             <span className="text-[12px] font-bold uppercase tracking-[0.1em] leading-tight sm:text-[13px]">
@@ -1108,7 +1267,7 @@ const G700Customizer = () => {
                               className={cn(
                                 "mt-0.5 hidden text-[10px] leading-3 sm:block sm:text-[11px]",
                                 selectedTrimPackage === trimPackage
-                                  ? "text-black/70"
+                                  ? "text-[#f7d37b]"
                                   : "text-white/50",
                               )}
                             >
@@ -1121,82 +1280,23 @@ const G700Customizer = () => {
                   </div>
 
                   {/* Pricing guidance — compact 2-col grid, always visible to anchor expectations */}
-                  <div className="mt-4 sm:mt-5">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/75 sm:text-xs">
-                        Guide pricing
-                      </p>
-                      <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200">
-                        Draft
-                      </span>
-                    </div>
-                    <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:gap-2">
-                      {[
-                        {
-                          active: selectedFinish === "gloss",
-                          label: "Gloss PPF",
-                          price: "from 9,990 AED",
-                        },
-                        {
-                          active: selectedFinish === "matte",
-                          label: "Matte PPF",
-                          price: "from 10,490 AED",
-                        },
-                        {
-                          active: selectedTrimPackage === "blackout",
-                          label: "Blackout trim",
-                          price: "from 3,000 AED",
-                        },
-                        {
-                          active: selectedTrimPackage === "paint-matched",
-                          label: "Paint-matched",
-                          price: "from 4,000 AED",
-                        },
-                      ].map((row) => (
-                        <div
-                          key={row.label}
-                          className={cn(
-                            "flex flex-col gap-0.5 rounded-xl border px-3 py-2 transition",
-                            row.active
-                              ? "border-[#f7b52b]/50 bg-[#f7b52b]/12"
-                              : "border-white/5 bg-white/[0.02]",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "text-[11px] font-medium leading-tight sm:text-xs",
-                              row.active ? "text-white" : "text-white/55",
-                            )}
-                          >
-                            {row.label}
-                          </span>
-                          <span
-                            className={cn(
-                              "text-[12px] font-semibold leading-tight sm:text-[13px]",
-                              row.active ? "text-[#f7b52b]" : "text-white/45",
-                            )}
-                          >
-                            {row.price}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="mt-2 text-[10px] leading-4 text-white/40 sm:text-[11px]">
-                      Guide pricing only. Final quote depends on your exact scope.
-                    </p>
-                  </div>
                 </div>
               </div>
 
               {/* Quote CTA card — full width under both columns */}
-              <div ref={quoteCardRef} className="p-4 pt-4 sm:p-6 lg:pt-5">
-                <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(247,181,43,0.12),rgba(0,0,0,0.3))] p-4 sm:p-5">
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-white/50 sm:text-[11px]">
+              <div ref={quoteCardRef} className="p-4 pt-3 sm:p-5 lg:pt-0">
+                <div className="overflow-hidden rounded-2xl border border-[#f7b52b]/20 bg-[linear-gradient(180deg,rgba(247,181,43,0.09),rgba(0,0,0,0.34))] p-4">
+                  <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center rounded-full border border-[#f7b52b]/30 bg-[#f7b52b]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#f7b52b]">
+                          {hasConfiguredBuild ? "Build unlocked" : "Build in progress"}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-white/50 sm:text-[11px]">
                         Quote summary
                       </p>
-                      <p className="mt-1 text-2xl font-bold leading-none text-white sm:text-[32px]">
+                      <p className="mt-1 text-2xl font-black leading-none text-white sm:text-[32px]">
                         From {formatAED(buildFromPrice)}
                       </p>
                       <p className="mt-1 text-[11px] text-white/55 sm:text-xs">
@@ -1206,14 +1306,13 @@ const G700Customizer = () => {
                           : ""}
                       </p>
                     </div>
-                  </div>
-                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:min-w-[430px]">
                     <Button
                       size="lg"
                       className={cn(
-                        "h-12 rounded-2xl px-5 text-[15px] font-semibold transition sm:px-6",
+                        "h-12 rounded-2xl px-5 text-[15px] font-black transition sm:px-6",
                         hasConfiguredBuild
-                          ? "bg-[linear-gradient(180deg,#ffd47a_0%,#f7b52b_52%,#e79a13_100%)] text-black hover:brightness-105"
+                          ? "bg-[linear-gradient(180deg,#ffd47a_0%,#f7b52b_52%,#e79a13_100%)] text-black shadow-[0_14px_38px_rgba(247,181,43,0.24)] hover:brightness-105"
                           : "bg-white/10 text-white/80 hover:bg-white/15",
                       )}
                       onClick={openQuoteModal}
@@ -1224,13 +1323,14 @@ const G700Customizer = () => {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="h-12 rounded-2xl border-white/20 bg-white/5 text-white hover:bg-white/10"
+                      className="h-12 rounded-2xl border-white/20 bg-black/20 text-white hover:bg-white/10"
                       onClick={scrollToAccessories}
                     >
                       Add Accessories
                     </Button>
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           </div>
@@ -1866,7 +1966,12 @@ const G700Customizer = () => {
         </DialogContent>
       </Dialog>
 
-      <div className="pointer-events-none fixed bottom-0 right-0 z-30 hidden overflow-visible md:block">
+      <div
+        className={cn(
+          "pointer-events-none fixed bottom-0 right-0 z-30 hidden overflow-visible transition-all duration-300 md:block",
+          isConfiguratorInView ? "translate-y-8 opacity-0" : "translate-y-0 opacity-100",
+        )}
+      >
         <a
           href={quickWhatsappUrl}
           target="_blank"
