@@ -691,6 +691,33 @@ const pages = [
       "<p><strong>Enable JavaScript</strong> to use the guided full PPF V2 quote flow and WhatsApp handoff.</p>",
   },
   {
+    path: "/ppf-meta-full-car-ppf-v2",
+    title: "Meta Full PPF Offer Dubai | Grand Touch Auto",
+    description:
+      "Use the Meta-only Grand Touch full PPF calculator to reveal your Dubai paint protection film setup and claim the online offer.",
+    keywords:
+      "Meta PPF Dubai, full car PPF Dubai offer, PPF price Dubai Meta, Grand Touch PPF, STEK PPF Dubai",
+    ogTitle: "Meta Full PPF Offer Dubai",
+    ogDescription:
+      "Choose car size, finish, and warranty in a Meta-specific full PPF flow, then WhatsApp Sean with your locked-in setup.",
+    seoBody: `
+        <h1>Meta full PPF offer in Dubai</h1>
+        <p>Use a Meta-specific Grand Touch full PPF calculator to choose vehicle size, finish, and warranty before revealing the online offer.</p>
+        <h2>What the Meta V2 flow covers</h2>
+        <ul>
+          <li>Vehicle size selection for full body PPF and full car PPF</li>
+          <li>Gloss or matte finish direction</li>
+          <li>5-year, 10-year, and 12-year warranty packages</li>
+          <li>A name and WhatsApp unlock step for the Meta lead event</li>
+          <li>A separate WhatsApp contact handoff after the price is locked in</li>
+        </ul>
+        <h2>Why this page exists</h2>
+        <p>This paid-social funnel keeps Meta traffic separate from the Google V2 experiment while preserving the same guided PPF quote experience.</p>
+    `,
+    noscriptExtra:
+      "<p><strong>Enable JavaScript</strong> to use the Meta guided full PPF V2 quote flow and WhatsApp handoff.</p>",
+  },
+  {
     path: "/ppf-tiktok-full-car-ppf",
     title: "TikTok Full PPF Offer Dubai | Grand Touch Auto",
     description:

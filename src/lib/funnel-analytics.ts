@@ -59,7 +59,7 @@ export type CaptureLeadSnapshotResult =
 
 export const FUNNEL_EVENTS_UPDATED_EVENT = "grand-touch:funnel-events-updated";
 
-type MetaStandardEvent = "PageView" | "Lead" | "Contact";
+export type MetaStandardEvent = "PageView" | "Lead" | "Contact";
 
 type TrackFunnelEventInput = {
   eventName: string;
@@ -113,6 +113,13 @@ const normalizeFunnelName = ({
   landingPageVariant: string;
   pathname: string;
 }) => {
+  if (
+    landingPageVariant === "meta_full_ppf_guided_calculator_v2" ||
+    pathname.includes("/ppf-meta-full-car-ppf-v2")
+  ) {
+    return "ppf_meta_guided_calculator_v2";
+  }
+
   if (
     landingPageVariant === "google_full_ppf_guided_calculator_v2" ||
     pathname.includes("/ppf-full-ppf-calculator-guided-v2")

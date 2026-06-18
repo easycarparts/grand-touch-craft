@@ -60,7 +60,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { PhoneInputWithCountry } from "@/components/PhoneInputWithCountry";
 import stekWarrantySticker from "../../Landscape STEK Sticker.png";
-import { captureLeadSnapshot, createFunnelTrackingContext, trackFunnelEvent } from "@/lib/funnel-analytics";
+import {
+  captureLeadSnapshot,
+  createFunnelTrackingContext,
+  trackFunnelEvent,
+  type MetaStandardEvent,
+} from "@/lib/funnel-analytics";
 import { updatePageSEO } from "@/lib/seo";
 import { initTikTokPixel, trackTikTokEvent, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
 import { cn } from "@/lib/utils";
@@ -74,7 +79,7 @@ import logo from "@/assets/logo.svg";
 
 type PackageYears = 5 | 10 | 12;
 type FlowStep = "size" | "finish" | "package" | "result";
-type GuidedCalculatorVariant = "google" | "tiktok";
+type GuidedCalculatorVariant = "google" | "tiktok" | "meta";
 
 type GuidedCalculatorVariantConfig = {
   seoKey: string;
@@ -182,6 +187,37 @@ const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVaria
     messageIntro: "Hi Sean, I built a TikTok full PPF setup on the Grand Touch page.",
     phoneCaptureServiceName: "TikTok Guided Full PPF - Phone Captured At Warranty Step",
     bonusClaimServiceName: "TikTok Guided Full PPF Bonus Claim",
+  },
+  meta: {
+    seoKey: "ppf-meta-full-car-ppf-v2",
+    funnelName: "ppf_meta_guided_calculator_v2",
+    landingPageVariant: "meta_full_ppf_guided_calculator_v2",
+    defaultSourcePlatform: "meta",
+    calculatorType: "meta_guided_full_ppf_v2",
+    pageUrl: "https://www.grandtouchauto.ae/ppf-meta-full-car-ppf-v2",
+    seo: {
+      title: "Meta Full PPF Offer Dubai | Grand Touch Auto",
+      description:
+        "Use the Meta-only Grand Touch full PPF calculator to reveal your Dubai paint protection film setup and claim the online offer.",
+      keywords:
+        "Meta PPF Dubai, full car PPF Dubai offer, PPF price Dubai Meta, Grand Touch PPF, STEK PPF Dubai",
+      ogTitle: "Meta Full PPF Offer Dubai",
+      ogDescription:
+        "Choose car size, finish, and warranty in a Meta-specific full PPF flow, then WhatsApp Sean with your locked-in setup.",
+    },
+    eyebrow: "Meta PPF offer - Dubai",
+    headline: "Full PPF price",
+    headlineAccent: "+ online offer.",
+    mobileIntro:
+      "Tap your size, finish, and warranty. Reveal the price, then WhatsApp Sean with the setup already written.",
+    desktopIntro:
+      "A Meta-specific full PPF quote flow: choose your car size, finish, and warranty, reveal the price, then WhatsApp Sean with your setup already written.",
+    primaryCta: "Start my setup",
+    secondaryCta: "WhatsApp Sean",
+    proofPoints: ["Fast setup", "No spam", "Sean confirms on WhatsApp"],
+    messageIntro: "Hi Sean, I built a Meta full PPF setup on the Grand Touch page.",
+    phoneCaptureServiceName: "Meta Guided Full PPF V2 - Phone Captured At Warranty Step",
+    bonusClaimServiceName: "Meta Guided Full PPF V2 Bonus Claim",
   },
 };
 
@@ -1242,7 +1278,9 @@ const ScarcityChip = ({ className, variant = "dark" }: ScarcityChipProps) => {
 
 const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCalculatorProps) => {
   const variantConfig = guidedVariantConfig[variant];
+  const isGoogleVariant = variant === "google";
   const isTikTokVariant = variant === "tiktok";
+  const isMetaVariant = variant === "meta";
   const offerTickerItems = isTikTokVariant ? tiktokTopOffers : topOffers;
   const [step, setStep] = useState<FlowStep>("size");
   const [size, setSize] = useState<PpfPricingSize | null>(null);
@@ -1451,12 +1489,18 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     (
       eventName: string,
       payload: Record<string, unknown> = {},
-      options: { emitToTagManagers?: boolean } = {},
+      options: {
+        emitToTagManagers?: boolean;
+        metaStandardEvent?: MetaStandardEvent;
+        metaPayload?: Record<string, unknown>;
+      } = {},
     ) => {
       trackFunnelEvent({
         eventName,
         context: funnelContext,
         payload,
+        metaStandardEvent: options.metaStandardEvent,
+        metaPayload: options.metaPayload,
         emitToTagManagers: options.emitToTagManagers,
       });
     },
@@ -1465,17 +1509,17 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
   const trackGoogleSubmitLeadConversion = useCallback(
     (value?: number) => {
-      if (isTikTokVariant || googleSubmitLeadConversionTrackedRef.current) return;
+      if (!isGoogleVariant || googleSubmitLeadConversionTrackedRef.current) return;
       googleSubmitLeadConversionTrackedRef.current = true;
       trackGoogleAdsConversion(GOOGLE_ADS_SUBMIT_LEAD_SEND_TO, value);
     },
-    [isTikTokVariant],
+    [isGoogleVariant],
   );
 
   const trackGooglePreFormWhatsAppConversion = useCallback(
     (value?: number) => {
       if (
-        isTikTokVariant ||
+        !isGoogleVariant ||
         googleSubmitLeadConversionTrackedRef.current ||
         googleWhatsAppConversionTrackedRef.current
       ) {
@@ -1484,7 +1528,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       googleWhatsAppConversionTrackedRef.current = true;
       trackGoogleAdsConversion(GOOGLE_ADS_PRE_FORM_WHATSAPP_SEND_TO, value);
     },
-    [isTikTokVariant],
+    [isGoogleVariant],
   );
 
   const buildPayload = useCallback(
@@ -1565,6 +1609,28 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       });
     }
   }, [isTikTokVariant, trackEvent, variantConfig]);
+
+  const trackMetaStandardEvent = useCallback(
+    (eventName: MetaStandardEvent, payload: Record<string, unknown> = {}) => {
+      if (!isMetaVariant || typeof window === "undefined" || !window.fbq) return;
+
+      try {
+        window.fbq("track", eventName, {
+          funnel_name: funnelContext.funnelName,
+          landing_page_variant: funnelContext.landingPageVariant,
+          source_platform: funnelContext.sourcePlatform,
+          pathname: funnelContext.pathname,
+          hash: funnelContext.hash,
+          entry_section: funnelContext.entrySection,
+          ...funnelContext.attribution,
+          ...payload,
+        });
+      } catch (error) {
+        console.warn("Failed to send Meta standard event", error);
+      }
+    },
+    [funnelContext, isMetaVariant],
+  );
 
   useEffect(() => {
     if (step !== "result") {
@@ -1893,6 +1959,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       const lines = [
         isTikTokVariant
           ? "Hi Sean, I came from TikTok and want a full PPF quote."
+          : isMetaVariant
+            ? "Hi Sean, I came from Meta and want a full PPF quote."
           : "Hi Sean, I want a full PPF quote.",
         vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
         size || finish || selectedPackage
@@ -1906,7 +1974,11 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
     const setupParts = [selectedSize.label, finish.toLowerCase(), selectedPackage.title].filter(Boolean);
     const lines = [
-      isTikTokVariant ? "Hi Sean, I checked full PPF on TikTok." : "Hi Sean, I checked full PPF.",
+      isTikTokVariant
+        ? "Hi Sean, I checked full PPF on TikTok."
+        : isMetaVariant
+          ? "Hi Sean, I checked full PPF from Meta."
+          : "Hi Sean, I checked full PPF.",
       vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
       `Setup: ${setupParts.join(", ")}.`,
       `Estimate: ${formatAED(estimate)} (excl. VAT).`,
@@ -1920,6 +1992,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     estimate,
     finish,
     isComplete,
+    isMetaVariant,
     isTikTokVariant,
     bonusEligible,
     premiumBonusLabel,
@@ -1954,6 +2027,16 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     if (isTikTokVariant) {
       trackTikTokEvent("Contact", {
         content_name: "TikTok Guided Full PPF Calculator",
+        content_category: "PPF",
+        button_location: placement,
+        value: estimate ?? undefined,
+        currency: "AED",
+      });
+    }
+
+    if (isMetaVariant) {
+      trackMetaStandardEvent("Contact", {
+        content_name: "Meta Guided Full PPF Calculator V2",
         content_category: "PPF",
         button_location: placement,
         value: estimate ?? undefined,
@@ -2163,6 +2246,13 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       if (isTikTokVariant) {
         trackTikTokSubmitForm({
           content_name: "TikTok Guided Full PPF Calculator",
+          content_category: "PPF",
+          value: targetPrice,
+          currency: "AED",
+        });
+      } else if (isMetaVariant) {
+        trackMetaStandardEvent("Lead", {
+          content_name: "Meta Guided Full PPF Calculator V2",
           content_category: "PPF",
           value: targetPrice,
           currency: "AED",

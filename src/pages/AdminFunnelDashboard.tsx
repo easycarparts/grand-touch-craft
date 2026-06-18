@@ -353,12 +353,15 @@ const TIKTOK_GUIDED_CALCULATOR_TRACKING_URL = `${SITE_ORIGIN}/ppf-tiktok-full-ca
 const FULL_PPF_CALCULATOR_TRACKING_URL = `${SITE_ORIGIN}/ppf-full-ppf-calculator?utm_source=google&utm_medium=paid_search&utm_campaign=ppf_calculator_ab_may_2026`;
 /** Google PPC guided full PPF calculator V2 URL. Funnel filter: `ppf_full_ppf_guided_calculator_v2`. Google may append `gclid`. */
 const FULL_PPF_GUIDED_CALCULATOR_V2_TRACKING_URL = `${SITE_ORIGIN}/ppf-full-ppf-calculator-guided-v2?utm_source=google&utm_medium=paid_search&utm_campaign=ppf_guided_calculator_v2_june_2026`;
+/** Meta paid social guided full PPF calculator V2 URL. Funnel filter: `ppf_meta_guided_calculator_v2`. Meta may append `fbclid`. */
+const META_GUIDED_CALCULATOR_V2_TRACKING_URL = `${SITE_ORIGIN}/ppf-meta-full-car-ppf-v2?utm_source=meta&utm_medium=paid_social&utm_campaign=meta_full_ppf_guided_v2_june_2026&utm_id={{campaign.id}}&utm_content={{ad.name}}`;
 
 const knownFunnelOptions = [
   "ppf_dubai_quote",
   "ppf_full_ppf_calculator",
   "ppf_full_ppf_guided_calculator",
   "ppf_full_ppf_guided_calculator_v2",
+  "ppf_meta_guided_calculator_v2",
   "ppf_tiktok_guided_calculator",
   "ppf_tiktok_quote",
   "ppf_tiktok_guided_quote",
@@ -388,6 +391,7 @@ const funnelLabels: Record<string, string> = {
   ppf_full_ppf_calculator: "Full PPF Calculator",
   ppf_full_ppf_guided_calculator: "Guided Full PPF Calculator",
   ppf_full_ppf_guided_calculator_v2: "Guided Full PPF Calculator V2",
+  ppf_meta_guided_calculator_v2: "Meta Guided Full PPF V2",
   ppf_tiktok_guided_calculator: "TikTok Guided PPF Calculator",
   ppf_tiktok_quote: "TikTok PPF Quote",
   ppf_tiktok_guided_quote: "TikTok Guided Quote",
@@ -413,6 +417,13 @@ const normalizeFunnelName = ({
   landingPageVariant: string;
   pathname: string;
 }) => {
+  if (
+    landingPageVariant === "meta_full_ppf_guided_calculator_v2" ||
+    pathname.includes("/ppf-meta-full-car-ppf-v2")
+  ) {
+    return "ppf_meta_guided_calculator_v2";
+  }
+
   if (
     landingPageVariant === "google_full_ppf_guided_calculator_v2" ||
     pathname.includes("/ppf-full-ppf-calculator-guided-v2")
@@ -494,7 +505,9 @@ const isFullPpfCalculatorSession = (row: SessionRow) =>
   row.landingPageVariant === "google_full_ppf_calculator" ||
   row.landingPageVariant === "google_full_ppf_guided_calculator" ||
   row.landingPageVariant === "google_full_ppf_guided_calculator_v2" ||
+  row.landingPageVariant === "meta_full_ppf_guided_calculator_v2" ||
   row.landingPageVariant === "tiktok_full_ppf_guided_calculator" ||
+  row.pathname.includes("/ppf-meta-full-car-ppf-v2") ||
   row.pathname.includes("/ppf-tiktok-full-car-ppf") ||
   row.pathname.includes("/ppf-full-ppf-calculator-guided-v2") ||
   row.pathname.includes("/ppf-full-ppf-calculator-guided") ||
@@ -503,7 +516,9 @@ const isFullPpfCalculatorSession = (row: SessionRow) =>
 const isGuidedCalculatorRow = (row: Pick<SessionRow, "landingPageVariant" | "pathname">) =>
   row.landingPageVariant === "google_full_ppf_guided_calculator" ||
   row.landingPageVariant === "google_full_ppf_guided_calculator_v2" ||
+  row.landingPageVariant === "meta_full_ppf_guided_calculator_v2" ||
   row.landingPageVariant === "tiktok_full_ppf_guided_calculator" ||
+  row.pathname.includes("/ppf-meta-full-car-ppf-v2") ||
   row.pathname.includes("/ppf-tiktok-full-car-ppf") ||
   row.pathname.includes("/ppf-full-ppf-calculator-guided-v2") ||
   row.pathname.includes("/ppf-full-ppf-calculator-guided");
@@ -512,6 +527,7 @@ const isFullPpfCalculatorSelected = (selectedFunnel: string) =>
   selectedFunnel === "ppf_full_ppf_calculator" ||
   selectedFunnel === "ppf_full_ppf_guided_calculator" ||
   selectedFunnel === "ppf_full_ppf_guided_calculator_v2" ||
+  selectedFunnel === "ppf_meta_guided_calculator_v2" ||
   selectedFunnel === "ppf_tiktok_guided_calculator";
 
 const getDropOffHint = (row: SessionRow) => {
@@ -1980,6 +1996,37 @@ const AdminFunnelDashboard = () => {
               </div>
             </div>
 
+            <div className="rounded-xl border border-sky-400/25 bg-sky-400/[0.04] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+                Guided V2 calculator URL (Meta)
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-400">
+                Use this for Meta ads when you want the same V2 funnel without mixing it into the
+                Google experiment. Sessions bucket under{" "}
+                <span className="font-mono text-white">ppf_meta_guided_calculator_v2</span>;
+                <code className="mx-1 text-primary/90">fbclid</code>, campaign macros, and UTMs
+                are captured separately.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <code className="min-h-11 min-w-0 flex-1 break-all rounded-lg border border-white/10 bg-black/50 p-3 text-[11px] leading-relaxed text-slate-200">
+                  {META_GUIDED_CALCULATOR_V2_TRACKING_URL}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 shrink-0 border-white/15 bg-black/30 text-white hover:bg-white/10"
+                  onClick={() =>
+                    void handleCopyTrackingUrl(
+                      META_GUIDED_CALCULATOR_V2_TRACKING_URL,
+                      "meta_guided_calculator_v2",
+                    )
+                  }
+                >
+                  {copiedTrackingUrl === "meta_guided_calculator_v2" ? "Copied" : "Copy URL"}
+                </Button>
+              </div>
+            </div>
+
             <div className="rounded-xl border border-white/10 bg-black/25 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                 TikTok tracking URL (production)
@@ -2060,6 +2107,12 @@ const AdminFunnelDashboard = () => {
                 Test guided V2 calculator:{" "}
                 <Link className="text-primary hover:underline" to="/ppf-full-ppf-calculator-guided-v2">
                   /ppf-full-ppf-calculator-guided-v2
+                </Link>
+              </span>
+              <span>
+                Test Meta guided V2 calculator:{" "}
+                <Link className="text-primary hover:underline" to="/ppf-meta-full-car-ppf-v2">
+                  /ppf-meta-full-car-ppf-v2
                 </Link>
               </span>
               <span>

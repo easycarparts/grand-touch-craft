@@ -99,6 +99,7 @@ function App() {
             <Route path="/ppf-full-ppf-calculator" element={<PpfFullPpfCalculator />} />
             <Route path="/ppf-full-ppf-calculator-guided" element={<PpfFullPpfGuidedCalculator />} />
             <Route path="/ppf-full-ppf-calculator-guided-v2" element={<PpfFullPpfGuidedCalculatorV2 />} />
+            <Route path="/ppf-meta-full-car-ppf-v2" element={<PpfFullPpfGuidedCalculatorV2 variant="meta" />} />
             <Route path="/ppf-tiktok-full-car-ppf" element={<PpfFullPpfGuidedCalculator variant="tiktok" />} />
             <Route path="/ppf-dubai-quote" element={<PpfDubaiQuote />} />
             <Route path="/ppf-tiktok-quote" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
