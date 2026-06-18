@@ -96,7 +96,7 @@
   <!-- Blog Section -->
   <url>
     <loc>https://www.grandtouchauto.ae/blog</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-06-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -267,6 +267,18 @@
       <image:loc>https://www.grandtouchauto.ae/ppf-size-suv-nissan-patrol-gloss.png</image:loc>
       <image:title>Nissan Patrol PPF in Dubai</image:title>
       <image:caption>Nissan Patrol paint protection film planning for Dubai SUV owners</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/new-car-ppf-dubai</loc>
+    <lastmod>2026-06-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://www.grandtouchauto.ae/service-ppf.jpg</image:loc>
+      <image:title>New Car PPF in Dubai</image:title>
+      <image:caption>Paint protection film planning for new cars in Dubai</image:caption>
     </image:image>
   </url>
 

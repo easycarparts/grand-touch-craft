@@ -45,6 +45,8 @@ You have:
 - highway driving
 - close parking and everyday contact risk
 
+If the car has just left the showroom, the timing matters too. The [new car PPF guide for Dubai](/blog/new-car-ppf-dubai) explains what to inspect before film and when to protect the paint before the first summer.
+
 That means the right PPF choice depends on whether your car is mainly exposed at the front, or across the whole body.
 
 ## When full front is the smarter choice

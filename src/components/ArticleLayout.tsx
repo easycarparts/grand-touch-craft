@@ -220,6 +220,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       12: 'ppf-cost-dubai-pricing-guide',
       13: 'matte-vs-gloss-ppf-dubai',
       14: 'nissan-patrol-ppf-dubai',
+      15: 'new-car-ppf-dubai',
     };
     return slugMap[id] || `article-${id}`;
   };

@@ -25,6 +25,7 @@ function getArticleSlug(id: number) {
     12: "ppf-cost-dubai-pricing-guide",
     13: "matte-vs-gloss-ppf-dubai",
     14: "nissan-patrol-ppf-dubai",
+    15: "new-car-ppf-dubai",
   };
   return slugMap[id] ?? `article-${id}`;
 }
@@ -222,6 +223,20 @@ const blogPosts = [
     readTime: "8 min read",
     category: "Protection",
     image: "/ppf-size-suv-nissan-patrol-gloss.png",
+    featured: false,
+  },
+  {
+    id: 15,
+    title: "New Car PPF in Dubai: What to Protect Before the First Summer",
+    excerpt:
+      "A practical guide for Dubai owners deciding when to install PPF on a new car, which coverage makes sense, and how to request a proper quote.",
+    content:
+      "A new car is the easiest time to get PPF right, but the right coverage depends on how the car will be used in Dubai.",
+    author: "Sean, Grand Touch Auto",
+    publishedAt: "2026-06-18",
+    readTime: "8 min read",
+    category: "Protection",
+    image: "/service-ppf.jpg",
     featured: false,
   },
 ];

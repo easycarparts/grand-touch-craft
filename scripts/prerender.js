@@ -250,6 +250,20 @@ const blogArticlePages = [
       "How gloss, matte, prep, and vehicle size affect the quote",
     ],
   }),
+  makeBlogArticlePage({
+    slug: "new-car-ppf-dubai",
+    title: "New Car PPF in Dubai: What to Protect Before the First Summer",
+    description:
+      "A practical guide for Dubai owners deciding when to install PPF on a new car, which coverage makes sense, and how to request a proper quote.",
+    keywords:
+      "new car PPF Dubai, car PPF Dubai, paint protection film Dubai, car paint protection Dubai, PPF quote Dubai, Dubai heat paint protection",
+    image: "/service-ppf.jpg",
+    highlights: [
+      "Why new cars still need paint inspection before PPF",
+      "When full front or full body PPF makes sense on a new car",
+      "How to request a proper new car PPF quote in Dubai",
+    ],
+  }),
 ];
 
 const g700CustomizerPage = {
