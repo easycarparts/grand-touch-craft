@@ -28,6 +28,7 @@
     "ads:setup-v2-test-campaign": "node scripts/google-ads/setup-v2-test-campaign.mjs",
     "ads:keyword-planner-ppf": "node scripts/google-ads/keyword-planner-ppf.mjs",
     "ads:inspect-campaign": "node scripts/google-ads/inspect-campaign.mjs",
+    "ads:repoint-final-urls": "node scripts/google-ads/repoint-final-urls.mjs",
     "ads:rebuild-structure": "node scripts/google-ads/rebuild-structure.mjs",
     "ads:add-assets": "node scripts/google-ads/add-assets.mjs",
     "lint": "eslint .",

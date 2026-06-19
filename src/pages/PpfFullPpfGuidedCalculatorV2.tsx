@@ -117,10 +117,14 @@ type PpfFullPpfGuidedCalculatorProps = {
 const WHATSAPP_NUMBER = "971567191045";
 const DISPLAY_PHONE = "+971 56 719 1045";
 const TEL_HREF = "tel:+971567191045";
-// WhatsApp-only taps use a SECONDARY (observe-only) Google Ads action.
-// The primary conversion is the name + phone unlock form.
-const GOOGLE_ADS_PRE_FORM_WHATSAPP_SEND_TO = "AW-17684563059/q_bgCOXs1L8cEPOI1PBB";
+// Counted Google Ads conversions. To keep conversion VOLUME stable when this
+// funnel takes over the proven May campaign URL, WhatsApp taps and the unlock
+// form both count — but only ONE counted conversion fires per user/session
+// (whichever happens first), so a single visitor never double-counts.
+const GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO = "AW-17684563059/KqOWCJfDoLAcEPOI1PBB";
 const GOOGLE_ADS_SUBMIT_LEAD_SEND_TO = "AW-17684563059/5R6tCPbqo5kcEPOI1PBB";
+// Non-counted (observe-only) action, kept firing purely for the admin dashboard.
+const GOOGLE_ADS_PRE_FORM_WHATSAPP_SEND_TO = "AW-17684563059/q_bgCOXs1L8cEPOI1PBB";
 
 const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVariantConfig> = {
   google: {
@@ -1305,8 +1309,11 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const viewedSectionsRef = useRef<Set<string>>(new Set());
   const maxScrollPercentRef = useRef(0);
   const resultStepStartedAtRef = useRef<number | null>(null);
-  const googleSubmitLeadConversionTrackedRef = useRef(false);
-  const googleWhatsAppConversionTrackedRef = useRef(false);
+  // One COUNTED Google conversion per user/session — shared by the WhatsApp
+  // contact and the unlock-form actions so a single visitor never fires both.
+  const googleCountedConversionFiredRef = useRef(false);
+  // Independent guard for the non-counted observe-only pre-form WhatsApp action.
+  const googlePreFormWhatsAppFiredRef = useRef(false);
 
   const sizeGridRef = useRef<HTMLDivElement>(null);
   const sizeCardRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -1509,23 +1516,31 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
   const trackGoogleSubmitLeadConversion = useCallback(
     (value?: number) => {
-      if (!isGoogleVariant || googleSubmitLeadConversionTrackedRef.current) return;
-      googleSubmitLeadConversionTrackedRef.current = true;
+      if (!isGoogleVariant || googleCountedConversionFiredRef.current) return;
+      googleCountedConversionFiredRef.current = true;
       trackGoogleAdsConversion(GOOGLE_ADS_SUBMIT_LEAD_SEND_TO, value);
     },
     [isGoogleVariant],
   );
 
+  // Counted WhatsApp contact conversion (same action the proven May funnel
+  // uses). Shares the one-per-session guard with the unlock form above so a
+  // visitor who taps WhatsApp and later submits the form counts only once.
+  const trackGoogleWhatsAppContactConversion = useCallback(
+    (value?: number) => {
+      if (!isGoogleVariant || googleCountedConversionFiredRef.current) return;
+      googleCountedConversionFiredRef.current = true;
+      trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO, value);
+    },
+    [isGoogleVariant],
+  );
+
+  // Observe-only action for the admin dashboard. Independent guard, so it keeps
+  // firing on pre-form WhatsApp taps without affecting the counted conversion.
   const trackGooglePreFormWhatsAppConversion = useCallback(
     (value?: number) => {
-      if (
-        !isGoogleVariant ||
-        googleSubmitLeadConversionTrackedRef.current ||
-        googleWhatsAppConversionTrackedRef.current
-      ) {
-        return;
-      }
-      googleWhatsAppConversionTrackedRef.current = true;
+      if (!isGoogleVariant || googlePreFormWhatsAppFiredRef.current) return;
+      googlePreFormWhatsAppFiredRef.current = true;
       trackGoogleAdsConversion(GOOGLE_ADS_PRE_FORM_WHATSAPP_SEND_TO, value);
     },
     [isGoogleVariant],
@@ -2044,13 +2059,17 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       });
     }
 
-    // Google Ads WhatsApp conversion is fired explicitly by handleWhatsApp only
-    // for pre-form WhatsApp bypasses. Post-submit handoff stays analytics-only.
+    // Counted Google Ads conversions fire from handleWhatsApp (WhatsApp tap) and
+    // handleUnlockDiscount (form submit). The post-submit handoff stays
+    // analytics-only so one visitor never fires two counted conversions.
   };
 
   const handleWhatsApp = (placement: string) => {
     trackWhatsAppContact(placement);
+    // Observe-only signal for the dashboard (does not affect bidding)...
     trackGooglePreFormWhatsAppConversion(estimate ?? undefined);
+    // ...and the counted conversion, guarded so it never double-counts a user.
+    trackGoogleWhatsAppContactConversion(estimate ?? undefined);
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
   };
 
@@ -4339,25 +4358,26 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
         <DialogContent className="max-h-[90vh] overflow-y-auto border-[#f7b52b]/25 bg-[#0c0c0c] text-white sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-[1.55rem] font-black leading-tight">
-              Want a more accurate WhatsApp quote?
+              See your price + unlock 20% off first?
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              You can build the setup first, or message Sean now if you prefer.
+              Build your setup in ~60 seconds to reveal your exact price and lock
+              the discount — or message Sean now and he'll ask for the details.
             </DialogDescription>
           </DialogHeader>
 
           <ul className="mt-1 flex flex-col gap-2.5 text-sm text-slate-300">
             <li className="flex items-start gap-2.5">
               <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
-              <span>Calculator takes about 60 seconds</span>
+              <span>See your exact full-PPF price in about 60 seconds</span>
             </li>
             <li className="flex items-start gap-2.5">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
-              <span>Sean gets your car size, finish and warranty choice</span>
+              <span>Unlock 20% off + free pickup, locked to your setup</span>
             </li>
             <li className="flex items-start gap-2.5">
               <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
-              <span>Or skip it and ask directly on WhatsApp</span>
+              <span>Or message Sean now — he'll still need your car, size &amp; finish</span>
             </li>
           </ul>
 
