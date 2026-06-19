@@ -47,6 +47,20 @@ async function getEnabledRsas(config, campaignName) {
   return searchStream(config, query);
 }
 
+async function getSitelinkAssets(config, campaignName) {
+  const query = `
+    SELECT
+      campaign.name,
+      asset.resource_name,
+      asset.sitelink_asset.link_text,
+      asset.final_urls
+    FROM campaign_asset
+    WHERE campaign.name = '${campaignName.replace(/'/g, "\\'")}'
+      AND asset.type = SITELINK
+  `;
+  return searchStream(config, query);
+}
+
 try {
   const argv = process.argv.slice(2);
   const config = loadWorkflowConfig(argv);
@@ -62,22 +76,40 @@ try {
   console.log(`Mode: ${apply ? "APPLY (live mutate)" : "DRY-RUN (validateOnly)"}`);
   console.log(`New Final URL: ${url}\n`);
 
+  const sitelinks = await getSitelinkAssets(config, campaignName);
+
   console.log("Current Final URLs (rollback record):");
   for (const row of rows) {
     const adGroup = row.adGroup?.name ?? "(unknown ad group)";
     const current = row.adGroupAd?.ad?.finalUrls?.join(", ") ?? "(none)";
-    console.log(`- [${adGroup}] ${current}`);
+    console.log(`- RSA  [${adGroup}] ${current}`);
+  }
+  for (const row of sitelinks) {
+    const text = row.asset?.sitelinkAsset?.linkText ?? "(sitelink)";
+    const current = row.asset?.finalUrls?.join(", ") ?? "(none)";
+    console.log(`- LINK [${text}] ${current}`);
   }
 
-  const operations = rows.map((row) => ({
-    adOperation: {
-      update: {
-        resourceName: row.adGroupAd.ad.resourceName,
-        finalUrls: [url],
+  const operations = [
+    ...rows.map((row) => ({
+      adOperation: {
+        update: {
+          resourceName: row.adGroupAd.ad.resourceName,
+          finalUrls: [url],
+        },
+        updateMask: "final_urls",
       },
-      updateMask: "final_urls",
-    },
-  }));
+    })),
+    ...sitelinks.map((row) => ({
+      assetOperation: {
+        update: {
+          resourceName: row.asset.resourceName,
+          finalUrls: [url],
+        },
+        updateMask: "final_urls",
+      },
+    })),
+  ];
 
   await mutate(config, operations, {
     partialFailure: false,
@@ -85,7 +117,8 @@ try {
   });
 
   console.log(
-    `\n${apply ? "Updated" : "Validated (no changes written)"} ${operations.length} ad(s).`,
+    `\n${apply ? "Updated" : "Validated (no changes written)"} ${operations.length} ` +
+      `entity(ies): ${rows.length} RSA(s) + ${sitelinks.length} sitelink(s).`,
   );
   if (!apply) {
     console.log("Re-run with --apply to write the change.");
