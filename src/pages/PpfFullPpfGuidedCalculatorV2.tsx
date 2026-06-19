@@ -2515,10 +2515,37 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
               </a>
             </header>
 
+            {isMetaVariant ? (
+              <div className="mt-2 lg:hidden">
+                <div className="rounded-2xl border border-[#f7b52b]/30 bg-[linear-gradient(180deg,rgba(247,181,43,0.12),rgba(8,8,8,0.42))] px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f7b52b]">
+                    {variantConfig.eyebrow}
+                  </p>
+                  <h1 className="mt-1 text-[1.55rem] font-black leading-[1.02] tracking-tight">
+                    Build your full PPF price in 60 seconds.
+                  </h1>
+                  <p className="mt-2 text-xs leading-5 text-slate-300">
+                    Tap your car size below, choose finish and warranty, then unlock the online offer.
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-slate-200">
+                    <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1">
+                      Google 4.9
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1">
+                      STEK authorised
+                    </span>
+                    <span className="rounded-full border border-[#f7b52b]/25 bg-[#f7b52b]/10 px-2 py-1 text-[#f7b52b]">
+                      20% online offer
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {/* Mobile-only value hero — shows the offer above the calculator so
                 users land on a real promise before the funnel asks anything.
                 Dual CTA: gold to engage the calculator, green for direct WhatsApp. */}
-            <div className="mt-3 lg:hidden">
+            <div className={cn("mt-3 lg:hidden", isMetaVariant && "hidden")}>
               <div className="relative overflow-hidden rounded-2xl border border-[#f7b52b]/35 bg-[radial-gradient(circle_at_85%_-10%,rgba(247,181,43,0.28),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(8,8,8,0.55))] p-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b]">
                   {variantConfig.eyebrow}
@@ -2656,7 +2683,12 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
               </div>
             </div>
 
-            <div className="grid gap-4 pb-8 pt-3 lg:grid-cols-[0.88fr_1.12fr] lg:items-start lg:gap-8 lg:pb-12 lg:pt-12">
+            <div
+              className={cn(
+                "grid gap-4 pb-8 pt-3 lg:grid-cols-[0.88fr_1.12fr] lg:items-start lg:gap-8 lg:pb-12 lg:pt-12",
+                isMetaVariant && "pb-6 pt-2 lg:pb-12 lg:pt-12",
+              )}
+            >
               <div className="hidden lg:block lg:sticky lg:top-20">
                 <p className="text-xs font-black uppercase tracking-[0.28em] text-[#f7b52b]">
                   {variantConfig.eyebrow}
