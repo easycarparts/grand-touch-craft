@@ -96,7 +96,7 @@
   <!-- Blog Section -->
   <url>
     <loc>https://www.grandtouchauto.ae/blog</loc>
-    <lastmod>2026-06-18</lastmod>
+    <lastmod>2026-06-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -279,6 +279,18 @@
       <image:loc>https://www.grandtouchauto.ae/service-ppf.jpg</image:loc>
       <image:title>New Car PPF in Dubai</image:title>
       <image:caption>Paint protection film planning for new cars in Dubai</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/lexus-lx600-ppf-dubai</loc>
+    <lastmod>2026-06-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://www.grandtouchauto.ae/guided-cullinan-ppf.png</image:loc>
+      <image:title>Lexus LX600 PPF in Dubai</image:title>
+      <image:caption>Luxury SUV paint protection film planning for Dubai owners</image:caption>
     </image:image>
   </url>
 

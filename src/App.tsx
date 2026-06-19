@@ -33,6 +33,7 @@ import PpfCostDubaiPricingGuide from "./pages/articles/PpfCostDubaiPricingGuide"
 import MatteVsGlossPpfDubai from "./pages/articles/MatteVsGlossPpfDubai";
 import NissanPatrolPpfDubai from "./pages/articles/NissanPatrolPpfDubai";
 import NewCarPpfDubai from "./pages/articles/NewCarPpfDubai";
+import LexusLx600PpfDubai from "./pages/articles/LexusLx600PpfDubai";
 import PpfDubaiQuote from "./pages/PpfDubaiQuote";
 import PpfDubaiQuoteV1 from "./pages/PpfDubaiQuoteV1";
 import PpfTikTokGuidedQuote from "./pages/PpfTikTokGuidedQuote";
@@ -176,6 +177,7 @@ function App() {
             <Route path="/blog/matte-vs-gloss-ppf-dubai" element={<MatteVsGlossPpfDubai />} />
             <Route path="/blog/nissan-patrol-ppf-dubai" element={<NissanPatrolPpfDubai />} />
             <Route path="/blog/new-car-ppf-dubai" element={<NewCarPpfDubai />} />
+            <Route path="/blog/lexus-lx600-ppf-dubai" element={<LexusLx600PpfDubai />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />

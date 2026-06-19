@@ -221,6 +221,7 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       13: 'matte-vs-gloss-ppf-dubai',
       14: 'nissan-patrol-ppf-dubai',
       15: 'new-car-ppf-dubai',
+      16: 'lexus-lx600-ppf-dubai',
     };
     return slugMap[id] || `article-${id}`;
   };

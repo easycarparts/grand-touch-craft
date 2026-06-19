@@ -98,7 +98,7 @@ A clean install matters whether you choose full front or full body.
 
 If you want to see our approach, start with our **[PPF cost calculator in Dubai](/ppf-cost-calculator)** or use the **[guided PPF price calculator](/ppf-full-ppf-calculator-guided-v2)** when you want the full body setup flow with Sean.
 
-If your car is a large SUV, the panel size and side exposure change the quote conversation. Patrol owners can use the [Nissan Patrol PPF guide for Dubai](/blog/nissan-patrol-ppf-dubai) to compare full front, full body, gloss, and matte options in a more specific way.
+If your car is a large SUV, the panel size and side exposure change the quote conversation. Patrol owners can use the [Nissan Patrol PPF guide for Dubai](/blog/nissan-patrol-ppf-dubai) to compare full front, full body, gloss, and matte options in a more specific way. Lexus owners can use the [Lexus LX600 PPF guide for Dubai](/blog/lexus-lx600-ppf-dubai) when the decision is more about a premium full-size SUV, family use, and long-term finish consistency.
 
 ## Quick decision checklist
 Use this before you book:

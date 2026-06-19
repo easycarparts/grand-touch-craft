@@ -26,6 +26,7 @@ function getArticleSlug(id: number) {
     13: "matte-vs-gloss-ppf-dubai",
     14: "nissan-patrol-ppf-dubai",
     15: "new-car-ppf-dubai",
+    16: "lexus-lx600-ppf-dubai",
   };
   return slugMap[id] ?? `article-${id}`;
 }
@@ -237,6 +238,20 @@ const blogPosts = [
     readTime: "8 min read",
     category: "Protection",
     image: "/service-ppf.jpg",
+    featured: false,
+  },
+  {
+    id: 16,
+    title: "Lexus LX600 PPF in Dubai: Coverage, Cost Factors, and Finish Choices",
+    excerpt:
+      "A practical Dubai guide for Lexus LX600 owners comparing full front PPF, full body PPF, gloss or matte film, and quote factors before booking.",
+    content:
+      "The Lexus LX600 is not a small PPF job. It is a premium full-size SUV where coverage, finish, prep, and quote quality need to be planned properly.",
+    author: "Sean, Grand Touch Auto",
+    publishedAt: "2026-06-19",
+    readTime: "8 min read",
+    category: "Protection",
+    image: "/guided-cullinan-ppf.png",
     featured: false,
   },
 ];

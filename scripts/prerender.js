@@ -264,6 +264,20 @@ const blogArticlePages = [
       "How to request a proper new car PPF quote in Dubai",
     ],
   }),
+  makeBlogArticlePage({
+    slug: "lexus-lx600-ppf-dubai",
+    title: "Lexus LX600 PPF in Dubai: Coverage, Cost Factors, and Finish Choices",
+    description:
+      "A practical Dubai guide for Lexus LX600 owners comparing full front PPF, full body PPF, gloss or matte film, and quote factors before booking.",
+    keywords:
+      "Lexus LX600 PPF Dubai, luxury SUV PPF Dubai, car PPF Dubai, paint protection film Dubai, PPF quote Dubai, Dubai heat paint protection",
+    image: "/guided-cullinan-ppf.png",
+    highlights: [
+      "When full front PPF makes sense for a Lexus LX600",
+      "When full body PPF is worth considering on a large luxury SUV",
+      "How gloss, matte, prep, and vehicle size affect the quote",
+    ],
+  }),
 ];
 
 const g700CustomizerPage = {
