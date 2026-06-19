@@ -4338,46 +4338,47 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       <Dialog open={preChatOpen} onOpenChange={setPreChatOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border-[#f7b52b]/25 bg-[#0c0c0c] text-white sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black leading-tight">
-              Get your exact price first —{" "}
-              <span className="text-[#f7b52b]">takes 60 seconds</span>
+            <DialogTitle className="text-[1.55rem] font-black leading-tight">
+              Want a more accurate WhatsApp quote?
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              You're one tap from your real number. Most people get their price before they message.
+              You can build the setup first, or message Sean now if you prefer.
             </DialogDescription>
           </DialogHeader>
 
-          <ul className="mt-1 flex flex-col gap-2.5 text-sm text-slate-200">
+          <ul className="mt-1 flex flex-col gap-2.5 text-sm text-slate-300">
             <li className="flex items-start gap-2.5">
               <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
-              <span>Instant price — no waiting for a reply</span>
+              <span>Calculator takes about 60 seconds</span>
             </li>
             <li className="flex items-start gap-2.5">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
-              <span>Tailored to your car, size &amp; finish</span>
+              <span>Sean gets your car size, finish and warranty choice</span>
             </li>
             <li className="flex items-start gap-2.5">
               <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
-              <span>Then chat with your real number in hand</span>
+              <span>Or skip it and ask directly on WhatsApp</span>
             </li>
           </ul>
 
-          <div className="mt-4 flex flex-col items-center gap-3">
+          <div className="mt-4 grid gap-2">
             <Button
               type="button"
               onClick={handlePreChatToCalculator}
               className="h-14 w-full gap-2 rounded-xl bg-[#f7b52b] text-base font-black text-black shadow-lg shadow-[#f7b52b]/20 hover:bg-[#ffc94f]"
             >
-              {variantConfig.primaryCta}
+              Build my price first
               <ArrowRight className="h-5 w-5" />
             </Button>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={handlePreChatContinue}
-              className="text-xs font-medium text-slate-500 underline underline-offset-4 transition-colors hover:text-slate-300"
+              className="h-14 w-full gap-2 rounded-xl border border-[#25D366]/45 bg-transparent text-base font-black text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
             >
-              Skip — just message on WhatsApp
-            </button>
+              Message Sean now
+              <MessageCircle className="h-5 w-5" />
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
