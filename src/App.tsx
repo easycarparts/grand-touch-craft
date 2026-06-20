@@ -54,6 +54,7 @@ import { RequireAdmin } from "@/components/admin/RequireAdmin";
 import G700Customizer from "./pages/G700Customizer";
 import PpfInvestorProposal from "./pages/PpfInvestorProposal";
 import PpfInvestorProposalV2 from "./pages/PpfInvestorProposalV2";
+import PpfInvestorProposalV3 from "./pages/PpfInvestorProposalV3";
 
 const queryClient = new QueryClient();
 
@@ -185,6 +186,7 @@ function App() {
             <Route path="/partners/technical-resources-b2b" element={<TechnicalResourcesB2B />} />
             <Route path="/private/ppf-investor-proposal" element={<PpfInvestorProposal />} />
             <Route path="/private/ppf-investor-proposal-v2" element={<PpfInvestorProposalV2 />} />
+            <Route path="/private/ppf-investor-proposal-v3" element={<PpfInvestorProposalV3 />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
