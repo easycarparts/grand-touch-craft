@@ -79,7 +79,7 @@ import logo from "@/assets/logo.svg";
 
 type PackageYears = 5 | 10 | 12;
 type FlowStep = "size" | "finish" | "package" | "result";
-type GuidedCalculatorVariant = "google" | "tiktok" | "meta";
+type GuidedCalculatorVariant = "google" | "tiktok" | "meta" | "dubai_quote";
 
 type GuidedCalculatorVariantConfig = {
   seoKey: string;
@@ -160,6 +160,43 @@ const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVaria
     messageIntro: "Hi Sean, I built a guided full PPF setup on the Grand Touch page.",
     phoneCaptureServiceName: "Guided Full PPF - Phone Captured At Warranty Step",
     bonusClaimServiceName: "Guided Full PPF Bonus Claim",
+  },
+  // Replaces the legacy /ppf-dubai-quote page with the V2 funnel while keeping
+  // that page's identity: same funnel name (ppf_dubai_quote), same Google
+  // conversions, and the ppf-dubai-quote canonical so SEO + dashboard carry over.
+  dubai_quote: {
+    seoKey: "ppf-dubai-quote",
+    funnelName: "ppf_dubai_quote",
+    landingPageVariant: "google",
+    defaultSourcePlatform: "google",
+    calculatorType: "guided_full_ppf",
+    pageUrl: "https://www.grandtouchauto.ae/ppf-dubai-quote",
+    seo: {
+      title: "PPF Dubai Quote | Grand Touch",
+      description:
+        "Build your full PPF setup, see your Dubai paint protection film price, then claim 20% off, free pickup, or window tint direct with Sean on WhatsApp.",
+      keywords:
+        "PPF Dubai quote, ppf dubai, paint protection film dubai, ppf price dubai, full body ppf dubai, full car ppf dubai, STEK PPF Dubai, premium PPF Dubai",
+      ogTitle: "PPF Dubai Quote",
+      ogDescription:
+        "Premium full PPF quote for Dubai drivers — build your setup, unlock 20% off, and confirm with Sean on WhatsApp.",
+    },
+    eyebrow: "Premium PPF - Dubai",
+    headline: "Full Car PPF Price",
+    headlineAccent: "in Dubai.",
+    mobileIntro:
+      "Build your setup, see the starting PPF Dubai price, then claim 20% off, free pickup, or window tint with Sean on WhatsApp.",
+    desktopIntro:
+      "Use this PPF Dubai calculator to estimate full car paint protection film pricing for your car, SUV, or sports car, then lock in 20% off, free pickup, or window tint with Sean on WhatsApp.",
+    campaignIntro:
+      "Built for Dubai drivers comparing paint protection film, full body PPF, STEK PPF, and full car PPF installation costs.",
+    campaignTerms: ["PPF Dubai", "Paint protection film", "PPF price", "Full body PPF"],
+    primaryCta: "See my price (60s)",
+    secondaryCta: "WhatsApp Sean",
+    proofPoints: ["60-second quote", "No commitment", "Sean reviews each setup"],
+    messageIntro: "Hi Sean, I built a full PPF setup on the Grand Touch Dubai quote page.",
+    phoneCaptureServiceName: "Dubai Quote V2 - Phone Captured At Warranty Step",
+    bonusClaimServiceName: "Dubai Quote V2 Bonus Claim",
   },
   tiktok: {
     seoKey: "ppf-tiktok-full-car-ppf",
@@ -1282,7 +1319,9 @@ const ScarcityChip = ({ className, variant = "dark" }: ScarcityChipProps) => {
 
 const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCalculatorProps) => {
   const variantConfig = guidedVariantConfig[variant];
-  const isGoogleVariant = variant === "google";
+  // dubai_quote reuses the Google funnel's conversion + behaviour (it replaced
+  // the legacy /ppf-dubai-quote page), so it counts as a "Google" variant here.
+  const isGoogleVariant = variant === "google" || variant === "dubai_quote";
   const isTikTokVariant = variant === "tiktok";
   const isMetaVariant = variant === "meta";
   const offerTickerItems = isTikTokVariant ? tiktokTopOffers : topOffers;
