@@ -2050,13 +2050,19 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     }
 
     if (isMetaVariant) {
-      trackMetaStandardEvent("Contact", {
+      const metaPayload = {
         content_name: "Meta Guided Full PPF Calculator V2",
         content_category: "PPF",
         button_location: placement,
         value: estimate ?? undefined,
         currency: "AED",
-      });
+      };
+      // Contact = the actual action (kept for Events Manager richness). Lead =
+      // fired too so a WhatsApp tap counts toward the ad set's Lead optimisation,
+      // giving Meta the same signal as a form submit (intentional volume play on
+      // the small test budget — WhatsApp leads will include message-only users).
+      trackMetaStandardEvent("Contact", metaPayload);
+      trackMetaStandardEvent("Lead", metaPayload);
     }
 
     // Counted Google Ads conversions fire from handleWhatsApp (WhatsApp tap) and
