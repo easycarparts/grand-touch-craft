@@ -173,6 +173,20 @@ export default {
           "0%": { opacity: "0", transform: "translateY(6px) scale(1.18)" },
           "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
         },
+        "guided-flip-in": {
+          "0%": { opacity: "0", transform: "perspective(800px) rotateX(-90deg)" },
+          "55%": { opacity: "1", transform: "perspective(800px) rotateX(14deg)" },
+          "100%": { opacity: "1", transform: "perspective(800px) rotateX(0deg)" },
+        },
+        "guided-shimmer": {
+          "0%": { transform: "translateX(-130%)" },
+          "100%": { transform: "translateX(230%)" },
+        },
+        "guided-stamp-in": {
+          "0%": { opacity: "0", transform: "scale(1.7) rotate(-9deg)" },
+          "55%": { opacity: "1", transform: "scale(0.9) rotate(-3deg)" },
+          "100%": { opacity: "1", transform: "scale(1) rotate(-3deg)" },
+        },
         "guided-cue-pulse": {
           "0%, 100%": {
             boxShadow: "0 12px 34px rgba(247, 181, 43, 0.32), 0 0 0 0 rgba(247, 181, 43, 0.0)",
@@ -242,6 +256,9 @@ export default {
         "guided-strike": "guided-strike 0.55s cubic-bezier(0.65, 0, 0.35, 1) both",
         "guided-price-in": "guided-price-in 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both",
         "guided-anchor-up": "guided-anchor-up 0.45s ease-out both",
+        "guided-flip-in": "guided-flip-in 0.7s cubic-bezier(0.34, 1.4, 0.64, 1) both",
+        "guided-shimmer": "guided-shimmer 2.4s ease-in-out infinite",
+        "guided-stamp-in": "guided-stamp-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both",
         "guided-cue-pulse": "guided-cue-pulse 2.2s ease-in-out infinite",
         "guided-marquee": "guided-marquee 38s linear infinite",
         "guided-panel-flash": "guided-panel-flash 1.4s cubic-bezier(0.22, 1, 0.36, 1) both",

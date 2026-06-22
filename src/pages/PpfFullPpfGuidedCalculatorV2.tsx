@@ -79,7 +79,7 @@ import logo from "@/assets/logo.svg";
 
 type PackageYears = 5 | 10 | 12;
 type FlowStep = "size" | "finish" | "package" | "result";
-type GuidedCalculatorVariant = "google" | "tiktok" | "meta" | "dubai_quote";
+type GuidedCalculatorVariant = "google" | "tiktok" | "meta" | "dubai_quote" | "v3";
 
 type GuidedCalculatorVariantConfig = {
   seoKey: string;
@@ -197,6 +197,43 @@ const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVaria
     messageIntro: "Hi Sean, I built a full PPF setup on the Grand Touch Dubai quote page.",
     phoneCaptureServiceName: "Dubai Quote V2 - Phone Captured At Warranty Step",
     bonusClaimServiceName: "Dubai Quote V2 Bonus Claim",
+  },
+  // V3 (experimental, localhost): price-GATED variant. The exact discounted
+  // price is locked behind the contact form to fix the "saw price then left"
+  // drop-off. Own funnel name so the dashboard tracks V3 capture rate separately.
+  v3: {
+    seoKey: "ppf-full-ppf-calculator-guided-v3",
+    funnelName: "ppf_full_ppf_guided_calculator_v3",
+    landingPageVariant: "google_full_ppf_guided_calculator_v3",
+    defaultSourcePlatform: "google",
+    calculatorType: "guided_full_ppf_v3",
+    pageUrl: "https://www.grandtouchauto.ae/ppf-full-ppf-calculator-guided-v3",
+    seo: {
+      title: "PPF Dubai Price Calculator | Full Car Paint Protection Film",
+      description:
+        "Use the Grand Touch PPF Dubai calculator to estimate full car paint protection film pricing, full body PPF options, STEK film, and your 20% online discount.",
+      keywords:
+        "ppf dubai, paint protection film dubai, ppf price dubai, ppf cost dubai, full body ppf dubai, full car ppf dubai, car ppf dubai, premium PPF Dubai, STEK PPF Dubai",
+      ogTitle: "PPF Dubai Price Calculator",
+      ogDescription:
+        "Build your full PPF setup, unlock the 20% online discount, and ask Sean to confirm your paint protection film install in Dubai.",
+    },
+    eyebrow: "Premium PPF - Dubai",
+    headline: "Full Car PPF Price",
+    headlineAccent: "in Dubai.",
+    mobileIntro:
+      "Build your setup, then unlock your exact PPF Dubai price with 20% off, free pickup, or window tint with Sean on WhatsApp.",
+    desktopIntro:
+      "Use this PPF Dubai calculator to build your full car paint protection film setup, then unlock your exact price plus 20% off, free pickup, or window tint with Sean on WhatsApp.",
+    campaignIntro:
+      "Built for Dubai drivers comparing paint protection film, full body PPF, STEK PPF, and full car PPF installation costs.",
+    campaignTerms: ["PPF Dubai", "Paint protection film", "PPF price", "Full body PPF"],
+    primaryCta: "Build my price (60s)",
+    secondaryCta: "WhatsApp Sean",
+    proofPoints: ["60-second quote", "No commitment", "Sean reviews each setup"],
+    messageIntro: "Hi Sean, I built a guided full PPF setup on the Grand Touch page.",
+    phoneCaptureServiceName: "Guided Full PPF V3 - Phone Captured At Warranty Step",
+    bonusClaimServiceName: "Guided Full PPF V3 Bonus Claim",
   },
   tiktok: {
     seoKey: "ppf-tiktok-full-car-ppf",
@@ -1319,10 +1356,13 @@ const ScarcityChip = ({ className, variant = "dark" }: ScarcityChipProps) => {
 
 const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCalculatorProps) => {
   const variantConfig = guidedVariantConfig[variant];
-  // dubai_quote reuses the Google funnel's conversion + behaviour (it replaced
-  // the legacy /ppf-dubai-quote page), so it counts as a "Google" variant here.
-  const isGoogleVariant = variant === "google" || variant === "dubai_quote";
+  // dubai_quote + v3 reuse the Google funnel's conversion behaviour, so they
+  // count as a "Google" variant here.
+  const isGoogleVariant =
+    variant === "google" || variant === "dubai_quote" || variant === "v3";
   const isTikTokVariant = variant === "tiktok";
+  // V3 = price-gated experiment: hide the exact price + drop the name requirement.
+  const isV3 = variant === "v3";
   const isMetaVariant = variant === "meta";
   const offerTickerItems = isTikTokVariant ? tiktokTopOffers : topOffers;
   const [step, setStep] = useState<FlowStep>("size");
@@ -1529,7 +1569,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const discountSavings =
     listPrice !== null && targetPrice !== null ? listPrice - targetPrice : null;
   const firstName = name.trim().split(/\s+/)[0] ?? "";
-  const canUnlock = name.trim().length >= 2 && phoneCaptured;
+  // V3 needs only a valid phone (name optional) to cut last-step friction.
+  const canUnlock = (isV3 || name.trim().length >= 2) && phoneCaptured;
 
   const trackEvent = useCallback(
     (
@@ -2240,7 +2281,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     }
     if (discountUnlocked || unlocking) return;
 
-    if (name.trim().length < 2) {
+    if (!isV3 && name.trim().length < 2) {
       setFormStatus("error");
       return;
     }
@@ -3242,8 +3283,14 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                         /* ---------- POST-UNLOCK: locked-in green price ---------- */
                         <>
                           <div className="mt-3 flex items-center gap-2 sm:mt-3.5">
-                            <span className="text-sm font-bold text-white/40 line-through sm:text-base">
+                            <span className={cn("relative text-sm font-bold text-white/40 sm:text-base", !isV3 && "line-through")}>
                               {formatAED(listPrice)}
+                              {isV3 ? (
+                                <span
+                                  aria-hidden="true"
+                                  className="pointer-events-none absolute left-0 top-1/2 h-[2px] w-full origin-left -translate-y-1/2 rounded-full bg-[#25D366] shadow-[0_0_8px_rgba(37,211,102,0.7)] animate-guided-strike motion-reduce:animate-none"
+                                />
+                              ) : null}
                             </span>
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#25D366] ring-1 ring-[#25D366]/40 sm:text-[10px]">
                               <BadgePercent className="h-3 w-3" />
@@ -3274,62 +3321,146 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                           <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
                             Excludes VAT · Sean confirms final price
                           </p>
-                        </>
-                      ) : targetPrice !== null && listPrice !== null ? (
-                        /* ---------- PRE-UNLOCK: full price strikes out, discounted price is the hero ---------- */
-                        <>
-                          {/* Full price — de-emphasised, with a line that draws across it */}
-                          <p className="mt-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/40 sm:mt-3.5 sm:text-[10px]">
-                            Full setup price
-                          </p>
-                          <div className="relative mt-0.5 inline-block">
-                            <span className="text-2xl font-black leading-none tracking-tight text-white/45 sm:text-3xl">
-                              {formatAED(listPrice)}
-                            </span>
-                            <span
-                              aria-hidden="true"
-                              className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#f7b52b] shadow-[0_0_10px_rgba(247,181,43,0.7)] animate-guided-strike motion-reduce:animate-none"
-                              style={{ animationDelay: "0.4s" }}
-                            />
-                          </div>
 
-                          {/* Discounted price — the hero, clean white for max contrast */}
-                          <p
-                            className="mt-2.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/55 animate-guided-anchor-up motion-reduce:animate-none sm:text-[10px]"
-                            style={{ animationDelay: "0.75s" }}
-                          >
-                            Your price today
-                          </p>
-                          <p
-                            className="mt-0.5 text-[2.6rem] font-black leading-none tracking-tight text-white animate-guided-price-in motion-reduce:animate-none sm:mt-1 sm:text-[4rem]"
-                            style={{ animationDelay: "0.7s" }}
-                          >
-                            {formatAED(targetPrice)}
-                          </p>
-
-                          {discountSavings !== null ? (
-                            <div
-                              className="mt-2 animate-fade-up motion-reduce:animate-none"
-                              style={{ animationDelay: "0.95s", animationFillMode: "both" }}
-                            >
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#25D366] ring-1 ring-[#25D366]/45 sm:text-xs">
-                                <BadgePercent className="h-3.5 w-3.5" />
-                                Save {formatAED(discountSavings)} · 20% off
+                          {isV3 ? (
+                            <div className="mt-3 flex justify-center">
+                              <span className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[#25D366]/60 bg-[#25D366]/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-[#25D366] animate-guided-stamp-in motion-reduce:animate-none sm:text-xs">
+                                <Sparkles className="h-4 w-4" />
+                                You unlocked {formatAED((discountSavings ?? 0) + valueStackTotal)} of value
                               </span>
                             </div>
                           ) : null}
-
-                          <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
-                            Excludes VAT · Sean confirms final price
-                          </p>
                         </>
+                      ) : targetPrice !== null && listPrice !== null ? (
+                        /* ---------- PRE-UNLOCK ---------- */
+                        isV3 ? (
+                          /* V3: fully locked reward bundle. Nothing is inferable
+                             (no anchor, no %math) — the reveal is the payoff. */
+                          <>
+                            <div className="mt-3 flex items-center gap-2 sm:mt-3.5">
+                              <Sparkles className="h-5 w-5 shrink-0 text-[#f7b52b]" />
+                              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f7b52b] sm:text-xs">
+                                Your reward bundle is ready
+                              </p>
+                            </div>
+
+                            {/* BEFORE price — small, muted, with an animated red strike so it
+                                clearly reads as the OLD price, not what they'll pay. */}
+                            <p className="mt-2.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/35 sm:text-[10px]">
+                              Before your discount
+                            </p>
+                            <div className="flex items-center gap-2.5">
+                              <span className="relative inline-block">
+                                <span className="text-2xl font-black leading-none tracking-tight text-white/35 sm:text-3xl">
+                                  {formatAED(listPrice)}
+                                </span>
+                                <span
+                                  aria-hidden="true"
+                                  className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#ff6b6b] shadow-[0_0_10px_rgba(255,107,107,0.75)] animate-guided-strike motion-reduce:animate-none"
+                                />
+                              </span>
+                              <span className="rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#25D366] ring-1 ring-[#25D366]/40">
+                                −20%
+                              </span>
+                            </div>
+                            <p className="mt-1.5 flex items-center gap-1.5 text-sm font-black leading-tight text-white sm:text-base">
+                              Your real price is <span className="text-[#25D366]">lower</span> — it's locked
+                              <ChevronDown className="h-4 w-4 shrink-0 text-[#f7b52b] animate-bounce motion-reduce:animate-none" />
+                            </p>
+
+                            {/* Locked perks — calm (no shimmer); the price card is the green hero */}
+                            <div className="mt-2.5 grid gap-1.5">
+                              {[
+                                { label: "Your discounted price", hero: true },
+                                { label: "20% online discount", hero: false },
+                                { label: "AED 4,550 in free extras", hero: false },
+                                { label: "Free pickup & delivery", hero: false },
+                              ].map((perk) => (
+                                <div
+                                  key={perk.label}
+                                  className={cn(
+                                    "flex items-center justify-between gap-2 rounded-xl border px-3 py-2",
+                                    perk.hero
+                                      ? "border-[#25D366]/45 bg-[#25D366]/[0.07]"
+                                      : "border-white/10 bg-black/30",
+                                  )}
+                                >
+                                  <span className="flex min-w-0 items-center gap-2 text-xs font-bold text-slate-200 sm:text-sm">
+                                    <Lock
+                                      className={cn(
+                                        "h-3.5 w-3.5 shrink-0",
+                                        perk.hero ? "text-[#25D366]" : "text-[#f7b52b]",
+                                      )}
+                                    />
+                                    <span className="truncate">{perk.label}</span>
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "shrink-0 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] sm:text-[9px]",
+                                      perk.hero ? "bg-[#25D366]/15 text-[#25D366]" : "bg-white/10 text-white/55",
+                                    )}
+                                  >
+                                    Locked
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="mt-2.5 text-center text-[11px] font-black uppercase tracking-[0.1em] text-[#f7b52b] sm:text-xs">
+                              You're one step away — add your number to reveal &amp; lock it in
+                            </p>
+                          </>
+                        ) : (
+                          /* V2: full price strikes out, discounted price is the hero */
+                          <>
+                            <p className="mt-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/40 sm:mt-3.5 sm:text-[10px]">
+                              Full setup price
+                            </p>
+                            <div className="relative mt-0.5 inline-block">
+                              <span className="text-2xl font-black leading-none tracking-tight text-white/45 sm:text-3xl">
+                                {formatAED(listPrice)}
+                              </span>
+                              <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#f7b52b] shadow-[0_0_10px_rgba(247,181,43,0.7)] animate-guided-strike motion-reduce:animate-none"
+                                style={{ animationDelay: "0.4s" }}
+                              />
+                            </div>
+                            <p
+                              className="mt-2.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/55 animate-guided-anchor-up motion-reduce:animate-none sm:text-[10px]"
+                              style={{ animationDelay: "0.75s" }}
+                            >
+                              Your price today
+                            </p>
+                            <p
+                              className="mt-0.5 text-[2.6rem] font-black leading-none tracking-tight text-white animate-guided-price-in motion-reduce:animate-none sm:mt-1 sm:text-[4rem]"
+                              style={{ animationDelay: "0.7s" }}
+                            >
+                              {formatAED(targetPrice)}
+                            </p>
+                            {discountSavings !== null ? (
+                              <div
+                                className="mt-2 animate-fade-up motion-reduce:animate-none"
+                                style={{ animationDelay: "0.95s", animationFillMode: "both" }}
+                              >
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#25D366] ring-1 ring-[#25D366]/45 sm:text-xs">
+                                  <BadgePercent className="h-3.5 w-3.5" />
+                                  Save {formatAED(discountSavings)} · 20% off
+                                </span>
+                              </div>
+                            ) : null}
+                            <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
+                              Excludes VAT · Sean confirms final price
+                            </p>
+                          </>
+                        )
                       ) : (
                         <p className="mt-3 text-[2.6rem] font-black leading-none tracking-tight text-white sm:mt-3.5 sm:text-[4rem]">
                           Setup ready
                         </p>
                       )}
 
-                      {/* VALUE STACK — free inclusions + total, shown in both states */}
+                      {/* VALUE STACK — V2 always; V3 reveals the itemized extras on unlock */}
+                      {(!isV3 || discountUnlocked) ? (
                       <div
                         className={cn(
                           "mt-3 rounded-xl border p-2.5 transition-colors duration-500 sm:mt-3.5 sm:p-3",
@@ -3394,6 +3525,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                           </span>
                         </div>
                       </div>
+                      ) : null}
 
                       {/* Lock cue + animated arrow pointing into the fields below */}
                       {discountUnlocked ? (
@@ -3409,10 +3541,14 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                           <div className="rounded-xl bg-[#f7b52b] px-3 py-2.5 shadow-[0_12px_34px_rgba(247,181,43,0.32)] animate-guided-cue-pulse motion-reduce:animate-none sm:px-4 sm:py-3">
                             <p className="flex items-center justify-center gap-1.5 text-center text-[13px] font-black leading-tight text-black sm:text-[15px]">
                               <Lock className="h-4 w-4 shrink-0" />
-                              Enter your details below to get {targetPrice !== null ? formatAED(targetPrice) : "this price"}
+                              {isV3
+                                ? "Enter your number to reveal your price + 20% off"
+                                : `Enter your details below to get ${targetPrice !== null ? formatAED(targetPrice) : "this price"}`}
                             </p>
                             <p className="mt-0.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-black/65 sm:text-[11px]">
-                              10 seconds · no payment now · price held for you
+                              {isV3
+                                ? "Last step · no payment now · 10 seconds"
+                                : "10 seconds · no payment now · price held for you"}
                             </p>
                           </div>
                           <ChevronDown className="mx-auto mt-1 h-5 w-5 text-[#f7b52b] animate-bounce motion-reduce:animate-none" />
@@ -3437,6 +3573,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                           </p>
                         </div>
                       ) : (
+                        <>
                         <form onSubmit={handleUnlockDiscount} className="mt-3">
                           <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5">
                             <Input
@@ -3506,6 +3643,16 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                             </p>
                           ) : null}
                         </form>
+                        {isV3 ? (
+                          <button
+                            type="button"
+                            onClick={() => requestWhatsApp("result_v3_no_discount")}
+                            className="mt-2.5 w-full text-center text-[11px] font-semibold text-slate-400 underline-offset-4 hover:text-slate-200 hover:underline sm:text-xs"
+                          >
+                            Prefer to just ask Sean? Chat on WhatsApp (without the discount)
+                          </button>
+                        ) : null}
+                        </>
                       )}
                     </div>
 
