@@ -71,6 +71,10 @@ The V2 component (`src/pages/PpfFullPpfGuidedCalculatorV2.tsx`) is **shared** ac
 ### Meta variant
 - WhatsApp tap fires **both `Contact` and `Lead`** (so the Meta ad set, optimised for `Lead`, counts WhatsApp). Form submit fires `Lead`. Keep the ad set Conversion event = **Lead**.
 
+### V3 — IMPORTANT UPDATE (2026-06-22): WhatsApp is now direct, no popup
+- Commit `1941a23`: on V3, `requestWhatsApp` **bypasses the pre-chat popup** and fires WhatsApp directly (counted `WhatsApp contact click` + opens chat) like the proven V1 funnel. The popup was the single real difference vs V1 and was suppressing the WhatsApp taps that drove CPA ~90. Other variants keep their popup.
+- So V3 = direct 1-tap WhatsApp (volume) **+** gated price reveal for anyone who builds their quote (capture). Verified desktop + mobile.
+
 ### V3 variant (localhost, the price-gate experiment)
 - **Locked state:** struck "before" price (coral-red animated strike, labelled "Before your discount") + "−20%" + "your real price is lower — it's locked"; 4 locked reward cards (the discounted-price card is the green hero, others muted); shimmer removed (calm).
 - **Unlock:** phone-only (name optional). Reveal = animated slash + odometer count-down + "You unlocked AED X of value" stamp + itemized free-extras cascade.
@@ -83,7 +87,9 @@ The V2 component (`src/pages/PpfFullPpfGuidedCalculatorV2.tsx`) is **shared** ac
 ## 5. Ad assets (live on the May campaign)
 - **Call asset** added: `+971 56 719 1045` (account-level call conversion). ⚠️ The **9am–9pm schedule must be set in the Google Ads UI** (API can't schedule call assets).
 - **Callouts (8):** Direct With Sean · Warranty You Can Trace · Genuine STEK Film · Proper Prep Before Film · Free Pickup Across Dubai · New Car Protection · Premium Films Available · Trusted By Dubai Drivers.
-- **Sitelinks (6, all → V2 URL):** WhatsApp Sean · Why Grand Touch · Why We Use STEK · PPF Quote · Free Pickup & Delivery · Real Customer Handovers.
+- **Campaign-level sitelinks (6, → the funnel URL):** WhatsApp Sean · Why Grand Touch · Why We Use STEK · PPF Quote · Free Pickup & Delivery · Real Customer Handovers. NOTE: these are **overridden by ad-group-level sitelinks** (below), so they may not serve.
+- **Ad-group-level sitelinks (12 = 4 × 3 ad groups), NOT changed to V3:** `/portfolio`, `/services`, `/contact` (navigational — correct to stay) and `/ppf-dubai-quote` (goes to the V2 dubai_quote funnel, not V3). These take precedence over the campaign sitelinks. Optional cleanup: point the `ppf-dubai-quote` ad-group sitelink → V3, or remove ad-group sitelinks so the campaign V3 ones serve. `repoint-final-urls.mjs` only covers RSAs + campaign sitelinks — ad-group sitelinks need a separate update.
+- **Conversion destination audit (2026-06-22):** all 3 RSAs + 14 images + 6 campaign sitelinks → V3. Only the ad-group sitelinks above are off-V3 (by design / legacy).
 - **RSA headlines refreshed** on `PPF Paint Protection` + `PPF Dubai Quote` — added Free Pickup Across Dubai, Rated 4.9 On Google, Protect Your New Car; removed generic filler. **No prices in ads** (deliberate — avoid price shoppers; avg billing 10k+).
 
 ---
@@ -108,8 +114,13 @@ A lead submit silently failed (no DB row, no Telegram). Cause: project healthy +
 
 ---
 
-## 8. Google conversion-stop incident (open — monitor)
-All conversion actions — **including Google-hosted Local Actions (Maps), which our website cannot affect** — stopped recording after **2026-06-18**. Because Maps actions stopped too, **it is not our funnel/code changes**. Likely account-level reporting/attribution disruption around the experiment start, or processing lag.
+## 8. Conversion setup AUDIT (2026-06-22) + the recent drop
+**Setup is verified correct** — don't re-debug it:
+- Code: WhatsApp tap → `WhatsApp contact click` (`KqOWCJfDoLAc`); form unlock → `Submit lead form` (`5R6tCPbq`); one counted per session; pre-form → observe-only (`q_bgCOXs`). All gated to Google variants (incl V3). send_to IDs match the account. Base tag `gtag('config','AW-17684563059')` in index.html.
+- Google Ads: `Submit lead form` (Primary, 5-of-5 campaigns, Active) and `Contact` goal incl. `WhatsApp contact click` (Primary, 5-of-5, Active) — both applied to the live campaign. `WhatsApp before lead form (V2)` = Secondary (correct). **Last 30d recorded: WhatsApp 18, Submit 4, Calls 1, Maps 33** → tracking works.
+- `Get directions` / `Engagement` (Maps) goals = **0-of-5 campaigns** (NOT applied to any campaign) → they do NOT dilute bidding. No action needed (this corrects an earlier note about demoting them).
+
+**The recent "no conversions" (06-18 → ~06-22) was not a setup break** — it lines up with the **popup-gated V2/V3 suppressing WhatsApp taps** (the main counted conversion) via the experiment then the URL repoints, plus experiment turbulence. The popup was removed from V3 on 2026-06-22 (`1941a23`), so WhatsApp conversions should recover. The Maps "gap" is low-volume/lag, not a systemic break. Watch the daily count over the next few days; Google Ads conversions lag a few hours, the CRM/Telegram are instant.
 - **To check (Google Ads UI):** Goals → Conversions → Status column ("Recording" vs "No recent conversions / Inactive"); account notifications dated ~06-18; compare with GA4 real-time.
 - If conversions for 06-19+ **backfill**, it was lag. If not, treat as an account tag/attribution issue. If counted conversions stay near zero, consider switching bidding to **Maximize Clicks** so delivery doesn't starve.
 
@@ -150,7 +161,9 @@ Mutating scripts run `validateOnly` first; the auto-sandbox blocks writes to the
 4. **Watch Supabase DB size** (section 7) so writes don't hit read-only again.
 5. **Fix the silent-save bug** (section 7) so failed lead writes show an error.
 6. **`/ppf-dubai-quote` SEO:** prerender static meta description in `scripts/prerender.js` is stale (old page copy) — update on next pass (cosmetic; client-side meta is correct).
-7. **Hide test leads in CRM:** `+971501234567` (Conversion Test), `+971502223344`, `+971503334455`, `+971504445566` (V3 test unlocks). Real partial leads to actually follow up: `+971585225858` (Haval H9), `+971568362060` (Joseph/BYD), `+971565027733` (Meta/Patrol).
+7. **Hide test leads in CRM:** `+971501234567` (Conversion Test), `+971502223344`, `+971503334455`, `+971504445566`, `+971505556677` (V3 test unlocks). Real partial leads to actually follow up: `+971585225858` (Haval H9), `+971568362060` (Joseph/BYD), `+971565027733` (Meta/Patrol).
+8. **Ad-group sitelinks decision** (section 5): they override the campaign V3 sitelinks and one (`/ppf-dubai-quote`) points to the V2 funnel. Optional: point that one → V3 (keep portfolio/services/contact), or remove ad-group sitelinks so the V3 campaign sitelinks serve.
+9. **Demote Maps Local-actions to Secondary** — NOT needed; they're already 0-of-5 campaigns (not optimised for). Ignore the earlier suggestion.
 
 ---
 
