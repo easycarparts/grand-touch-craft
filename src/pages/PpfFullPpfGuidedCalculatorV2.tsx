@@ -2229,7 +2229,11 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
    * finished, high-intent buyer is never interrupted.
    */
   const requestWhatsApp = (placement: string) => {
-    if (isComplete && estimate !== null) {
+    // V3: WhatsApp is always a direct 1-tap (no pre-chat popup) so it converts
+    // like the proven V1 funnel. The gated calculator is the rewarded path for
+    // people who choose to build their price — it's never a wall in front of
+    // WhatsApp. (Other variants keep the soft pre-chat nudge.)
+    if (isV3 || (isComplete && estimate !== null)) {
       handleWhatsApp(placement);
       return;
     }
