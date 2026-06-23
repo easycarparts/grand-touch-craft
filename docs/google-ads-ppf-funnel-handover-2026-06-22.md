@@ -1,8 +1,43 @@
-# Google Ads + PPF Funnel Handover — 2026-06-22
+# Google Ads + PPF Funnel Handover — 2026-06-23
 
 Supersedes `google-ads-ppf-funnel-handover-2026-06-19.md`. This is the current full state of the Google Ads account, the funnels, the tracking, and the local CLI. No secret values here — only file names and resource IDs.
 
-Customer ID: `5268213497` · Site: `https://www.grandtouchauto.ae` · Deploy: **Vercel auto-deploys from `main`** (push to main = production deploy).
+Customer ID: `5268213497` · Site: `https://www.grandtouchauto.ae` · Deploy: **Vercel auto-deploys from `main`** (push to main = production deploy). Repo: `github.com/easycarparts/grand-touch-craft`.
+
+---
+
+## ⭐ LATEST STATE (2026-06-23) — read this first
+
+**Both paid funnels are now "gated + direct WhatsApp" and live:**
+- **Google** (May campaign) → `/ppf-full-ppf-calculator-guided-v3` (variant `v3`).
+- **Meta** (AED ~50/day test) → `/ppf-meta-full-car-ppf-v2` (variant `meta`).
+
+**What "gated + direct WhatsApp" means** (one shared code path, flag `isGated = variant === "v3" || variant === "meta"` in `PpfFullPpfGuidedCalculatorV2.tsx`):
+- **WhatsApp = direct 1-tap, NO pre-chat popup** (the popup was the real reason V2/V3 conversions cratered vs the proven V1 — it intercepted the WhatsApp impulse and shoved people into the calculator). Google variant fires the counted `WhatsApp contact click`; Meta fires `Contact` + `Lead`.
+- **Exact price is GATED behind a phone-only form** (name optional). Pre-unlock shows a struck "Before your discount" price (coral animated strike) + a locked reward bundle (discounted price / 20% / AED 4,550 extras / free pickup), NO exact price. Unlock → animated slash + odometer count-down + "you unlocked AED X of value" stamp + itemized free-extras cascade.
+- **The calculator never blocks WhatsApp** — it's the *rewarded* path for people who want their price, not a wall.
+
+**`google` / `dubai_quote` / `tiktok` variants are UNCHANGED** (price shown, soft pre-chat popup). The Google campaign no longer uses the `google`/`-v2` page (it's the rollback target).
+
+**Key recent commits (all live on `main`):**
+- `cbc0d22` — Meta funnel gated + direct WhatsApp (`isV3`→`isGated = v3||meta`).
+- `1941a23` — V3 WhatsApp direct (popup removed).
+- `ec136d6` — V3 variant created; campaign repointed to `-v3`.
+- `5a97acb` — `/ppf-dubai-quote` serves V2 funnel (dubai_quote variant).
+- `077bf29` — Meta fires Lead (+Contact) on WhatsApp tap.
+- `0a7b439` — V2 counts WhatsApp + lead-form, one per session.
+
+**Resolved / clarified since the 06-22 notes:**
+- **Supabase write outage = FIXED** (user upgraded the plan). It was free-tier read-only mode. Watch DB size (`lead_events` grows fast) so it doesn't recur.
+- **"Tracking/URL broken" was a false alarm** — the CRM logs detailed sessions with correct per-source funnel names, so tracking + routing are fine. The "lots saw price, didn't convert" was **mostly Meta traffic** (which still had the popup + shown price until `cbc0d22`), plus the V2/V3 popup, NOT a bug.
+- **Conversion setup audited and correct** (see §8). The recent dip was the popup suppressing WhatsApp, now removed on both gated funnels.
+
+**Still needs a UI action (can't be done via API):**
+- **Auto-created sitelinks.** The ad-group sitelinks (`View Portfolio` /portfolio, `Our Services` /services, `Contact Us` /contact, `Get PPF Estimate` /ppf-dubai-quote) are Google **automatically-created assets** — `CANNOT_MODIFY_AUTOMATICALLY_CREATED_ASSET` (not editable/removable via API or manually). They override the manual campaign sitelinks. To make all sitelinks land on V3: **Google Ads → turn OFF "Automatically created assets" (sitelinks)**, then the manual V3 campaign sitelinks serve.
+- **Set the call asset's 9am–9pm schedule** (Assets → Calls → schedule).
+- Optionally **demote nothing for Maps** — the `Get directions`/`Engagement` goals are already 0-of-5 campaigns (not optimised for).
+
+**Next:** stop changing the funnels; let both run ~2 weeks with the now-working tracking. Judge by **numbers captured per 100 clicks × Sean's close rate** in the CRM (`_v3` and `_meta_…_v2`), not Google's conversion column. Confirm end-to-end once by tapping WhatsApp on each live page and watching it land in the CRM.
 
 ---
 
@@ -69,7 +104,8 @@ The V2 component (`src/pages/PpfFullPpfGuidedCalculatorV2.tsx`) is **shared** ac
 - Pre-chat popup ("Build my price first / Message Sean now") softly nudges to the calculator on pre-completion WhatsApp taps.
 
 ### Meta variant
-- WhatsApp tap fires **both `Contact` and `Lead`** (so the Meta ad set, optimised for `Lead`, counts WhatsApp). Form submit fires `Lead`. Keep the ad set Conversion event = **Lead**.
+- **As of `cbc0d22` (2026-06-23) the Meta funnel is GATED + direct WhatsApp, same as V3** (it's part of `isGated = v3 || meta`). Price hidden behind the phone-only form; no pre-chat popup.
+- WhatsApp tap fires **both `Contact` and `Lead`** (so the Meta ad set, optimised for `Lead`, counts WhatsApp). Form submit (unlock) fires `Lead`. Keep the ad set Conversion event = **Lead**. Two pixels fire: `2842874119378140`, `665277526426486`.
 
 ### V3 — IMPORTANT UPDATE (2026-06-22): WhatsApp is now direct, no popup
 - Commit `1941a23`: on V3, `requestWhatsApp` **bypasses the pre-chat popup** and fires WhatsApp directly (counted `WhatsApp contact click` + opens chat) like the proven V1 funnel. The popup was the single real difference vs V1 and was suppressing the WhatsApp taps that drove CPA ~90. Other variants keep their popup.
