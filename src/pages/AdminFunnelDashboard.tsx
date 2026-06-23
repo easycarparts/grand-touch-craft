@@ -357,6 +357,7 @@ const FULL_PPF_GUIDED_CALCULATOR_V2_TRACKING_URL = `${SITE_ORIGIN}/ppf-full-ppf-
 const META_GUIDED_CALCULATOR_V2_TRACKING_URL = `${SITE_ORIGIN}/ppf-meta-full-car-ppf-v2?utm_source=meta&utm_medium=paid_social&utm_campaign=meta_full_ppf_guided_v2_june_2026&utm_id={{campaign.id}}&utm_content={{ad.name}}`;
 
 const knownFunnelOptions = [
+  "ppf_whatsapp_direct",
   "ppf_dubai_quote",
   "ppf_full_ppf_calculator",
   "ppf_full_ppf_guided_calculator",
@@ -379,14 +380,17 @@ const fullPpfCalculatorJourneySteps = [
 
 const fullPpfGuidedCalculatorJourneySteps = [
   { label: "Landing View", eventNames: ["lp_view"] },
-  { label: "Size Selected", eventNames: ["guided_step_completed"] },
-  { label: "Price Revealed", eventNames: ["guided_price_revealed", "price_viewed"] },
+  // Old whatsapp_direct names kept as aliases so events logged before the
+  // 2026-06-23 taxonomy fix still count.
+  { label: "Size Selected", eventNames: ["guided_step_completed", "guided_size_selected", "guided_finish_selected", "guided_package_selected"] },
+  { label: "Price Revealed", eventNames: ["guided_price_revealed", "price_viewed", "guided_result_viewed"] },
   { label: "Selected Price WA", eventNames: ["selected_price_whatsapp_click"] },
-  { label: "Any WhatsApp", eventNames: ["whatsapp_click", "general_whatsapp_click"] },
+  { label: "Any WhatsApp", eventNames: ["whatsapp_click", "general_whatsapp_click", "whatsapp_contact_click"] },
   { label: "Bonus Form", eventNames: ["save_quote_submitted", "lead_form_submitted"] },
 ];
 
 const funnelLabels: Record<string, string> = {
+  ppf_whatsapp_direct: "WhatsApp Direct (PPF)",
   ppf_dubai_quote: "PPF Dubai Quote",
   ppf_full_ppf_calculator: "Full PPF Calculator",
   ppf_full_ppf_guided_calculator: "Guided Full PPF Calculator",
@@ -1630,7 +1634,8 @@ const AdminFunnelDashboard = () => {
       const activeJourneySteps =
         selectedFunnel === "ppf_full_ppf_guided_calculator" ||
         selectedFunnel === "ppf_full_ppf_guided_calculator_v2" ||
-        selectedFunnel === "ppf_tiktok_guided_calculator"
+        selectedFunnel === "ppf_tiktok_guided_calculator" ||
+        selectedFunnel === "ppf_whatsapp_direct"
           ? fullPpfGuidedCalculatorJourneySteps
           : isFullPpfCalculatorSelected(selectedFunnel)
             ? fullPpfCalculatorJourneySteps

@@ -192,7 +192,7 @@ export default function GuidedPpfCalculator({
                   key={s.value}
                   onClick={() => {
                     setSize(s.value);
-                    onEvent?.("guided_size_selected", { size: s.value });
+                    onEvent?.("guided_step_completed", { step: "size", size: s.value });
                     goTo("finish");
                   }}
                   className={cn(
@@ -229,7 +229,7 @@ export default function GuidedPpfCalculator({
                   key={f.value}
                   onClick={() => {
                     setFinish(f.value);
-                    onEvent?.("guided_finish_selected", { size, finish: f.value });
+                    onEvent?.("guided_step_completed", { step: "finish", size, finish: f.value });
                     goTo("package");
                   }}
                   className={cn(
@@ -270,8 +270,8 @@ export default function GuidedPpfCalculator({
                         ? getPpfPriceRange("STEK", p.years, size, "Full Body", finish).min
                         : null;
                     setYears(p.years);
-                    onEvent?.("guided_package_selected", { size, finish, warranty_years: p.years, estimate_value: est });
-                    onEvent?.("guided_result_viewed", { size, finish, warranty_years: p.years, estimate_value: est });
+                    onEvent?.("guided_step_completed", { step: "package", size, finish, warranty_years: p.years, estimate_value: est });
+                    onEvent?.("guided_price_revealed", { size, finish, warranty_years: p.years, estimate_value: est });
                     goTo("result");
                   }}
                   className={cn(

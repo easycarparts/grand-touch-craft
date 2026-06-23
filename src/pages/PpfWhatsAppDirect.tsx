@@ -198,8 +198,12 @@ export default function PpfWhatsAppDirect() {
   const [showStickyBar, setShowStickyBar] = useState(false);
 
   const trackEvent = useCallback(
-    (eventName: string, payload: Record<string, unknown> = {}) => {
-      trackFunnelEvent({ eventName, context: funnelContext, payload });
+    (
+      eventName: string,
+      payload: Record<string, unknown> = {},
+      options: { emitToTagManagers?: boolean } = {},
+    ) => {
+      trackFunnelEvent({ eventName, context: funnelContext, payload, ...options });
     },
     [funnelContext],
   );
@@ -218,7 +222,21 @@ export default function PpfWhatsAppDirect() {
 
   const requestWhatsApp = useCallback(
     (placement: string, message: string = DEFAULT_WA_MESSAGE) => {
-      trackEvent("whatsapp_contact_click", { cta_location: placement });
+      // Funnel-dashboard taxonomy (must match the names the admin dashboard reads).
+      // A calculator tap = a "selected setup" click; everything else is general.
+      // Kept out of tag managers so old GTM rules don't turn taps into extra
+      // Google Ads conversions — the counted conversion is fired directly below.
+      const isSelectedSetup = placement === "guided_calculator";
+      trackEvent(
+        "whatsapp_click",
+        { cta_location: placement, whatsapp_path: isSelectedSetup ? "selected_price" : "general" },
+        { emitToTagManagers: false },
+      );
+      trackEvent(
+        isSelectedSetup ? "selected_price_whatsapp_click" : "general_whatsapp_click",
+        { cta_location: placement },
+        { emitToTagManagers: false },
+      );
       if (!countedFiredRef.current) {
         countedFiredRef.current = true;
         trackGoogleAdsConversion(GOOGLE_ADS_WHATSAPP_CONTACT_SEND_TO);
