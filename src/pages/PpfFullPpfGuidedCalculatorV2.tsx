@@ -1361,8 +1361,9 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const isGoogleVariant =
     variant === "google" || variant === "dubai_quote" || variant === "v3";
   const isTikTokVariant = variant === "tiktok";
-  // V3 = price-gated experiment: hide the exact price + drop the name requirement.
-  const isV3 = variant === "v3";
+  // Gated funnels (V3 + Meta): hide the exact price behind the form, drop the
+  // name requirement, and make WhatsApp a direct 1-tap (no pre-chat popup).
+  const isGated = variant === "v3" || variant === "meta";
   const isMetaVariant = variant === "meta";
   const offerTickerItems = isTikTokVariant ? tiktokTopOffers : topOffers;
   const [step, setStep] = useState<FlowStep>("size");
@@ -1570,7 +1571,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     listPrice !== null && targetPrice !== null ? listPrice - targetPrice : null;
   const firstName = name.trim().split(/\s+/)[0] ?? "";
   // V3 needs only a valid phone (name optional) to cut last-step friction.
-  const canUnlock = (isV3 || name.trim().length >= 2) && phoneCaptured;
+  const canUnlock = (isGated || name.trim().length >= 2) && phoneCaptured;
 
   const trackEvent = useCallback(
     (
@@ -2233,7 +2234,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     // like the proven V1 funnel. The gated calculator is the rewarded path for
     // people who choose to build their price — it's never a wall in front of
     // WhatsApp. (Other variants keep the soft pre-chat nudge.)
-    if (isV3 || (isComplete && estimate !== null)) {
+    if (isGated || (isComplete && estimate !== null)) {
       handleWhatsApp(placement);
       return;
     }
@@ -2285,7 +2286,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     }
     if (discountUnlocked || unlocking) return;
 
-    if (!isV3 && name.trim().length < 2) {
+    if (!isGated && name.trim().length < 2) {
       setFormStatus("error");
       return;
     }
@@ -3287,9 +3288,9 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                         /* ---------- POST-UNLOCK: locked-in green price ---------- */
                         <>
                           <div className="mt-3 flex items-center gap-2 sm:mt-3.5">
-                            <span className={cn("relative text-sm font-bold text-white/40 sm:text-base", !isV3 && "line-through")}>
+                            <span className={cn("relative text-sm font-bold text-white/40 sm:text-base", !isGated && "line-through")}>
                               {formatAED(listPrice)}
-                              {isV3 ? (
+                              {isGated ? (
                                 <span
                                   aria-hidden="true"
                                   className="pointer-events-none absolute left-0 top-1/2 h-[2px] w-full origin-left -translate-y-1/2 rounded-full bg-[#25D366] shadow-[0_0_8px_rgba(37,211,102,0.7)] animate-guided-strike motion-reduce:animate-none"
@@ -3326,7 +3327,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                             Excludes VAT · Sean confirms final price
                           </p>
 
-                          {isV3 ? (
+                          {isGated ? (
                             <div className="mt-3 flex justify-center">
                               <span className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[#25D366]/60 bg-[#25D366]/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-[#25D366] animate-guided-stamp-in motion-reduce:animate-none sm:text-xs">
                                 <Sparkles className="h-4 w-4" />
@@ -3337,7 +3338,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                         </>
                       ) : targetPrice !== null && listPrice !== null ? (
                         /* ---------- PRE-UNLOCK ---------- */
-                        isV3 ? (
+                        isGated ? (
                           /* V3: fully locked reward bundle. Nothing is inferable
                              (no anchor, no %math) — the reveal is the payoff. */
                           <>
@@ -3464,7 +3465,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                       )}
 
                       {/* VALUE STACK — V2 always; V3 reveals the itemized extras on unlock */}
-                      {(!isV3 || discountUnlocked) ? (
+                      {(!isGated || discountUnlocked) ? (
                       <div
                         className={cn(
                           "mt-3 rounded-xl border p-2.5 transition-colors duration-500 sm:mt-3.5 sm:p-3",
@@ -3545,12 +3546,12 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                           <div className="rounded-xl bg-[#f7b52b] px-3 py-2.5 shadow-[0_12px_34px_rgba(247,181,43,0.32)] animate-guided-cue-pulse motion-reduce:animate-none sm:px-4 sm:py-3">
                             <p className="flex items-center justify-center gap-1.5 text-center text-[13px] font-black leading-tight text-black sm:text-[15px]">
                               <Lock className="h-4 w-4 shrink-0" />
-                              {isV3
+                              {isGated
                                 ? "Enter your number to reveal your price + 20% off"
                                 : `Enter your details below to get ${targetPrice !== null ? formatAED(targetPrice) : "this price"}`}
                             </p>
                             <p className="mt-0.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-black/65 sm:text-[11px]">
-                              {isV3
+                              {isGated
                                 ? "Last step · no payment now · 10 seconds"
                                 : "10 seconds · no payment now · price held for you"}
                             </p>
@@ -3647,7 +3648,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                             </p>
                           ) : null}
                         </form>
-                        {isV3 ? (
+                        {isGated ? (
                           <button
                             type="button"
                             onClick={() => requestWhatsApp("result_v3_no_discount")}
