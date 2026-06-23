@@ -20,6 +20,7 @@ import BestPpfStudioDubai from "./pages/BestPpfStudioDubai";
 import PpfFullPpfCalculator from "./pages/PpfFullPpfCalculator";
 import PpfFullPpfGuidedCalculator from "./pages/PpfFullPpfGuidedCalculator";
 import PpfFullPpfGuidedCalculatorV2 from "./pages/PpfFullPpfGuidedCalculatorV2";
+import PpfWhatsAppDirect from "./pages/PpfWhatsAppDirect";
 import PaintCorrectionTechniques from "./pages/articles/PaintCorrectionTechniques";
 import CustomVinylWraps from "./pages/articles/CustomVinylWraps";
 import PerformanceTuning from "./pages/articles/PerformanceTuning";
@@ -103,6 +104,8 @@ function App() {
             <Route path="/ppf-full-ppf-calculator-guided-v2" element={<PpfFullPpfGuidedCalculatorV2 />} />
             <Route path="/ppf-full-ppf-calculator-guided-v3" element={<PpfFullPpfGuidedCalculatorV2 variant="v3" />} />
             <Route path="/ppf-meta-full-car-ppf-v2" element={<PpfFullPpfGuidedCalculatorV2 variant="meta" />} />
+            {/* Light WhatsApp-first funnel (June 2026 test). Keyword-aligned URL for ad relevance. */}
+            <Route path="/paint-protection-film-dubai" element={<PpfWhatsAppDirect />} />
             <Route path="/ppf-tiktok-full-car-ppf" element={<PpfFullPpfGuidedCalculator variant="tiktok" />} />
             <Route path="/ppf-dubai-quote" element={<PpfFullPpfGuidedCalculatorV2 variant="dubai_quote" />} />
             <Route path="/ppf-tiktok-quote" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
