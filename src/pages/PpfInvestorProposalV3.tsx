@@ -461,13 +461,13 @@ function buildInstallSwitchChart(cpw: number) {
 
 const costBuckets = [
   { name: "Annual rent", value: 200000, color: "#f8b84e" },
+  { name: "Working capital & buffer", value: 123000, color: "#a3e635" },
   { name: "License + visas", value: 65000, color: "#42d6c9" },
-  { name: "Deposit + Ejari", value: 30000, color: "#7dd3fc" },
   { name: "Fit-out at cost", value: 42000, color: "#ef6345" },
   { name: "Marketing reserve", value: 40000, color: "#f472b6" },
-  { name: "Working capital", value: 33000, color: "#a3e635" },
+  { name: "Deposit + Ejari", value: 30000, color: "#7dd3fc" },
 ];
-const SETUP_TOTAL = costBuckets.reduce((sum, item) => sum + item.value, 0); // 410,000
+const SETUP_TOTAL = costBuckets.reduce((sum, item) => sum + item.value, 0); // 500,000
 
 // Phased deal structure: a salary is taken before the dividend pool, then the
 // profit split flips once the investor's cumulative distributions match their capital.
@@ -598,12 +598,12 @@ const BASE_MATCHED_MONTH = BASE_TIMELINE.matchedMonth; // nullable capital-match
 const BASE_ANNUAL_COC = BASE_TIMELINE.deal.annualCashOnCashP2; // phase-2 steady-state cash-on-cash
 
 const setupLines = [
-  { name: "12-month rent", range: "AED 200k", note: "The only large line - a production unit, not a showroom.", color: "#f8b84e" },
-  { name: "License + 2 visas", range: "AED 55-75k", note: "Activity, authority approvals & two staff visa transfers.", color: "#42d6c9" },
-  { name: "Fit-out at cost", range: "AED 35-50k", note: "Supplied at cost via the partner's own company.", color: "#ef6345" },
-  { name: "Deposit + Ejari", range: "AED 25-35k", note: "Landlord deposit, agency & registration.", color: "#7dd3fc" },
-  { name: "Marketing reserve", range: "AED 30-50k", note: "Launch runway - self-funding fast at 10-15x ROAS.", color: "#f472b6" },
-  { name: "Working capital", range: "AED 25-40k", note: "Ramp, collection timing & contingency buffer.", color: "#a3e635" },
+  { name: "12-month rent", range: "AED 200k", note: "Staged on cheques, not paid upfront - keeps the cushion liquid.", color: "#f8b84e" },
+  { name: "Working capital & buffer", range: "AED 123k", note: "Ramp payroll, collection timing & contingency - the safety margin.", color: "#a3e635" },
+  { name: "License + 2 visas", range: "AED 65k", note: "Activity, authority approvals & two staff visa transfers.", color: "#42d6c9" },
+  { name: "Fit-out at cost", range: "AED 42k", note: "Supplied at cost via the partner's own company.", color: "#ef6345" },
+  { name: "Marketing reserve", range: "AED 40k", note: "Launch runway - self-funding fast at the proven 13x ROAS.", color: "#f472b6" },
+  { name: "Deposit + Ejari", range: "AED 30k", note: "Landlord deposit, agency & registration.", color: "#7dd3fc" },
 ];
 
 const actualRevenueData = [
@@ -635,7 +635,7 @@ const proofStats = [
   { label: "Closed & paid revenue", value: 726766, display: "AED 727k+", sub: "94 paid jobs since Jan 2026" },
   { label: "Blended return on ad spend", value: BLENDED_ROAS, display: `~${BLENDED_ROAS}x`, sub: "AED 55k ad spend → AED 727k, real" },
   { label: "New audience since Jan", value: 3900, display: "+3,900", sub: "+500 Instagram, +3,400 TikTok" },
-  { label: "Total investor ask", value: 450000, display: "AED 350-450k", sub: "Tools, stock & fit-out already covered" },
+  { label: "Total investor ask", value: 500000, display: "AED 500k", sub: "Rent staged on cheques; tools & stock already covered" },
 ];
 
 const marketHighlights = [
@@ -675,7 +675,7 @@ const differentiators = [
   {
     icon: Megaphone,
     title: "A marketing machine in-house",
-    body: "Sean runs the ads, content, funnel and sales at a 10-15x return on ad spend - the single most expensive thing most workshops outsource, already built and converting.",
+    body: "Sean runs the ads, content, funnel and sales at a proven ~13x return on ad spend - the single most expensive thing most workshops outsource, already built and converting.",
     color: "#f472b6",
   },
   {
@@ -730,7 +730,7 @@ const ownedAssets = [
   },
   {
     item: "Marketing engine, website & funnels",
-    note: "Built, live and converting today - run in-house by Sean at 10-15x ROAS.",
+    note: "Built, live and converting today - run in-house by Sean at a proven ~13x ROAS.",
     icon: Megaphone,
   },
   {
@@ -1175,7 +1175,7 @@ export default function PpfInvestorProposalV2() {
               {/* Investor-return summary tiles */}
               <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
-                  { label: "Your capital in", value: "AED 350-450k", accent: "#ffffff" },
+                  { label: "Your capital in", value: "AED 500k", accent: "#ffffff" },
                   { label: "Your profit share", value: "60% → 40%", accent: "#a3e635" },
                   { label: "Matched first", value: "You're paid back first", accent: "#42d6c9" },
                   { label: "Then largely", value: "Passive", accent: "#f8b84e" },
@@ -1724,6 +1724,7 @@ export default function PpfInvestorProposalV2() {
                     <p className="text-[10px] text-white/40">ongoing, passive</p>
                   </div>
                 </div>
+                <p className="mt-3 text-[10px] text-white/40">Subject to available cash flow.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -1737,7 +1738,7 @@ export default function PpfInvestorProposalV2() {
                     )}
                   </p>
                   <p className="mt-1 text-[10px] text-white/40">
-                    {salaryOn ? "Phase 1 → Phase 2, cashflow permitting" : "drawn only once cashflow allows"}
+                    {salaryOn ? "pcm · Phase 1 → Phase 2, cashflow permitting" : "drawn only once cashflow allows"}
                   </p>
                 </div>
                 <div className="rounded-lg border border-white/10 bg-black/25 p-4">
@@ -1783,7 +1784,7 @@ export default function PpfInvestorProposalV2() {
               fixed risk while volume is still building. The support team is already in place:{" "}
               <strong className="text-white">5 people including Sean</strong>, with only{" "}
               <strong className="text-white">2 new visas</strong> needed among the core hires. Sean draws a modest salary
-              (<strong className="text-white">AED 12k, rising to 24k once your capital's matched</strong>) from profit -
+              (<strong className="text-white">AED 12k, rising to 24k pcm once your capital's matched</strong>) from profit -
               not from the team cost below. Drag volume to see when extra hires kick in and when bringing installers
               in-house beats contractors.
             </p>
@@ -1897,7 +1898,7 @@ export default function PpfInvestorProposalV2() {
                       </div>
                       <p className="text-xs font-black" style={{ color: group.accent }}>
                         {group.group === "Leadership"
-                          ? "12k → 24k · from profit"
+                          ? "12k → 24k pcm · from profit"
                           : `${formatShort(group.subtotal)}/mo`}
                       </p>
                     </div>
@@ -2374,14 +2375,14 @@ export default function PpfInvestorProposalV2() {
                 ))}
               </div>
               <span className="text-[11px] text-white/45">
-                {returnSalaryOn ? "12k → 24k from profit, cashflow permitting" : "off - full pool to the split until it's appropriate"}
+                {returnSalaryOn ? "12k → 24k pcm from profit, cashflow permitting" : "off - full pool to the split until it's appropriate"}
               </span>
             </div>
             <p className="mt-4 text-xs leading-5 text-white/55">
               At <strong className="text-white">AED {(returnPrice / 1000).toFixed(returnPrice % 1000 ? 1 : 0)}k · {returnCpw} cars/wk</strong>{" "}
               (in-house staff, PPF only, proven 13x ROAS) you take ~<strong className="text-[#a3e635]">{formatShort(timeline.deal.investorP1Monthly)}/mo</strong>{" "}
               until your capital's matched, then {formatShort(timeline.deal.investorP2Monthly)}/mo. Drag the timeline below
-              to watch it stack up.
+              to watch it stack up. All distributions subject to available cash flow.
             </p>
           </Reveal>
 
@@ -2632,12 +2633,13 @@ export default function PpfInvestorProposalV2() {
             <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-white/45">Total investor ask</p>
-                <p className="mt-2 text-5xl font-black text-white sm:text-6xl">AED 350-450k</p>
+                <p className="mt-2 text-5xl font-black text-white sm:text-6xl">AED 500k</p>
                 <p className="mt-3 text-sm leading-6 text-white/70">
                   Delivers a fully-fitted Al Quoz production unit - installing cars under the Grand Touch brand from month 2.
                 </p>
                 <p className="mt-2 text-xs leading-5 text-white/45">
-                  Midpoint model {formatShort(SETUP_TOTAL)}. Paint/prep capex is phased in later, outside this ask.
+                  ~AED 410k setup + ~AED 90k working-capital buffer. Rent is staged on cheques, so the cushion stays
+                  liquid - unused capital simply matches your investment faster. Paint/prep capex is phased later, outside this ask.
                 </p>
               </div>
               <div>
@@ -2669,7 +2671,7 @@ export default function PpfInvestorProposalV2() {
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Midpoint</p>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Total ask</p>
                       <p className="text-2xl font-black text-white">{formatShort(SETUP_TOTAL)}</p>
                     </div>
                   </div>
@@ -2828,9 +2830,10 @@ export default function PpfInvestorProposalV2() {
             <SectionKicker color="#f8b84e">The deal</SectionKicker>
             <h2 className="mt-4 text-4xl font-black uppercase leading-none sm:text-5xl">A simple, hands-off partnership.</h2>
             <p className="mt-5 leading-8 text-white/70">
-              The investor backs the build and Sean runs everything. The profit split is phased on one fair principle -
-              <strong className="text-white"> bigger risk now, bigger share now</strong>: you take the majority until
-              your capital's matched, then it flips to Sean for the long term.
+              The investor backs the build and Sean runs everything. You take a <strong className="text-white">40%
+              stake</strong>, but an <strong className="text-white">accelerated 60% of dividends until your capital's
+              matched</strong> - then distributions simply follow ownership. One fair principle:{" "}
+              <strong className="text-white">bigger risk now, bigger share now</strong>.
             </p>
           </Reveal>
 
@@ -2843,7 +2846,7 @@ export default function PpfInvestorProposalV2() {
               <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[#f8b84e]">The investor brings</p>
               <h3 className="mt-1 text-xl font-black">The capital</h3>
               <ul className="mt-3 space-y-2 text-sm text-white/65">
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#f8b84e]" /> AED 350-450k to fund the build</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#f8b84e]" /> AED 500k to fund the build</li>
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#f8b84e]" /> No day-to-day involvement needed</li>
               </ul>
             </div>
@@ -2855,16 +2858,26 @@ export default function PpfInvestorProposalV2() {
               <h3 className="mt-1 text-xl font-black">The proven business</h3>
               <ul className="mt-3 space-y-2 text-sm text-white/65">
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#42d6c9]" /> AED 727k+ track record &amp; live demand</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#42d6c9]" /> In-house marketing engine at 10-15x ROAS</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#42d6c9]" /> In-house marketing engine at a proven ~13x ROAS</li>
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#42d6c9]" /> The brand, the team &amp; full operations</li>
               </ul>
             </div>
           </Reveal>
 
-          {/* The resulting phased split */}
+          {/* Ownership + the dividend waterfall */}
           <Reveal className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-[#101010] p-6 sm:p-8">
-            <p className="text-xs uppercase tracking-[0.22em] text-white/45">How the profit is split</p>
-            <div className="mt-4 space-y-3">
+            <p className="text-xs uppercase tracking-[0.22em] text-white/45">Ownership</p>
+            <div className="mt-3 flex h-11 overflow-hidden rounded-xl">
+              <div className="flex w-[60%] items-center justify-center bg-[#42d6c9] text-sm font-black uppercase tracking-wide text-black">
+                Sean 60%
+              </div>
+              <div className="flex w-[40%] items-center justify-center bg-[#a3e635]/70 text-sm font-black uppercase tracking-wide text-black">
+                Investor 40%
+              </div>
+            </div>
+
+            <p className="mt-6 text-xs uppercase tracking-[0.22em] text-white/45">How dividends are split · subject to cash flow</p>
+            <div className="mt-3 space-y-3">
               <div>
                 <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
                   <span>Phase 1 · until your capital's matched</span>
@@ -2880,7 +2893,7 @@ export default function PpfInvestorProposalV2() {
               </div>
               <div>
                 <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
-                  <span>Phase 2 · ongoing, after matched</span>
+                  <span>Phase 2 · ongoing, after matched (follows ownership)</span>
                 </div>
                 <div className="flex h-11 overflow-hidden rounded-xl">
                   <div className="flex w-[40%] items-center justify-center bg-[#a3e635]/70 text-sm font-black uppercase tracking-wide text-black">
@@ -2893,18 +2906,19 @@ export default function PpfInvestorProposalV2() {
               </div>
             </div>
             <p className="mt-4 text-sm leading-7 text-white/60">
-              You carry the risk early, so you take the majority early and are matched first. Once matched, the split
-              flips to Sean for running it long-term. Throughout, Sean takes a modest salary -{" "}
-              <strong className="text-white">AED 12k, rising to 24k after match</strong> - cashflow permitting, before
-              the pool is split.
+              You own <strong className="text-white">40%</strong> but take an{" "}
+              <strong className="text-white">accelerated 60% of dividends until your capital's matched</strong> - then
+              distributions simply follow ownership (40/60). Throughout, the founder takes a modest salary,{" "}
+              <strong className="text-white">AED 12k → 24k pcm</strong>, cashflow permitting, before the pool is split.
+              All dividends subject to available cash flow.
             </p>
           </Reveal>
 
           {/* Concrete terms */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Scale, title: "Phased profit split", body: "60/40 to you until your capital's matched, then 40/60 to Sean - bigger risk, bigger share.", color: "#f8b84e" },
-              { icon: CircleDollarSign, title: "Paid quarterly", body: "Your share of profit is distributed every quarter, cashflow permitting.", color: "#a3e635" },
+              { icon: Scale, title: "60/40 ownership", body: "Sean 60%, you 40% - with minority protections (info rights, key-decision sign-off) in the agreement.", color: "#f8b84e" },
+              { icon: CircleDollarSign, title: "Accelerated dividends", body: "60% of dividends until your capital's matched, then your 40% - paid quarterly, subject to cash flow.", color: "#a3e635" },
               { icon: Rocket, title: "Genuinely hands-off", body: "Sean runs ops, marketing, sales, hiring and growth. Nothing required from you.", color: "#42d6c9" },
               { icon: ClipboardList, title: "Full transparency", body: "Books and numbers shared with you regularly - you always see how it's performing.", color: "#7dd3fc" },
             ].map((card, i) => (
@@ -2937,16 +2951,16 @@ export default function PpfInvestorProposalV2() {
           <Reveal className="max-w-4xl">
             <SectionKicker color="#f8b84e">The ask in one line</SectionKicker>
             <h2 className="mt-4 text-4xl font-black uppercase leading-none sm:text-6xl">
-              Fund a lean first year. Own half of a business that already works.
+              Take 60% of profit until your capital's back - then a 40% stake in a business that already works.
             </h2>
             <p className="mt-6 text-lg leading-8 text-white/74">
-              AED 350k-450k to launch a PPF-first Dubai studio, on top of equipment, stock and a marketing engine that
+              AED 500k to launch a PPF-first Dubai studio, on top of equipment, stock and a marketing engine that
               are already paid for. The demand is proven. The operator is proven. The only missing piece is the space.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <div className="rounded-lg border border-white/12 bg-black/40 px-5 py-4 backdrop-blur">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/45">Investor ask</p>
-                <p className="mt-1 text-2xl font-black text-white">AED 350-450k</p>
+                <p className="mt-1 text-2xl font-black text-white">AED 500k</p>
               </div>
               <div className="rounded-lg border border-white/12 bg-black/40 px-5 py-4 backdrop-blur">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/45">Your profit share</p>
