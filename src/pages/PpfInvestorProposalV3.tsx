@@ -462,6 +462,13 @@ const costBuckets = [
 ];
 const SETUP_TOTAL = costBuckets.reduce((sum, item) => sum + item.value, 0); // 410,000
 
+// Phased deal structure: a salary is taken before the dividend pool, then the
+// profit split flips once the investor's cumulative distributions match their capital.
+const SEAN_SALARY_P1 = 12000; // monthly, Phase 1 (until matched)
+const SEAN_SALARY_P2 = 24000; // monthly, Phase 2 (after matched)
+const INVESTOR_P1 = 0.6; // investor share of the pool until capital matched
+const INVESTOR_P2 = 0.4; // investor share of the pool after capital matched
+
 /* ----------------------------------------------------------------------------
  * Single source of truth for the deal economics.
  * The calculator, the headline figures and the gamified return timeline all
@@ -482,9 +489,15 @@ function computeDeal(
   const installerCost = inhouse ? econ.installerSalary + econ.installerVisaMonthly : 0;
   const fixedOverhead = baseOverhead.total + installerCost;
   const net = revenue - cogs - fixedOverhead;
-  const investorShare = Math.max(0, net / 2);
-  const paybackMonths = investorShare > 0 ? Math.max(1, Math.round(SETUP_TOTAL / investorShare)) : 99;
-  const annualCashOnCash = Math.round(((investorShare * 12) / SETUP_TOTAL) * 100);
+  // Dividend pool = net profit after Sean's salary (cashflow permitting), per phase.
+  const poolP1 = Math.max(0, net - SEAN_SALARY_P1);
+  const poolP2 = Math.max(0, net - SEAN_SALARY_P2);
+  const investorP1Monthly = poolP1 * INVESTOR_P1; // 60% while capital is being matched
+  const investorP2Monthly = poolP2 * INVESTOR_P2; // 40% once matched (ongoing)
+  const seanP1Monthly = SEAN_SALARY_P1 + poolP1 * (1 - INVESTOR_P1);
+  const seanP2Monthly = SEAN_SALARY_P2 + poolP2 * (1 - INVESTOR_P2);
+  // Phase-2 steady-state cash-on-cash — the only return % safe to headline.
+  const annualCashOnCashP2 = poolP2 > 0 ? Math.round(((investorP2Monthly * 12) / SETUP_TOTAL) * 100) : 0;
   const grossMargin = revenue > 0 ? Math.round(((revenue - cogs) / revenue) * 100) : 0;
   return {
     carsPerMonth,
@@ -497,9 +510,13 @@ function computeDeal(
     installers: econ.installers,
     team: baseOverhead.team,
     net,
-    investorShare,
-    paybackMonths,
-    annualCashOnCash,
+    poolP1,
+    poolP2,
+    investorP1Monthly,
+    investorP2Monthly,
+    seanP1Monthly,
+    seanP2Monthly,
+    annualCashOnCashP2,
     grossMargin,
   };
 }
@@ -507,25 +524,46 @@ function computeDeal(
 // 6-month ramp to full volume (factor applied to monthly investor share).
 const RETURN_RAMP = [0, 0.3, 0.55, 0.8, 0.95, 1];
 
-/** Build the cumulative investor-cash timeline for a (price, volume) scenario. */
+/** Build the cumulative investor-cash timeline for a (price, volume) scenario.
+ *  The split flips from 60% to 40% the month AFTER cumulative distributions match
+ *  the capital — a milestone, never a dated promise. */
 function buildReturnTimeline(pricePerCar: number, carsPerWeek: number) {
   const deal = computeDeal(pricePerCar, carsPerWeek, "contractor");
-  const monthly = deal.investorShare;
   let cumulative = 0;
-  let recoveredMonth: number | null = null;
+  let matchedMonth: number | null = null;
   let doubledMonth: number | null = null;
-  const rows: Array<{ monthNum: number; month: string; cumulative: number; monthly: number }> = [
-    { monthNum: 0, month: "Start", cumulative: 0, monthly: 0 },
+  const rows: Array<{
+    monthNum: number;
+    month: string;
+    cumulative: number;
+    investorMonthly: number;
+    seanMonthly: number;
+    pool: number;
+    phase: 1 | 2;
+  }> = [
+    { monthNum: 0, month: "Start", cumulative: 0, investorMonthly: 0, seanMonthly: 0, pool: 0, phase: 1 },
   ];
   for (let m = 1; m <= 24; m += 1) {
+    const matched = cumulative >= SETUP_TOTAL; // decided at the START of the month
     const factor = m <= 6 ? RETURN_RAMP[m - 1] : 1;
-    const add = monthly * factor;
+    const salary = matched ? SEAN_SALARY_P2 : SEAN_SALARY_P1;
+    const pool = Math.max(0, deal.net * factor - salary); // ramp the gross, then salary
+    const invShare = matched ? INVESTOR_P2 : INVESTOR_P1;
+    const add = pool * invShare;
     cumulative += add;
-    if (recoveredMonth === null && cumulative >= SETUP_TOTAL) recoveredMonth = m;
+    if (matchedMonth === null && cumulative >= SETUP_TOTAL) matchedMonth = m;
     if (doubledMonth === null && cumulative >= SETUP_TOTAL * 2) doubledMonth = m;
-    rows.push({ monthNum: m, month: `M${m}`, cumulative: Math.round(cumulative), monthly: Math.round(add) });
+    rows.push({
+      monthNum: m,
+      month: `M${m}`,
+      cumulative: Math.round(cumulative),
+      investorMonthly: Math.round(add),
+      seanMonthly: Math.round(salary + pool * (1 - invShare)),
+      pool: Math.round(pool),
+      phase: matched ? 2 : 1,
+    });
   }
-  return { deal, monthly, rows, recoveredMonth, doubledMonth, total: Math.round(cumulative) };
+  return { deal, rows, matchedMonth, doubledMonth, total: Math.round(cumulative) };
 }
 
 // Pricing-power scenarios: hold volume near target, walk the price. Every extra
@@ -540,9 +578,10 @@ type ReturnScenarioId = (typeof RETURN_SCENARIOS)[number]["id"];
 
 // The base case every headline figure on the page is derived from.
 const BASE_TIMELINE = buildReturnTimeline(12000, 10);
-const BASE_INVESTOR_SHARE = BASE_TIMELINE.monthly; // 50% of base-case net profit
-const BASE_RECOVERY_MONTH = BASE_TIMELINE.recoveredMonth ?? 12; // ramp-adjusted capital-back month
-const BASE_ANNUAL_COC = BASE_TIMELINE.deal.annualCashOnCash; // steady-state cash-on-cash
+const BASE_INVESTOR_P1 = BASE_TIMELINE.deal.investorP1Monthly; // 60% while capital is being matched
+const BASE_INVESTOR_P2 = BASE_TIMELINE.deal.investorP2Monthly; // 40% ongoing
+const BASE_MATCHED_MONTH = BASE_TIMELINE.matchedMonth; // nullable capital-matched milestone month
+const BASE_ANNUAL_COC = BASE_TIMELINE.deal.annualCashOnCashP2; // phase-2 steady-state cash-on-cash
 
 const setupLines = [
   { name: "12-month rent", range: "AED 200k", note: "The only large line - a production unit, not a showroom.", color: "#f8b84e" },
@@ -715,8 +754,8 @@ const roadmap = [
   },
   {
     phase: "Month 9-12",
-    title: "Premium & payback",
-    body: "Premium AED 15k tier in play, investor capital substantially recovered, paint lane scoped as phase-2 upside.",
+    title: "Premium & matched",
+    body: "Premium AED 15k tier in play, the investor's capital largely matched, paint lane scoped as phase-2 upside.",
     icon: Trophy,
     color: "#ffd894",
   },
@@ -833,7 +872,7 @@ function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
 /* ----------------------------------------------------------------------------
  * Sticky nav + deal bar
  * ------------------------------------------------------------------------- */
-function StickyNav({ investorShare, paybackMonths }: { investorShare: number; paybackMonths: number }) {
+function StickyNav({ investorP1, investorP2 }: { investorP1: number; investorP2: number }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const onScroll = () => setShown(window.scrollY > 620);
@@ -869,13 +908,16 @@ function StickyNav({ investorShare, paybackMonths }: { investorShare: number; pa
           <div className="hidden shrink-0 items-center gap-3 sm:flex">
             <div className="text-right">
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Your share</p>
-              <p className="text-sm font-black text-[#42d6c9]">{formatShort(investorShare)}/mo</p>
+              <p className="text-sm font-black text-[#42d6c9]">
+                {formatShort(investorP1)}/mo{" "}
+                <span className="font-semibold text-white/40">→ {formatShort(investorP2)}</span>
+              </p>
             </div>
             <a
-              href="#deal"
+              href="#returns"
               className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#f8b84e] px-4 text-xs font-black uppercase tracking-[0.14em] text-black transition hover:bg-white"
             >
-              Payback ~{paybackMonths}mo
+              Your return
               <ArrowUpRight className="h-3.5 w-3.5" />
             </a>
           </div>
@@ -919,9 +961,11 @@ export default function PpfInvestorProposalV2() {
     cogs: useTween(calc.cogs, !reducedMotion),
     fixedOverhead: useTween(calc.fixedOverhead, !reducedMotion),
     net: useTween(calc.net, !reducedMotion),
-    investorShare: useTween(calc.investorShare, !reducedMotion),
-    paybackMonths: useTween(calc.paybackMonths, !reducedMotion),
-    annualCashOnCash: useTween(calc.annualCashOnCash, !reducedMotion),
+    investorP1Monthly: useTween(calc.investorP1Monthly, !reducedMotion),
+    investorP2Monthly: useTween(calc.investorP2Monthly, !reducedMotion),
+    seanP1Monthly: useTween(calc.seanP1Monthly, !reducedMotion),
+    seanP2Monthly: useTween(calc.seanP2Monthly, !reducedMotion),
+    annualCashOnCashP2: useTween(calc.annualCashOnCashP2, !reducedMotion),
   };
   // Net profit as a 0-1 intensity, used to drive the glow + meter fills.
   const netIntensity = Math.max(0, Math.min(1, calc.net / 400000));
@@ -995,8 +1039,9 @@ export default function PpfInvestorProposalV2() {
   );
   const currentRow = timeline.rows[Math.min(returnMonth, timeline.rows.length - 1)];
   const tweenCumulative = useTween(currentRow.cumulative, !reducedMotion);
-  const recoveryPct = Math.min(100, (currentRow.cumulative / SETUP_TOTAL) * 100);
-  const capitalRecovered = currentRow.cumulative >= SETUP_TOTAL;
+  const matchedPct = Math.min(100, (currentRow.cumulative / SETUP_TOTAL) * 100);
+  const capitalMatched = currentRow.cumulative >= SETUP_TOTAL;
+  const onPhase2 = currentRow.phase === 2; // split has flipped to 40/60
   // Cumulative cash to the investor across the full 24 months (the climax figure)
   const cumulativeReturn = timeline.rows;
   const milestones = [
@@ -1009,8 +1054,8 @@ export default function PpfInvestorProposalV2() {
     },
     {
       icon: ShieldCheck,
-      label: "Capital recovered",
-      month: timeline.recoveredMonth,
+      label: "Capital matched",
+      month: timeline.matchedMonth,
       hit: currentRow.cumulative >= SETUP_TOTAL,
       threshold: SETUP_TOTAL,
     },
@@ -1037,8 +1082,8 @@ export default function PpfInvestorProposalV2() {
   }
 
   // Hero headline return figures - derived from the single base case (12k x 10/wk)
-  const baseInvestorShare = BASE_INVESTOR_SHARE; // 50% of base-case net
-  const basePayback = BASE_RECOVERY_MONTH; // ramp-adjusted month capital is back
+  const baseInvestorP1 = BASE_INVESTOR_P1; // 60% of pool while capital is being matched
+  const baseInvestorP2 = BASE_INVESTOR_P2; // 40% of pool, ongoing
 
   return (
     <main className="min-h-screen bg-[#070707] text-white">
@@ -1053,7 +1098,7 @@ export default function PpfInvestorProposalV2() {
         @keyframes gtPop{0%{transform:scale(0.6);opacity:0}100%{transform:scale(1);opacity:1}}
         .gt-pop{animation:gtPop .3s ease-out both}`}</style>
 
-      <StickyNav investorShare={baseInvestorShare} paybackMonths={basePayback} />
+      <StickyNav investorP1={baseInvestorP1} investorP2={baseInvestorP2} />
 
       {/* ===================== HERO ===================== */}
       <section className="relative overflow-hidden px-5 pb-16 pt-6 sm:px-8 lg:px-10">
@@ -1085,16 +1130,16 @@ export default function PpfInvestorProposalV2() {
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 sm:text-xl">
                 Sean has already generated <strong className="text-white">AED 676k+ in closed, paid revenue</strong> and
                 built the marketing engine himself - all while limited by space. Fund the studio and take{" "}
-                <strong className="text-white">50% of net profit</strong>, with your capital realistically back inside{" "}
-                <strong className="text-white">~{basePayback} months</strong> after the ramp.
+                <strong className="text-white">60% of profit until your capital's matched</strong>, then{" "}
+                <strong className="text-white">40% as a passive partner</strong>.
               </p>
 
               {/* Investor-return summary tiles */}
               <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
                   { label: "Your capital in", value: "AED 350-450k", accent: "#ffffff" },
-                  { label: "Your profit share", value: "50%", accent: "#a3e635" },
-                  { label: "Capital back in", value: `~${basePayback} mo`, accent: "#42d6c9" },
+                  { label: "Your profit share", value: "60% → 40%", accent: "#a3e635" },
+                  { label: "Matched first", value: "You're paid back first", accent: "#42d6c9" },
                   { label: "Then largely", value: "Passive", accent: "#f8b84e" },
                 ].map((tile) => (
                   <div key={tile.label} className="rounded-lg border border-white/12 bg-black/40 p-4 backdrop-blur">
@@ -1364,7 +1409,7 @@ export default function PpfInvestorProposalV2() {
               The whole thesis in one tool. Almost every dirham of a price increase drops to profit, while volume pulls
               overhead up in steps as we add staff. Toggle <strong className="text-white">contractor vs in-house PPF</strong>{" "}
               to see COGS fall when installs move in-house (offset by salaried installers in overhead). Set price, volume
-              and install method, and watch your 50% share, payback and annual return update live.
+              and install method, and watch the net profit, the dividend pool after Sean's salary, and your share update live.
             </p>
           </Reveal>
 
@@ -1519,45 +1564,50 @@ export default function PpfInvestorProposalV2() {
               >
                 <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/45">
                   <CircleDollarSign className="h-3.5 w-3.5 text-[#42d6c9]" />
-                  Your 50% share
+                  Your dividend share
                 </p>
-                <p className="mt-1 text-4xl font-black text-[#42d6c9] sm:text-5xl">
-                  {formatShort(tween.investorShare)}
-                  <span className="text-base font-bold text-white/40"> /mo</span>
-                </p>
-                <p className="mt-1 text-xs text-white/45">
-                  {formatShort(tween.investorShare * 12)} to you per year at this run-rate
-                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#42d6c9]">Phase 1 · 60%</p>
+                    <p className="mt-0.5 text-3xl font-black text-[#42d6c9]">
+                      {formatShort(tween.investorP1Monthly)}
+                      <span className="text-sm font-bold text-white/40">/mo</span>
+                    </p>
+                    <p className="text-[10px] text-white/40">until your capital's matched</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/60">Phase 2 · 40%</p>
+                    <p className="mt-0.5 text-3xl font-black text-white/85">
+                      {formatShort(tween.investorP2Monthly)}
+                      <span className="text-sm font-bold text-white/40">/mo</span>
+                    </p>
+                    <p className="text-[10px] text-white/40">ongoing, passive</p>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-lg border border-white/10 bg-black/25 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/45">Capital payback</p>
-                  <p className="mt-1 text-3xl font-black text-[#a3e635]">
-                    ~{Math.round(tween.paybackMonths)}
-                    <span className="text-base text-white/40"> mo</span>
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/45">Sean's salary</p>
+                  <p className="mt-1 text-3xl font-black text-white/85">
+                    12k<span className="text-base text-white/40"> → </span>24k
                   </p>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-[#a3e635] transition-[width] duration-300 ease-out"
-                      style={{ width: `${Math.min(100, (1 - Math.min(calc.paybackMonths, 24) / 24) * 100)}%` }}
-                    />
-                  </div>
+                  <p className="mt-1 text-[10px] text-white/40">Phase 1 → Phase 2, cashflow permitting</p>
                 </div>
                 <div className="rounded-lg border border-white/10 bg-black/25 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/45">Annual cash-on-cash</p>
-                  <p className="mt-1 text-3xl font-black text-[#f8b84e]">{Math.round(tween.annualCashOnCash)}%</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/45">Cash-on-cash · ongoing</p>
+                  <p className="mt-1 text-3xl font-black text-[#f8b84e]">{Math.round(tween.annualCashOnCashP2)}%</p>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
                     <div
                       className="h-full rounded-full bg-[#f8b84e] transition-[width] duration-300 ease-out"
-                      style={{ width: `${Math.min(100, (calc.annualCashOnCash / 400) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (calc.annualCashOnCashP2 / 400) * 100)}%` }}
                     />
                   </div>
                 </div>
               </div>
               <p className="text-xs leading-5 text-white/45">
-                Steady-state figures on AED {SETUP_TOTAL.toLocaleString()} capital. Payback and cash-on-cash are
-                pre-ramp; allow 6-12 months to reach the volume you set.
+                Steady-state figures on AED {SETUP_TOTAL.toLocaleString()} capital, at the volume you set (allow 6-12
+                months to ramp). Your capital is matched first - then the split steps from 60/40 to 40/60.
               </p>
             </div>
           </Reveal>
@@ -2094,9 +2144,10 @@ export default function PpfInvestorProposalV2() {
               Watch your money come back.
             </h2>
             <p className="mt-5 leading-8 text-white/70">
-              This is what you actually walk away with. Pick a scenario, then drag the timeline and watch your half of
-              the profit stack up - and the moment your capital is fully back. Every extra AED 1k on price drops almost
-              entirely into your pocket, so the gap between scenarios is real money.
+              This is what you actually walk away with. You take <strong className="text-white">60% of profit until
+              your capital's matched</strong>, then <strong className="text-white">40% as a passive partner</strong>.
+              Pick a scenario and drag the timeline to watch it stack up - and the point where the split flips. Every
+              extra AED 1k on price drops almost entirely into the pool, so the gap between scenarios is real money.
             </p>
           </Reveal>
 
@@ -2120,8 +2171,8 @@ export default function PpfInvestorProposalV2() {
             <p className="text-xs leading-5 text-white/50 sm:max-w-xs sm:text-right">
               {scenario.blurb}{" "}
               <span className="text-white/70">
-                AED {(scenario.price / 1000).toFixed(0)}k · {scenario.cpw} cars/wk · ~{formatShort(timeline.monthly)}/mo to
-                you
+                AED {(scenario.price / 1000).toFixed(0)}k · {scenario.cpw} cars/wk · you take ~
+                {formatShort(timeline.deal.investorP1Monthly)}/mo then {formatShort(timeline.deal.investorP2Monthly)}/mo
               </span>
             </p>
           </Reveal>
@@ -2137,33 +2188,47 @@ export default function PpfInvestorProposalV2() {
                 </p>
                 <p
                   className="mt-2 text-5xl font-black tabular-nums text-[#a3e635] transition-all duration-500 sm:text-6xl"
-                  style={{ textShadow: capitalRecovered ? "0 0 36px rgba(163,230,53,0.45)" : "none" }}
+                  style={{ textShadow: capitalMatched ? "0 0 36px rgba(163,230,53,0.45)" : "none" }}
                 >
                   {formatAed(Math.round(tweenCumulative))}
                 </p>
-                {capitalRecovered ? (
+                {capitalMatched ? (
                   <span
                     key={`${scenarioId}-stamp`}
                     className="gt-stamp absolute right-0 top-0 inline-flex items-center gap-1.5 rounded-md border-2 border-[#a3e635] bg-[#a3e635]/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-[#a3e635]"
                   >
                     <Check className="h-4 w-4" />
-                    Capital recovered
+                    Capital matched
                   </span>
                 ) : null}
               </div>
 
-              {/* Capital recovery meter */}
+              {/* Live split for the scrubbed month */}
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs">
+                <span className="font-semibold text-white/55">
+                  {currentRow.month === "Start" ? "Before launch" : `Month ${returnMonth}`} ·{" "}
+                  <span className={onPhase2 ? "text-white/70" : "text-[#a3e635]"}>
+                    {onPhase2 ? "Phase 2 · you 40%" : "Phase 1 · you 60%"}
+                  </span>
+                </span>
+                <span className="text-white/70">
+                  You <strong className="text-[#a3e635]">{formatShort(currentRow.investorMonthly)}</strong> · Sean{" "}
+                  {formatShort(currentRow.seanMonthly)}
+                </span>
+              </div>
+
+              {/* Capital-matched meter */}
               <div>
                 <div className="mb-2 flex items-end justify-between text-xs">
-                  <span className="font-bold uppercase tracking-[0.16em] text-white/45">Capital recovered</span>
+                  <span className="font-bold uppercase tracking-[0.16em] text-white/45">Capital matched</span>
                   <span className="font-black text-white/80">
-                    {Math.round(recoveryPct)}% of {formatShort(SETUP_TOTAL)}
+                    {Math.round(matchedPct)}% of {formatShort(SETUP_TOTAL)}
                   </span>
                 </div>
                 <div className="relative h-4 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-[#42d6c9] via-[#a3e635] to-[#a3e635] transition-[width] duration-500 ease-out"
-                    style={{ width: `${recoveryPct}%` }}
+                    style={{ width: `${matchedPct}%` }}
                   />
                   {/* AED 100k pip */}
                   <span
@@ -2173,7 +2238,7 @@ export default function PpfInvestorProposalV2() {
                 </div>
                 <div className="mt-1.5 flex justify-between text-[10px] font-semibold text-white/35">
                   <span>AED 0</span>
-                  <span>Capital back</span>
+                  <span>Matched → split flips to 40%</span>
                 </div>
               </div>
 
@@ -2248,9 +2313,9 @@ export default function PpfInvestorProposalV2() {
                     <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} axisLine={false} tickLine={false} interval={2} />
                     <YAxis width={54} tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={formatShort} />
                     <Tooltip contentStyle={{ background: "#0b0b0b", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8 }} formatter={(value: number) => [formatAed(value), "Cumulative to you"]} />
-                    <ReferenceLine y={SETUP_TOTAL} stroke="#f8b84e" strokeDasharray="5 4" strokeWidth={2} label={{ value: "Capital in", position: "insideTopRight", fill: "#ffd894", fontSize: 11, fontWeight: 700 }} />
-                    {timeline.recoveredMonth ? (
-                      <ReferenceLine x={`M${timeline.recoveredMonth}`} stroke="#a3e635" strokeDasharray="4 4" strokeWidth={2} label={{ value: "Capital back", position: "top", fill: "#a3e635", fontSize: 11, fontWeight: 700 }} />
+                    <ReferenceLine y={SETUP_TOTAL} stroke="#f8b84e" strokeDasharray="5 4" strokeWidth={2} label={{ value: "Your capital", position: "insideTopRight", fill: "#ffd894", fontSize: 11, fontWeight: 700 }} />
+                    {timeline.matchedMonth ? (
+                      <ReferenceLine x={`M${timeline.matchedMonth}`} stroke="#a3e635" strokeDasharray="4 4" strokeWidth={2} label={{ value: "Matched · 60→40", position: "top", fill: "#a3e635", fontSize: 11, fontWeight: 700 }} />
                     ) : null}
                     <ReferenceLine x={currentRow.month} stroke="#ffffff" strokeDasharray="2 3" strokeOpacity={0.5} label={{ value: "You", position: "top", fill: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: 700 }} />
                     <Area type="monotone" dataKey="cumulative" stroke="#a3e635" strokeWidth={3} fill="url(#returnFill)" />
@@ -2260,12 +2325,15 @@ export default function PpfInvestorProposalV2() {
               <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg border border-white/10 bg-black/25 p-2.5">
                   <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">Your share</p>
-                  <p className="mt-0.5 text-base font-black text-[#a3e635]">{formatShort(timeline.monthly)}/mo</p>
+                  <p className="mt-0.5 text-base font-black text-[#a3e635]">
+                    {formatShort(timeline.deal.investorP1Monthly)}
+                    <span className="text-white/40"> → {formatShort(timeline.deal.investorP2Monthly)}</span>
+                  </p>
                 </div>
                 <div className="rounded-lg border border-white/10 bg-black/25 p-2.5">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">Capital back</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">Capital matched</p>
                   <p className="mt-0.5 text-base font-black text-[#42d6c9]">
-                    {timeline.recoveredMonth ? `~M${timeline.recoveredMonth}` : "24mo+"}
+                    {timeline.matchedMonth ? `~M${timeline.matchedMonth}` : "24mo+"}
                   </p>
                 </div>
                 <div className="rounded-lg border border-white/10 bg-black/25 p-2.5">
@@ -2287,14 +2355,14 @@ export default function PpfInvestorProposalV2() {
                   <CountStat value={timeline.total} format={(n) => formatAed(Math.round(n))} />
                 </p>
                 <p className="mt-1 text-sm text-white/55">
-                  total profit drawn to you - on AED {SETUP_TOTAL.toLocaleString()} of capital that's already back by
-                  {timeline.recoveredMonth ? ` month ${timeline.recoveredMonth}` : " year two"}.
+                  total profit drawn to you - on AED {SETUP_TOTAL.toLocaleString()} of capital that's matched
+                  {timeline.matchedMonth ? ` by month ${timeline.matchedMonth}` : " within year two"}.
                 </p>
               </div>
               <div className="flex items-center gap-3 rounded-xl border border-white/12 bg-black/35 px-5 py-4">
                 <Target className="h-7 w-7 shrink-0 text-[#a3e635]" />
                 <p className="text-sm leading-6 text-white/70">
-                  After your capital is back, your 50% share is largely{" "}
+                  Once your capital's matched, your 40% share is largely{" "}
                   <strong className="text-white">passive</strong> - Sean runs everything day to day.
                 </p>
               </div>
@@ -2466,11 +2534,11 @@ export default function PpfInvestorProposalV2() {
           <Reveal className="mb-8 max-w-3xl">
             <SectionKicker color="#42d6c9">The plan</SectionKicker>
             <h2 className="mt-4 text-4xl font-black uppercase leading-none sm:text-5xl">
-              From signature to payback in 12 months.
+              From signature to full run-rate in 12 months.
             </h2>
             <p className="mt-5 leading-8 text-white/70">
               The capital has a clear path, not a wish list. Here's how the first year runs - from securing the unit to
-              substantially recovering your investment.
+              a studio running at full pace, with your capital being matched along the way.
             </p>
           </Reveal>
 
@@ -2553,12 +2621,13 @@ export default function PpfInvestorProposalV2() {
             <SectionKicker color="#f8b84e">The deal</SectionKicker>
             <h2 className="mt-4 text-4xl font-black uppercase leading-none sm:text-5xl">A simple, hands-off partnership.</h2>
             <p className="mt-5 leading-8 text-white/70">
-              The idea is deliberately clean: the investor backs the build, Sean runs everything, and the upside is
-              shared equally.
+              The investor backs the build and Sean runs everything. The profit split is phased on one fair principle -
+              <strong className="text-white"> bigger risk now, bigger share now</strong>: you take the majority until
+              your capital's matched, then it flips to Sean for the long term.
             </p>
           </Reveal>
 
-          {/* What each side brings — justifies the 50/50 */}
+          {/* What each side brings — justifies the split */}
           <Reveal className="mb-6 grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-[#f8b84e]/30 bg-[#f8b84e]/[0.06] p-6">
               <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#f8b84e]/15 text-[#f8b84e]">
@@ -2585,28 +2654,50 @@ export default function PpfInvestorProposalV2() {
             </div>
           </Reveal>
 
-          {/* The resulting split */}
+          {/* The resulting phased split */}
           <Reveal className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-[#101010] p-6 sm:p-8">
-            <p className="text-xs uppercase tracking-[0.22em] text-white/45">Equal partnership, equal share</p>
-            <div className="mt-4 flex h-12 overflow-hidden rounded-xl">
-              <div className="flex w-1/2 items-center justify-center bg-[#f8b84e] text-sm font-black uppercase tracking-wide text-black">
-                Investor 50%
+            <p className="text-xs uppercase tracking-[0.22em] text-white/45">How the profit is split</p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
+                  <span>Phase 1 · until your capital's matched</span>
+                </div>
+                <div className="flex h-11 overflow-hidden rounded-xl">
+                  <div className="flex w-[60%] items-center justify-center bg-[#a3e635] text-sm font-black uppercase tracking-wide text-black">
+                    Investor 60%
+                  </div>
+                  <div className="flex w-[40%] items-center justify-center bg-[#42d6c9] text-sm font-black uppercase tracking-wide text-black">
+                    Sean 40%
+                  </div>
+                </div>
               </div>
-              <div className="flex w-1/2 items-center justify-center bg-[#42d6c9] text-sm font-black uppercase tracking-wide text-black">
-                Sean 50%
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
+                  <span>Phase 2 · ongoing, after matched</span>
+                </div>
+                <div className="flex h-11 overflow-hidden rounded-xl">
+                  <div className="flex w-[40%] items-center justify-center bg-[#a3e635]/70 text-sm font-black uppercase tracking-wide text-black">
+                    Investor 40%
+                  </div>
+                  <div className="flex w-[60%] items-center justify-center bg-[#42d6c9] text-sm font-black uppercase tracking-wide text-black">
+                    Sean 60%
+                  </div>
+                </div>
               </div>
             </div>
             <p className="mt-4 text-sm leading-7 text-white/60">
-              Capital on one side, a proven business on the other - so ownership and net profit are split straight down
-              the middle.
+              You carry the risk early, so you take the majority early and are matched first. Once matched, the split
+              flips to Sean for running it long-term. Throughout, Sean takes a modest salary -{" "}
+              <strong className="text-white">AED 12k, rising to 24k after match</strong> - cashflow permitting, before
+              the pool is split.
             </p>
           </Reveal>
 
           {/* Concrete terms */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Scale, title: "50/50 of net profit", body: "Equal ownership and an equal share of net profit - no preference, no complexity.", color: "#f8b84e" },
-              { icon: CircleDollarSign, title: "Paid quarterly", body: "Your 50% share of net profit is distributed every quarter.", color: "#a3e635" },
+              { icon: Scale, title: "Phased profit split", body: "60/40 to you until your capital's matched, then 40/60 to Sean - bigger risk, bigger share.", color: "#f8b84e" },
+              { icon: CircleDollarSign, title: "Paid quarterly", body: "Your share of profit is distributed every quarter, cashflow permitting.", color: "#a3e635" },
               { icon: Rocket, title: "Genuinely hands-off", body: "Sean runs ops, marketing, sales, hiring and growth. Nothing required from you.", color: "#42d6c9" },
               { icon: ClipboardList, title: "Full transparency", body: "Books and numbers shared with you regularly - you always see how it's performing.", color: "#7dd3fc" },
             ].map((card, i) => (
@@ -2623,9 +2714,9 @@ export default function PpfInvestorProposalV2() {
           <Reveal className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-[#101010] p-5">
             <KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-[#f8b84e]" />
             <p className="text-sm leading-7 text-white/65">
-              <strong className="text-white">Flexible by design.</strong> Sean draws a salary only once the business
-              comfortably permits, and an optional future buyout can be agreed between both sides down the line. Exact
-              legal structure and any adjustments are settled together.
+              <strong className="text-white">Flexible by design.</strong> The salary is taken cashflow permitting, and an
+              optional future buyout can be agreed between both sides down the line. This is an investment in the
+              business, not a loan - no fixed dates. Exact legal structure and any adjustments are settled together.
             </p>
           </Reveal>
         </div>
@@ -2652,11 +2743,11 @@ export default function PpfInvestorProposalV2() {
               </div>
               <div className="rounded-lg border border-white/12 bg-black/40 px-5 py-4 backdrop-blur">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/45">Your profit share</p>
-                <p className="mt-1 text-2xl font-black text-[#a3e635]">50% of net</p>
+                <p className="mt-1 text-2xl font-black text-[#a3e635]">60% → 40%</p>
               </div>
               <div className="rounded-lg border border-white/12 bg-black/40 px-5 py-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Capital back in</p>
-                <p className="mt-1 text-2xl font-black text-[#42d6c9]">~{basePayback} months</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Your capital</p>
+                <p className="mt-1 text-2xl font-black text-[#42d6c9]">Matched first</p>
               </div>
             </div>
           </Reveal>
