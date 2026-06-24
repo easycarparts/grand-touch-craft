@@ -183,7 +183,7 @@ const ownedAssets = [
 ];
 
 const proofStats = [
-  { label: "Closed & paid revenue", value: "AED 676k+", sub: "94 paid jobs since Jan 2026" },
+  { label: "Closed & paid revenue", value: "AED 727k+", sub: "94 paid jobs since Jan 2026" },
   { label: "Return on ad spend", value: "10-15x", sub: "Ad spend to completed-job revenue" },
   { label: "New audience since Jan", value: "+3,900", sub: "+500 Instagram, +3,400 TikTok" },
   { label: "Total investor ask", value: "AED 350-450k", sub: "Tools, stock & fit-out already covered" },
@@ -223,7 +223,7 @@ const marketingGrowth = [
 const tractionCards = [
   {
     title: "Demand already exists",
-    body: "AED 676k+ in closed, paid work since January - delivered while operating inside someone else's space and brand constraints.",
+    body: "AED 727k+ in closed, paid work since January - delivered while operating inside someone else's space and brand constraints.",
     icon: Gauge,
   },
   {
@@ -421,7 +421,7 @@ export default function PpfInvestorProposal() {
                 <span className="text-[#f8b84e]">It just needs the space.</span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 sm:text-xl">
-                Sean has already generated <strong className="text-white">AED 676k+ in closed, paid revenue</strong> and
+                Sean has already generated <strong className="text-white">AED 727k+ in closed, paid revenue</strong> and
                 grown a real audience since January - all while limited by space and operating inside a business he does
                 not own. A dedicated Dubai studio unlocks <strong className="text-white">AED 300k+ monthly revenue</strong>{" "}
                 within 6-12 months, with <strong className="text-white">AED 500k+ upside</strong> at 10 PPF cars a week.

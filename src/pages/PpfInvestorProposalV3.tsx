@@ -217,13 +217,20 @@ function Reveal({
  * Static data
  * ------------------------------------------------------------------------- */
 const COGS_PER_CAR = 5000;
+const CONSUMABLES_PER_CAR = 200; // chemicals, wash cloths etc. - nominal, scales per car
+const CARD_FEE_RATE = 0.019; // 1.9% card processing; targeting ~1% at volume
 const WEEKS_PER_MONTH = 4.3;
 
-// Fixed overhead: rent/marketing/utilities + support payroll. Core team is already in
-// place (5 incl. Sean) - never a "lean 2 staff" launch.
-const BASE_NON_STAFF_OVERHEAD = 35700;
+// Fixed overhead is itemised: rent + other fixed (utilities/software/insurance/accounting).
+// Marketing is modelled separately as a VARIABLE cost (revenue / ROAS), and support
+// payroll scales with volume on top. Core team is already in place (5 incl. Sean).
+const RENT_MONTHLY = 16667; // AED 200k/yr
+const OTHER_FIXED_MONTHLY = 6500; // utilities, software, insurance, accounting + licence renewal
+const BASE_NON_STAFF_OVERHEAD = RENT_MONTHLY + OTHER_FIXED_MONTHLY; // 21,667 fixed (ex-marketing)
+const DEFAULT_ROAS = 10; // conservative; the calculator slider runs 10-15x
+const PROVEN_ROAS = 13; // real blended ROAS since Jan (~727k / ~55k) - used for the return projection
 const BASE_SUPPORT_PAID = 4; // detailer, polisher, videographer, sales - already hired
-const BASE_SUPPORT_SALARY = 13000; // AED 3k + 3.5k + 3.5k + 3k
+const BASE_SUPPORT_SALARY = 15000; // AED 3k + 3.5k + 3.5k + 5k
 const BASE_VISA_TRANSFERS = 2; // 2 need a new visa; 3 already on existing visas
 
 const SALARY = {
@@ -231,7 +238,7 @@ const SALARY = {
   junior: 4000,
   polisher: 3500,
   detailer: 3000,
-  sales: 3000,
+  sales: 5000,
   videographer: 3500,
   admin: 3000,
   manager: 5000,
@@ -477,25 +484,33 @@ const INVESTOR_P2 = 0.4; // investor share of the pool after capital matched
 function computeDeal(
   pricePerCar: number,
   carsPerWeek: number,
-  installMode: "contractor" | "inhouse" = "contractor"
+  installMode: "contractor" | "inhouse" = "contractor",
+  roas: number = DEFAULT_ROAS,
+  salaryOn: boolean = true
 ) {
   const carsPerMonth = carsPerWeek * WEEKS_PER_MONTH;
   const revenue = pricePerCar * carsPerMonth;
   const inhouse = installMode === "inhouse";
-  const cogsPerCar = inhouse ? FILM_COGS_PER_CAR : COGS_PER_CAR;
+  const cogsPerCar = (inhouse ? FILM_COGS_PER_CAR : COGS_PER_CAR) + CONSUMABLES_PER_CAR;
   const cogs = cogsPerCar * carsPerMonth;
+  // Marketing is variable: at 10x ROAS you spend 10% of revenue to generate it.
+  const marketing = revenue / roas;
+  // Card processing fees, variable on revenue.
+  const cardFees = revenue * CARD_FEE_RATE;
   const baseOverhead = fixedOverheadFor(carsPerWeek);
   const econ = installEconomics(carsPerWeek);
   const installerCost = inhouse ? econ.installerSalary + econ.installerVisaMonthly : 0;
   const fixedOverhead = baseOverhead.total + installerCost;
-  const net = revenue - cogs - fixedOverhead;
-  // Dividend pool = net profit after Sean's salary (cashflow permitting), per phase.
-  const poolP1 = Math.max(0, net - SEAN_SALARY_P1);
-  const poolP2 = Math.max(0, net - SEAN_SALARY_P2);
+  const net = revenue - cogs - marketing - cardFees - fixedOverhead;
+  // Dividend pool = net profit after Sean's salary (only when switched on / cashflow permitting).
+  const salaryP1 = salaryOn ? SEAN_SALARY_P1 : 0;
+  const salaryP2 = salaryOn ? SEAN_SALARY_P2 : 0;
+  const poolP1 = Math.max(0, net - salaryP1);
+  const poolP2 = Math.max(0, net - salaryP2);
   const investorP1Monthly = poolP1 * INVESTOR_P1; // 60% while capital is being matched
   const investorP2Monthly = poolP2 * INVESTOR_P2; // 40% once matched (ongoing)
-  const seanP1Monthly = SEAN_SALARY_P1 + poolP1 * (1 - INVESTOR_P1);
-  const seanP2Monthly = SEAN_SALARY_P2 + poolP2 * (1 - INVESTOR_P2);
+  const seanP1Monthly = salaryP1 + poolP1 * (1 - INVESTOR_P1);
+  const seanP2Monthly = salaryP2 + poolP2 * (1 - INVESTOR_P2);
   // Phase-2 steady-state cash-on-cash — the only return % safe to headline.
   const annualCashOnCashP2 = poolP2 > 0 ? Math.round(((investorP2Monthly * 12) / SETUP_TOTAL) * 100) : 0;
   const grossMargin = revenue > 0 ? Math.round(((revenue - cogs) / revenue) * 100) : 0;
@@ -509,6 +524,13 @@ function computeDeal(
     inhouse,
     installers: econ.installers,
     team: baseOverhead.team,
+    marketing,
+    cardFees,
+    rent: RENT_MONTHLY,
+    otherFixed: OTHER_FIXED_MONTHLY,
+    supportCost: baseOverhead.staff,
+    roas,
+    salaryOn,
     net,
     poolP1,
     poolP2,
@@ -527,8 +549,10 @@ const RETURN_RAMP = [0, 0.3, 0.55, 0.8, 0.95, 1];
 /** Build the cumulative investor-cash timeline for a (price, volume) scenario.
  *  The split flips from 60% to 40% the month AFTER cumulative distributions match
  *  the capital — a milestone, never a dated promise. */
-function buildReturnTimeline(pricePerCar: number, carsPerWeek: number) {
-  const deal = computeDeal(pricePerCar, carsPerWeek, "contractor");
+function buildReturnTimeline(pricePerCar: number, carsPerWeek: number, salaryOn: boolean = true) {
+  // The return reflects the in-house staff model (the established operating model) at the
+  // proven 13x ROAS; contractors are only the launch-risk bridge covered in the staffing section.
+  const deal = computeDeal(pricePerCar, carsPerWeek, "inhouse", PROVEN_ROAS, salaryOn);
   let cumulative = 0;
   let matchedMonth: number | null = null;
   let doubledMonth: number | null = null;
@@ -546,7 +570,7 @@ function buildReturnTimeline(pricePerCar: number, carsPerWeek: number) {
   for (let m = 1; m <= 24; m += 1) {
     const matched = cumulative >= SETUP_TOTAL; // decided at the START of the month
     const factor = m <= 6 ? RETURN_RAMP[m - 1] : 1;
-    const salary = matched ? SEAN_SALARY_P2 : SEAN_SALARY_P1;
+    const salary = salaryOn ? (matched ? SEAN_SALARY_P2 : SEAN_SALARY_P1) : 0;
     const pool = Math.max(0, deal.net * factor - salary); // ramp the gross, then salary
     const invShare = matched ? INVESTOR_P2 : INVESTOR_P1;
     const add = pool * invShare;
@@ -565,16 +589,6 @@ function buildReturnTimeline(pricePerCar: number, carsPerWeek: number) {
   }
   return { deal, rows, matchedMonth, doubledMonth, total: Math.round(cumulative) };
 }
-
-// Pricing-power scenarios: hold volume near target, walk the price. Every extra
-// AED 1k of price drops almost entirely to net profit.
-const RETURN_SCENARIOS = [
-  { id: "floor", label: "Floor", price: 10000, cpw: 5, blurb: "Half the target volume, below-market price - the worst case." },
-  { id: "base", label: "Base", price: 12000, cpw: 10, blurb: "Today's pricing at the target run-rate." },
-  { id: "upside", label: "Upside", price: 15000, cpw: 12, blurb: "Pricing power earned as the brand compounds." },
-] as const;
-
-type ReturnScenarioId = (typeof RETURN_SCENARIOS)[number]["id"];
 
 // The base case every headline figure on the page is derived from.
 const BASE_TIMELINE = buildReturnTimeline(12000, 10);
@@ -598,7 +612,7 @@ const actualRevenueData = [
   { month: "Mar", actualQuote: 138330, runRateExtension: null, projection: 138330 },
   { month: "Apr", actualQuote: 156540, runRateExtension: null, projection: 162000 },
   { month: "May", actualQuote: 145588, runRateExtension: null, projection: 190000 },
-  { month: "Jun", actualQuote: 62387, runRateExtension: 87613, projection: 222000 },
+  { month: "Jun", actualQuote: 158000, runRateExtension: 27000, projection: 222000 },
   { month: "Jul", actualQuote: null, runRateExtension: null, projection: 260000 },
   { month: "Aug", actualQuote: null, runRateExtension: null, projection: 304000 },
   { month: "Sep", actualQuote: null, runRateExtension: null, projection: 356000 },
@@ -607,9 +621,19 @@ const actualRevenueData = [
   { month: "Dec", actualQuote: null, runRateExtension: null, projection: 570000 },
 ];
 
+// Real ad spend since Jan 2026 (proves the ROAS claim).
+const PROVEN_REVENUE = 726766;
+const AD_SPEND = [
+  { channel: "Meta", value: 43000, display: "AED 43k", color: "#42d6c9" },
+  { channel: "TikTok", value: 8000, display: "AED 8k", color: "#f472b6" },
+  { channel: "Google", value: 3800, display: "AED 3.8k", color: "#f8b84e" },
+];
+const AD_SPEND_TOTAL = AD_SPEND.reduce((sum, c) => sum + c.value, 0); // 54,800
+const BLENDED_ROAS = Math.round(PROVEN_REVENUE / AD_SPEND_TOTAL); // ~13x
+
 const proofStats = [
-  { label: "Closed & paid revenue", value: 676000, display: "AED 676k+", sub: "94 paid jobs since Jan 2026" },
-  { label: "Return on ad spend", value: 15, display: "10-15x", sub: "Ad spend to completed-job revenue" },
+  { label: "Closed & paid revenue", value: 726766, display: "AED 727k+", sub: "94 paid jobs since Jan 2026" },
+  { label: "Blended return on ad spend", value: BLENDED_ROAS, display: `~${BLENDED_ROAS}x`, sub: "AED 55k ad spend → AED 727k, real" },
   { label: "New audience since Jan", value: 3900, display: "+3,900", sub: "+500 Instagram, +3,400 TikTok" },
   { label: "Total investor ask", value: 450000, display: "AED 350-450k", sub: "Tools, stock & fit-out already covered" },
 ];
@@ -618,7 +642,7 @@ const marketHighlights = [
   {
     icon: Gauge,
     title: "Demand is already proven",
-    body: "AED 676k+ closed since January - this is not a market study, it's revenue on the board, generated inside someone else's space.",
+    body: "AED 727k+ closed since January - this is not a market study, it's revenue on the board, generated inside someone else's space.",
     color: "#42d6c9",
   },
   {
@@ -686,9 +710,9 @@ const founderTrackRecord = [
   },
   {
     icon: Rocket,
-    metric: "AED 676k+",
+    metric: "AED 727k+",
     title: "Grand Touch, from scratch",
-    body: "Proof he can do it for himself: built a paying PPF business to AED 676k+ in months - already, before owning the space.",
+    body: "Proof he can do it for himself: built a paying PPF business to AED 727k+ in months - already, before owning the space.",
     color: "#42d6c9",
   },
 ];
@@ -948,11 +972,13 @@ export default function PpfInvestorProposalV2() {
   // Interactive deal calculator state
   const [pricePerCar, setPricePerCar] = useState(12000);
   const [carsPerWeek, setCarsPerWeek] = useState(10);
-  const [installMode, setInstallMode] = useState<"contractor" | "inhouse">("contractor");
+  const [installMode, setInstallMode] = useState<"contractor" | "inhouse">("inhouse");
+  const [roas, setRoas] = useState(DEFAULT_ROAS);
+  const [salaryOn, setSalaryOn] = useState(true);
 
   const calc = useMemo(
-    () => computeDeal(pricePerCar, carsPerWeek, installMode),
-    [pricePerCar, carsPerWeek, installMode]
+    () => computeDeal(pricePerCar, carsPerWeek, installMode, roas, salaryOn),
+    [pricePerCar, carsPerWeek, installMode, roas, salaryOn]
   );
 
   // Tweened values so the outputs animate as the sliders move.
@@ -961,6 +987,10 @@ export default function PpfInvestorProposalV2() {
     cogs: useTween(calc.cogs, !reducedMotion),
     fixedOverhead: useTween(calc.fixedOverhead, !reducedMotion),
     net: useTween(calc.net, !reducedMotion),
+    marketing: useTween(calc.marketing, !reducedMotion),
+    cardFees: useTween(calc.cardFees, !reducedMotion),
+    supportCost: useTween(calc.supportCost, !reducedMotion),
+    installerCost: useTween(calc.installerCost, !reducedMotion),
     investorP1Monthly: useTween(calc.investorP1Monthly, !reducedMotion),
     investorP2Monthly: useTween(calc.investorP2Monthly, !reducedMotion),
     seanP1Monthly: useTween(calc.seanP1Monthly, !reducedMotion),
@@ -969,6 +999,16 @@ export default function PpfInvestorProposalV2() {
   };
   // Net profit as a 0-1 intensity, used to drive the glow + meter fills.
   const netIntensity = Math.max(0, Math.min(1, calc.net / 400000));
+  // Itemised cost stack (raw drives bar widths, tween drives the displayed figures).
+  const costBreakdown = [
+    { label: calc.inhouse ? "COGS · film & consumables" : "COGS · film, install & consumables", raw: calc.cogs, value: tween.cogs, color: "#ef6345" },
+    { label: `Marketing · ${roas}x ROAS`, raw: calc.marketing, value: tween.marketing, color: "#f472b6" },
+    { label: "Card fees · 1.9%", raw: calc.cardFees, value: tween.cardFees, color: "#fb923c" },
+    { label: "Rent", raw: RENT_MONTHLY, value: RENT_MONTHLY, color: "#7dd3fc" },
+    { label: "Utilities, software & licence", raw: OTHER_FIXED_MONTHLY, value: OTHER_FIXED_MONTHLY, color: "#38bdf8" },
+    { label: "Support payroll", raw: calc.supportCost, value: tween.supportCost, color: "#f8b84e" },
+    { label: "Installer payroll", raw: calc.installerCost, value: tween.installerCost, color: "#c084fc" },
+  ].filter((r) => r.raw > 0);
 
   // Detailed staffing / contractor-vs-in-house model (its own interactive control)
   const [staffCpw, setStaffCpw] = useState(10);
@@ -1011,7 +1051,7 @@ export default function PpfInvestorProposalV2() {
     { group: "Install team", role: "Junior installer", count: staff.juniors, salary: SALARY.junior },
     { group: "Support team", role: "Detailer", count: staff.detailers, salary: SALARY.detailer },
     { group: "Support team", role: "Polisher", count: staff.polishers, salary: SALARY.polisher },
-    { group: "Support team", role: "Sales", count: staff.sales, salary: SALARY.sales, note: "+ commission" },
+    { group: "Support team", role: "Sales", count: staff.sales, salary: SALARY.sales, note: "+ incentive TBD" },
     { group: "Support team", role: "Videographer", count: staff.videographer, salary: SALARY.videographer },
     { group: "Support team", role: "Admin", count: staff.admin, salary: SALARY.admin },
     { group: "Support team", role: "Manager", count: staff.manager, salary: SALARY.manager },
@@ -1026,16 +1066,14 @@ export default function PpfInvestorProposalV2() {
     })
     .filter((group) => group.rows.length > 0);
 
-  // ---- Gamified "Your return" timeline: scenario toggle + month scrubber ----
-  const [scenarioId, setScenarioId] = useState<ReturnScenarioId>("base");
+  // ---- Gamified "Your return" timeline: price/volume sliders + month scrubber ----
+  const [returnPrice, setReturnPrice] = useState(12000);
+  const [returnCpw, setReturnCpw] = useState(10);
+  const [returnSalaryOn, setReturnSalaryOn] = useState(true);
   const [returnMonth, setReturnMonth] = useState(24);
-  const scenario = useMemo(
-    () => RETURN_SCENARIOS.find((s) => s.id === scenarioId) ?? RETURN_SCENARIOS[1],
-    [scenarioId]
-  );
   const timeline = useMemo(
-    () => buildReturnTimeline(scenario.price, scenario.cpw),
-    [scenario.price, scenario.cpw]
+    () => buildReturnTimeline(returnPrice, returnCpw, returnSalaryOn),
+    [returnPrice, returnCpw, returnSalaryOn]
   );
   const currentRow = timeline.rows[Math.min(returnMonth, timeline.rows.length - 1)];
   const tweenCumulative = useTween(currentRow.cumulative, !reducedMotion);
@@ -1128,7 +1166,7 @@ export default function PpfInvestorProposalV2() {
                 <span className="text-[#f8b84e]">that already works.</span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 sm:text-xl">
-                Sean has already generated <strong className="text-white">AED 676k+ in closed, paid revenue</strong> and
+                Sean has already generated <strong className="text-white">AED 727k+ in closed, paid revenue</strong> and
                 built the marketing engine himself - all while limited by space. Fund the studio and take{" "}
                 <strong className="text-white">60% of profit until your capital's matched</strong>, then{" "}
                 <strong className="text-white">40% as a passive partner</strong>.
@@ -1212,7 +1250,7 @@ export default function PpfInvestorProposalV2() {
             </h2>
             <p className="mt-5 leading-8 text-white/70">
               Most decks ask you to believe a market projection. This one doesn't have to. Grand Touch has already taken{" "}
-              <strong className="text-white">AED 676k+ in paid work</strong> from Dubai's premium-car owners, while
+              <strong className="text-white">AED 727k+ in paid work</strong> from Dubai's premium-car owners, while
               constrained by borrowed space. The demand is on the board - the studio simply removes the ceiling.
             </p>
           </Reveal>
@@ -1394,6 +1432,54 @@ export default function PpfInvestorProposalV2() {
               </div>
             </Reveal>
           </div>
+
+          {/* Real ad spend → revenue (proves the ROAS claim) */}
+          <Reveal className="mt-8 overflow-hidden rounded-2xl border border-[#42d6c9]/25 bg-[#42d6c9]/[0.05] p-6 sm:p-8">
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <span className="inline-flex h-9 items-center gap-2 rounded-full bg-[#42d6c9] px-4 text-xs font-black uppercase tracking-[0.14em] text-black">
+                <Megaphone className="h-4 w-4" /> Real numbers, since Jan
+              </span>
+              <p className="text-lg font-black sm:text-xl">The ad spend behind the revenue.</p>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2 lg:items-center">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Ad spend</p>
+                  <p className="text-3xl font-black text-white sm:text-4xl">{formatShort(AD_SPEND_TOTAL)}</p>
+                </div>
+                <ChevronRight className="h-6 w-6 text-white/40" />
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Revenue</p>
+                  <p className="text-3xl font-black text-white sm:text-4xl">{formatShort(PROVEN_REVENUE)}</p>
+                </div>
+                <ChevronRight className="h-6 w-6 text-white/40" />
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Blended ROAS</p>
+                  <p className="text-3xl font-black text-[#42d6c9] sm:text-4xl">~{BLENDED_ROAS}x</p>
+                </div>
+              </div>
+              <div>
+                <div className="flex h-4 w-full overflow-hidden rounded-full border border-white/10">
+                  {AD_SPEND.map((c) => (
+                    <div key={c.channel} style={{ width: `${(c.value / AD_SPEND_TOTAL) * 100}%`, background: c.color }} title={c.channel} />
+                  ))}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
+                  {AD_SPEND.map((c) => (
+                    <span key={c.channel} className="inline-flex items-center gap-2 text-white/65">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                      {c.channel} <strong className="text-white/85">{c.display}</strong>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <p className="mt-5 text-sm leading-7 text-white/55">
+              Every <strong className="text-white">AED 1</strong> of ad spend has returned about{" "}
+              <strong className="text-white">AED {BLENDED_ROAS}</strong> in revenue - blended across all channels, on a
+              tiny budget. That's the engine the studio scales.
+            </p>
+          </Reveal>
         </div>
       </section>
 
@@ -1438,8 +1524,8 @@ export default function PpfInvestorProposalV2() {
                 </div>
                 <p className="mt-2 text-xs leading-5 text-white/45">
                   {calc.inhouse
-                    ? `COGS drops to film only (~${formatShort(FILM_COGS_PER_CAR)}/car); ${calc.installers} salaried installers move into overhead.`
-                    : `Install on contractors at ${formatShort(CONTRACTOR_PER_CAR)}/car, billed inside COGS (~${formatShort(COGS_PER_CAR)}/car).`}
+                    ? `COGS drops to film + consumables (~${formatShort(FILM_COGS_PER_CAR + CONSUMABLES_PER_CAR)}/car); ${calc.installers} salaried installers move into payroll.`
+                    : `Install on contractors at ${formatShort(CONTRACTOR_PER_CAR)}/car, billed inside COGS (~${formatShort(COGS_PER_CAR + CONSUMABLES_PER_CAR)}/car incl. consumables).`}
                 </p>
               </div>
 
@@ -1491,60 +1577,65 @@ export default function PpfInvestorProposalV2() {
                 </div>
               </div>
 
-              {/* Animated waterfall: every dirham of revenue, split into cost vs profit */}
-              <div className="rounded-lg border border-white/10 bg-black/30 p-4">
+              <div>
                 <div className="flex items-end justify-between">
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-white/45">
-                    Where the revenue goes · {Math.round(calc.carsPerMonth)} cars
+                  <label className="text-sm font-bold uppercase tracking-[0.18em] text-white/55">Ad spend efficiency</label>
+                  <span className="text-2xl font-black text-[#f472b6]">{roas}x ROAS</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={15}
+                  step={1}
+                  value={roas}
+                  onChange={(e) => setRoas(Number(e.target.value))}
+                  className="gt-range mt-4 w-full"
+                  style={{ background: `linear-gradient(90deg,#f472b6 ${((roas - 10) / 5) * 100}%, rgba(255,255,255,0.12) ${((roas - 10) / 5) * 100}%)` }}
+                />
+                <div className="mt-2 flex justify-between text-xs text-white/45">
+                  <span>10x · conservative</span>
+                  <span>15x · current best</span>
+                </div>
+                <div className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-black/30 px-3 py-2">
+                  <Megaphone className="h-3.5 w-3.5 shrink-0 text-[#f472b6]" />
+                  <span className="text-xs text-white/60">
+                    Marketing spend: <strong className="text-white/85">{formatShort(calc.marketing)}/mo</strong> (
+                    {Math.round(100 / roas)}% of revenue)
                   </span>
-                  <span className="text-lg font-black text-[#7dd3fc]">{formatShort(tween.revenue)}</span>
                 </div>
-                <div className="mt-3 flex h-9 w-full overflow-hidden rounded-lg bg-white/5">
-                  <div
-                    className="flex items-center justify-center transition-[width] duration-300 ease-out"
-                    style={{ width: `${(calc.cogs / calc.revenue) * 100}%`, background: "#ef6345" }}
-                    title="COGS"
-                  />
-                  <div
-                    className="transition-[width] duration-300 ease-out"
-                    style={{ width: `${(calc.fixedOverhead / calc.revenue) * 100}%`, background: "#f472b6" }}
-                    title="Overhead"
-                  />
-                  <div
-                    className="transition-[width] duration-300 ease-out"
-                    style={{ width: `${(Math.max(0, calc.net) / calc.revenue) * 100}%`, background: "#a3e635" }}
-                    title="Net profit"
-                  />
-                </div>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                  {[
-                    { label: calc.inhouse ? "COGS (film)" : "COGS", value: tween.cogs, color: "#ef6345" },
-                    { label: calc.inhouse ? "Overhead + install" : "Overhead", value: tween.fixedOverhead, color: "#f472b6" },
-                    { label: "Net profit", value: tween.net, color: "#a3e635" },
-                  ].map((seg) => (
-                    <div key={seg.label} className="rounded-md bg-black/30 p-2">
-                      <span className="flex items-center gap-1.5 text-white/55">
-                        <span className="h-2 w-2 rounded-full" style={{ background: seg.color }} />
-                        {seg.label}
-                      </span>
-                      <span className="mt-1 block font-bold text-white/85">{formatShort(seg.value)}</span>
-                    </div>
+                <p className="mt-2 text-[11px] leading-4 text-white/40">
+                  Grounded in reality: ~{BLENDED_ROAS}x blended since Jan (AED 55k ad spend → AED 727k).
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-bold uppercase tracking-[0.18em] text-white/55">Sean's salary</label>
+                <div className="mt-2 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/40 p-1">
+                  {([{ v: true, l: "On" }, { v: false, l: "Off" }] as const).map((o) => (
+                    <button
+                      key={o.l}
+                      type="button"
+                      onClick={() => setSalaryOn(o.v)}
+                      className={cx(
+                        "rounded-md px-3 py-2.5 text-sm font-black uppercase tracking-[0.12em] transition",
+                        salaryOn === o.v ? "bg-[#a3e635] text-black" : "text-white/55 hover:text-white"
+                      )}
+                    >
+                      {o.l}
+                    </button>
                   ))}
                 </div>
-                <p className="mt-3 flex items-center gap-1.5 text-[11px] text-white/40">
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 font-bold uppercase tracking-wide">
-                    {calc.inhouse ? `${calc.team} + install team` : calc.team}
-                  </span>
-                  {calc.inhouse
-                    ? "Installs done in-house: COGS is film only, the install team sits in overhead instead."
-                    : "Install on contractors, so COGS/car holds ~AED 5k - only support overhead steps up with volume."}
+                <p className="mt-2 text-xs leading-5 text-white/45">
+                  {salaryOn
+                    ? "Sean draws AED 12k → 24k from profit (cashflow permitting), before the split."
+                    : "Salary off - Sean draws nothing; the full pool is distributed."}
                 </p>
               </div>
             </div>
 
             {/* Live outputs */}
             <div
-              className="flex flex-col justify-between gap-5 rounded-xl border border-[#42d6c9]/25 bg-[#42d6c9]/[0.06] p-5 transition-shadow duration-500 sm:p-6"
+              className="flex flex-col gap-5 rounded-xl border border-[#42d6c9]/25 bg-[#42d6c9]/[0.06] p-5 transition-shadow duration-500 sm:p-6"
               style={{ boxShadow: `0 0 ${20 + netIntensity * 60}px rgba(66,214,201,${0.05 + netIntensity * 0.22})` }}
             >
               <div>
@@ -1556,6 +1647,55 @@ export default function PpfInvestorProposalV2() {
                     style={{ width: `${netIntensity * 100}%` }}
                   />
                 </div>
+              </div>
+
+              {/* Itemised cost stack: every dirham of revenue, down to net */}
+              <div className="rounded-lg border border-white/10 bg-black/30 p-4">
+                <div className="flex items-end justify-between">
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-white/45">
+                    Where the revenue goes · {Math.round(calc.carsPerMonth)} cars
+                  </span>
+                  <span className="text-lg font-black text-[#7dd3fc]">{formatShort(tween.revenue)}</span>
+                </div>
+                <div className="mt-3 flex h-9 w-full overflow-hidden rounded-lg bg-white/5">
+                  {costBreakdown.map((seg) => (
+                    <div
+                      key={seg.label}
+                      className="transition-[width] duration-300 ease-out"
+                      style={{ width: `${(seg.raw / calc.revenue) * 100}%`, background: seg.color }}
+                      title={seg.label}
+                    />
+                  ))}
+                  <div
+                    className="transition-[width] duration-300 ease-out"
+                    style={{ width: `${(Math.max(0, calc.net) / calc.revenue) * 100}%`, background: "#a3e635" }}
+                    title="Net profit"
+                  />
+                </div>
+                {/* Itemised mini-P&L — justifies the net figure */}
+                <div className="mt-3 space-y-1.5 text-xs">
+                  {costBreakdown.map((seg) => (
+                    <div key={seg.label} className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-white/60">
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: seg.color }} />
+                        {seg.label}
+                      </span>
+                      <span className="font-bold text-white/80">− {formatShort(seg.value)}</span>
+                    </div>
+                  ))}
+                  <div className="mt-1 flex items-center justify-between border-t border-white/10 pt-2">
+                    <span className="flex items-center gap-2 font-black text-white">
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-[#a3e635]" />
+                      Net profit
+                    </span>
+                    <span className="font-black text-[#a3e635]">{formatShort(tween.net)}</span>
+                  </div>
+                </div>
+                <p className="mt-3 text-[11px] leading-4 text-white/40">
+                  Marketing and 1.9% card fees scale with revenue (card fees targeted toward ~1% at volume). Rent (
+                  {formatShort(RENT_MONTHLY)}) and fixed costs are flat; support payroll steps up with volume
+                  {calc.inhouse ? "; installers sit in payroll when in-house." : "."}
+                </p>
               </div>
 
               <div
@@ -1590,9 +1730,15 @@ export default function PpfInvestorProposalV2() {
                 <div className="rounded-lg border border-white/10 bg-black/25 p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/45">Sean's salary</p>
                   <p className="mt-1 text-3xl font-black text-white/85">
-                    12k<span className="text-base text-white/40"> → </span>24k
+                    {salaryOn ? (
+                      <>12k<span className="text-base text-white/40"> → </span>24k</>
+                    ) : (
+                      "Off"
+                    )}
                   </p>
-                  <p className="mt-1 text-[10px] text-white/40">Phase 1 → Phase 2, cashflow permitting</p>
+                  <p className="mt-1 text-[10px] text-white/40">
+                    {salaryOn ? "Phase 1 → Phase 2, cashflow permitting" : "drawn only once cashflow allows"}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-white/10 bg-black/25 p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/45">Cash-on-cash · ongoing</p>
@@ -1611,6 +1757,16 @@ export default function PpfInvestorProposalV2() {
               </p>
             </div>
           </Reveal>
+
+          <Reveal className="mt-6 flex items-start gap-3 rounded-2xl border border-[#a3e635]/25 bg-[#a3e635]/[0.05] p-5 sm:p-6">
+            <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-[#a3e635]" />
+            <p className="text-sm leading-7 text-white/70">
+              <strong className="text-white">Conservative by design - these numbers are PPF only.</strong> Window
+              tinting (a ~AED 1k roll wraps several cars at AED 800-1,500 each), detailing add-ons and the phase-2 paint
+              lane are <strong className="text-white">additional high-margin revenue not counted here</strong>. The base
+              case stands on PPF alone.
+            </p>
+          </Reveal>
         </div>
       </section>
 
@@ -1625,9 +1781,11 @@ export default function PpfInvestorProposalV2() {
             <p className="mt-5 leading-8 text-white/70">
               Install starts on contractors at a flat <strong className="text-white">AED 2k per car</strong> - zero
               fixed risk while volume is still building. The support team is already in place:{" "}
-              <strong className="text-white">5 people including Sean</strong> (4 paid, Sean unpaid), with only{" "}
-              <strong className="text-white">2 new visas</strong> needed among the core hires. Drag volume below to see
-              when extra hires kick in and when bringing installers in-house beats contractors.
+              <strong className="text-white">5 people including Sean</strong>, with only{" "}
+              <strong className="text-white">2 new visas</strong> needed among the core hires. Sean draws a modest salary
+              (<strong className="text-white">AED 12k, rising to 24k once your capital's matched</strong>) from profit -
+              not from the team cost below. Drag volume to see when extra hires kick in and when bringing installers
+              in-house beats contractors.
             </p>
           </Reveal>
 
@@ -1738,7 +1896,9 @@ export default function PpfInvestorProposalV2() {
                         <p className="text-[10px] text-white/35">{group.headcount} heads</p>
                       </div>
                       <p className="text-xs font-black" style={{ color: group.accent }}>
-                        {group.subtotal > 0 ? `${formatShort(group.subtotal)}/mo` : "unpaid"}
+                        {group.group === "Leadership"
+                          ? "12k → 24k · from profit"
+                          : `${formatShort(group.subtotal)}/mo`}
                       </p>
                     </div>
                     <div className="space-y-1">
@@ -2127,7 +2287,8 @@ export default function PpfInvestorProposalV2() {
           <Reveal className="mt-6 rounded-lg border border-white/10 bg-[#101010] p-5 text-sm leading-7 text-white/60">
             <strong className="text-white">In short:</strong> the core support team is already hired (only 2 new visas
             needed). Install stays on contractors at AED {CONTRACTOR_PER_CAR.toLocaleString()}/car while volume builds,
-            then moves in-house once it's cheaper - the chart above shows exactly when.
+            then moves in-house once it's cheaper - the chart above shows exactly when. Sales sit on a modest salary;
+            any performance incentive is tied to profit, not revenue (to be agreed) - so comp never eats the margin.
           </Reveal>
         </div>
       </section>
@@ -2146,34 +2307,81 @@ export default function PpfInvestorProposalV2() {
             <p className="mt-5 leading-8 text-white/70">
               This is what you actually walk away with. You take <strong className="text-white">60% of profit until
               your capital's matched</strong>, then <strong className="text-white">40% as a passive partner</strong>.
-              Pick a scenario and drag the timeline to watch it stack up - and the point where the split flips. Every
-              extra AED 1k on price drops almost entirely into the pool, so the gap between scenarios is real money.
+              Set the price and volume, then drag the timeline to watch it stack up - and the point where the split
+              flips. Every extra AED 1k on price drops almost entirely into the pool, so the gap is real money.
             </p>
           </Reveal>
 
-          {/* Scenario toggle */}
-          <Reveal className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="grid grid-cols-3 gap-1 rounded-xl border border-white/10 bg-black/40 p-1 sm:max-w-md">
-              {RETURN_SCENARIOS.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setScenarioId(s.id)}
-                  className={cx(
-                    "rounded-lg px-3 py-2.5 text-sm font-black uppercase tracking-[0.1em] transition",
-                    scenarioId === s.id ? "bg-[#a3e635] text-black" : "text-white/55 hover:text-white"
-                  )}
-                >
-                  {s.label}
-                </button>
-              ))}
+          {/* Price / volume sliders - dial any scenario */}
+          <Reveal className="mb-5 rounded-2xl border border-white/10 bg-black/30 p-5 sm:p-6">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div>
+                <div className="flex items-end justify-between">
+                  <label className="text-sm font-bold uppercase tracking-[0.18em] text-white/55">Price per car</label>
+                  <span className="text-2xl font-black text-[#a3e635]">{formatShort(returnPrice)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={9000}
+                  max={15000}
+                  step={500}
+                  value={returnPrice}
+                  onChange={(e) => setReturnPrice(Number(e.target.value))}
+                  className="gt-range gt-range-lime mt-4 w-full"
+                  style={{ background: `linear-gradient(90deg,#a3e635 ${((returnPrice - 9000) / 6000) * 100}%, rgba(255,255,255,0.12) ${((returnPrice - 9000) / 6000) * 100}%)` }}
+                />
+                <div className="mt-2 flex justify-between text-xs text-white/45">
+                  <span>AED 9k</span>
+                  <span>AED 15k</span>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-end justify-between">
+                  <label className="text-sm font-bold uppercase tracking-[0.18em] text-white/55">Cars per week</label>
+                  <span className="text-2xl font-black text-[#a3e635]">{returnCpw}</span>
+                </div>
+                <input
+                  type="range"
+                  min={4}
+                  max={15}
+                  step={1}
+                  value={returnCpw}
+                  onChange={(e) => setReturnCpw(Number(e.target.value))}
+                  className="gt-range gt-range-lime mt-4 w-full"
+                  style={{ background: `linear-gradient(90deg,#a3e635 ${((returnCpw - 4) / 11) * 100}%, rgba(255,255,255,0.12) ${((returnCpw - 4) / 11) * 100}%)` }}
+                />
+                <div className="mt-2 flex justify-between text-xs text-white/45">
+                  <span>4 / week</span>
+                  <span>15 / week</span>
+                </div>
+              </div>
             </div>
-            <p className="text-xs leading-5 text-white/50 sm:max-w-xs sm:text-right">
-              {scenario.blurb}{" "}
-              <span className="text-white/70">
-                AED {(scenario.price / 1000).toFixed(0)}k · {scenario.cpw} cars/wk · you take ~
-                {formatShort(timeline.deal.investorP1Monthly)}/mo then {formatShort(timeline.deal.investorP2Monthly)}/mo
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Sean's salary</span>
+              <div className="grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/40 p-1">
+                {([{ v: true, l: "On" }, { v: false, l: "Off" }] as const).map((o) => (
+                  <button
+                    key={o.l}
+                    type="button"
+                    onClick={() => setReturnSalaryOn(o.v)}
+                    className={cx(
+                      "rounded-md px-4 py-1.5 text-xs font-black uppercase tracking-[0.1em] transition",
+                      returnSalaryOn === o.v ? "bg-[#a3e635] text-black" : "text-white/55 hover:text-white"
+                    )}
+                  >
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-white/45">
+                {returnSalaryOn ? "12k → 24k from profit, cashflow permitting" : "off - full pool to the split until it's appropriate"}
               </span>
+            </div>
+            <p className="mt-4 text-xs leading-5 text-white/55">
+              At <strong className="text-white">AED {(returnPrice / 1000).toFixed(returnPrice % 1000 ? 1 : 0)}k · {returnCpw} cars/wk</strong>{" "}
+              (in-house staff, PPF only, proven 13x ROAS) you take ~<strong className="text-[#a3e635]">{formatShort(timeline.deal.investorP1Monthly)}/mo</strong>{" "}
+              until your capital's matched, then {formatShort(timeline.deal.investorP2Monthly)}/mo. Drag the timeline below
+              to watch it stack up.
             </p>
           </Reveal>
 
@@ -2194,7 +2402,6 @@ export default function PpfInvestorProposalV2() {
                 </p>
                 {capitalMatched ? (
                   <span
-                    key={`${scenarioId}-stamp`}
                     className="gt-stamp absolute right-0 top-0 inline-flex items-center gap-1.5 rounded-md border-2 border-[#a3e635] bg-[#a3e635]/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-[#a3e635]"
                   >
                     <Check className="h-4 w-4" />
@@ -2349,7 +2556,7 @@ export default function PpfInvestorProposalV2() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/45">
-                  On the {scenario.label.toLowerCase()} case, two years in
+                  On AED {(returnPrice / 1000).toFixed(returnPrice % 1000 ? 1 : 0)}k × {returnCpw} cars/wk, two years in
                 </p>
                 <p className="mt-2 text-4xl font-black text-[#a3e635] sm:text-5xl">
                   <CountStat value={timeline.total} format={(n) => formatAed(Math.round(n))} />
@@ -2647,7 +2854,7 @@ export default function PpfInvestorProposalV2() {
               <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[#42d6c9]">Sean brings</p>
               <h3 className="mt-1 text-xl font-black">The proven business</h3>
               <ul className="mt-3 space-y-2 text-sm text-white/65">
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#42d6c9]" /> AED 676k+ track record &amp; live demand</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#42d6c9]" /> AED 727k+ track record &amp; live demand</li>
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#42d6c9]" /> In-house marketing engine at 10-15x ROAS</li>
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#42d6c9]" /> The brand, the team &amp; full operations</li>
               </ul>

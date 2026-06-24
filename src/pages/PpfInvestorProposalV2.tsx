@@ -469,7 +469,7 @@ const actualRevenueData = [
 ];
 
 const proofStats = [
-  { label: "Closed & paid revenue", value: 676000, display: "AED 676k+", sub: "94 paid jobs since Jan 2026" },
+  { label: "Closed & paid revenue", value: 726766, display: "AED 727k+", sub: "94 paid jobs since Jan 2026" },
   { label: "Return on ad spend", value: 15, display: "10-15x", sub: "Ad spend to completed-job revenue" },
   { label: "New audience since Jan", value: 3900, display: "+3,900", sub: "+500 Instagram, +3,400 TikTok" },
   { label: "Total investor ask", value: 450000, display: "AED 350-450k", sub: "Tools, stock & fit-out already covered" },
@@ -479,7 +479,7 @@ const marketHighlights = [
   {
     icon: Gauge,
     title: "Demand is already proven",
-    body: "AED 676k+ closed since January - this is not a market study, it's revenue on the board, generated inside someone else's space.",
+    body: "AED 727k+ closed since January - this is not a market study, it's revenue on the board, generated inside someone else's space.",
     color: "#42d6c9",
   },
   {
@@ -547,9 +547,9 @@ const founderTrackRecord = [
   },
   {
     icon: Rocket,
-    metric: "AED 676k+",
+    metric: "AED 727k+",
     title: "Grand Touch, from scratch",
-    body: "Proof he can do it for himself: built a paying PPF business to AED 676k+ in months - already, before owning the space.",
+    body: "Proof he can do it for himself: built a paying PPF business to AED 727k+ in months - already, before owning the space.",
     color: "#42d6c9",
   },
 ];
@@ -985,7 +985,7 @@ export default function PpfInvestorProposalV2() {
                 <span className="text-[#f8b84e]">that already works.</span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 sm:text-xl">
-                Sean has already generated <strong className="text-white">AED 676k+ in closed, paid revenue</strong> and
+                Sean has already generated <strong className="text-white">AED 727k+ in closed, paid revenue</strong> and
                 built the marketing engine himself - all while limited by space. Fund the studio and take{" "}
                 <strong className="text-white">50% of net profit</strong>, with your capital realistically back inside{" "}
                 <strong className="text-white">~{basePayback}-18 months</strong>.
@@ -1069,7 +1069,7 @@ export default function PpfInvestorProposalV2() {
             </h2>
             <p className="mt-5 leading-8 text-white/70">
               Most decks ask you to believe a market projection. This one doesn't have to. Grand Touch has already taken{" "}
-              <strong className="text-white">AED 676k+ in paid work</strong> from Dubai's premium-car owners, while
+              <strong className="text-white">AED 727k+ in paid work</strong> from Dubai's premium-car owners, while
               constrained by borrowed space. The demand is on the board - the studio simply removes the ceiling.
             </p>
           </Reveal>
