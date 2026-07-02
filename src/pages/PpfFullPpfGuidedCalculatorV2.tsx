@@ -665,7 +665,8 @@ const HeroTrustBadges = ({ size = "sm", className }: HeroTrustBadgesProps) => {
 type TrustSectionCtaProps = {
   placement: string;
   onEstimate: (placement: string) => void;
-  onWhatsApp: (placement: string) => void;
+  /** Omit to hide the WhatsApp button (lead-form-style variants). */
+  onWhatsApp?: (placement: string) => void;
   primaryLabel?: string;
   whatsappLabel?: string;
   microcopy?: string;
@@ -703,16 +704,18 @@ const TrustSectionCta = ({
         {primaryLabel}
         <ArrowRight className="h-4 w-4" />
       </Button>
-      <Button
-        type="button"
-        size="lg"
-        variant="ghost"
-        onClick={() => onWhatsApp(placement)}
-        className="h-12 gap-2 border border-[#25D366]/45 bg-transparent px-5 text-sm font-bold text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366] sm:text-base"
-      >
-        <MessageCircle className="h-4 w-4" />
-        {whatsappLabel}
-      </Button>
+      {onWhatsApp ? (
+        <Button
+          type="button"
+          size="lg"
+          variant="ghost"
+          onClick={() => onWhatsApp(placement)}
+          className="h-12 gap-2 border border-[#25D366]/45 bg-transparent px-5 text-sm font-bold text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366] sm:text-base"
+        >
+          <MessageCircle className="h-4 w-4" />
+          {whatsappLabel}
+        </Button>
+      ) : null}
     </div>
     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:text-[11px]">
       {microcopy}
@@ -1572,6 +1575,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const firstName = name.trim().split(/\s+/)[0] ?? "";
   // V3 needs only a valid phone (name optional) to cut last-step friction.
   const canUnlock = (isGated || name.trim().length >= 2) && phoneCaptured;
+  // Meta traffic runs "lead-form" style: no direct-WhatsApp escape until the
+  // visitor has qualified (calculator complete). Owner data: drive-by Meta
+  // WhatsApp chats essentially never close. Google/v3 keeps direct WhatsApp.
+  const hideDirectWa = isMetaVariant && !isComplete;
 
   const trackEvent = useCallback(
     (
@@ -2138,12 +2145,14 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
         value: estimate ?? undefined,
         currency: "AED",
       };
-      // Contact = the actual action (kept for Events Manager richness). Lead =
-      // fired too so a WhatsApp tap counts toward the ad set's Lead optimisation,
-      // giving Meta the same signal as a form submit (intentional volume play on
-      // the small test budget — WhatsApp leads will include message-only users).
+      // Contact = every tap (Events Manager visibility). Lead = QUALIFIED taps
+      // only (calculator complete) — drive-by taps were firing phantom Leads
+      // (tap ≠ message sent) and training Meta to optimise for tyre-kickers.
+      // Form submit fires Lead separately in handleUnlockDiscount.
       trackMetaStandardEvent("Contact", metaPayload);
-      trackMetaStandardEvent("Lead", metaPayload);
+      if (isComplete && estimate !== null) {
+        trackMetaStandardEvent("Lead", metaPayload);
+      }
     }
 
     // Counted Google Ads conversions fire from handleWhatsApp (WhatsApp tap) and
@@ -2755,15 +2764,17 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                     {variantConfig.primaryCta}
                     <ArrowRight className="h-4 w-4 shrink-0" />
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => requestWhatsApp("mobile_hero")}
-                    className="h-10 w-full gap-1.5 border border-[#25D366]/45 bg-transparent px-4 text-[13px] font-bold tracking-tight text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
-                  >
-                    <MessageCircle className="h-4 w-4 shrink-0" />
-                    {variantConfig.secondaryCta}
-                  </Button>
+                  {!hideDirectWa ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => requestWhatsApp("mobile_hero")}
+                      className="h-10 w-full gap-1.5 border border-[#25D366]/45 bg-transparent px-4 text-[13px] font-bold tracking-tight text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
+                    >
+                      <MessageCircle className="h-4 w-4 shrink-0" />
+                      {variantConfig.secondaryCta}
+                    </Button>
+                  ) : null}
                 </div>
 
                 {/* Live credibility row: Sean online + reply ETA + rotating
@@ -2886,16 +2897,18 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                     {isTikTokVariant ? "Start my setup" : variantConfig.primaryCta}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant="ghost"
-                    onClick={() => requestWhatsApp("desktop_hero")}
-                    className="h-12 gap-2 border border-[#25D366]/45 bg-transparent px-5 text-base font-bold text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    {variantConfig.secondaryCta}
-                  </Button>
+                  {!hideDirectWa ? (
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="ghost"
+                      onClick={() => requestWhatsApp("desktop_hero")}
+                      className="h-12 gap-2 border border-[#25D366]/45 bg-transparent px-5 text-base font-bold text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
+                    >
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      {variantConfig.secondaryCta}
+                    </Button>
+                  ) : null}
                 </div>
 
                 {/* Unified credibility card — pulls 'live availability',
@@ -3653,7 +3666,9 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                             </p>
                           ) : null}
                         </form>
-                        {isGated ? (
+                        {isGated && !isMetaVariant ? (
+                          /* Gate-bypass escape: v3 (Google) only. Meta runs
+                             lead-form style — no way around the form. */
                           <button
                             type="button"
                             onClick={() => requestWhatsApp("result_v3_no_discount")}
@@ -3748,7 +3763,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                 <TrustSectionCta
                   placement="handover_reactions"
                   onEstimate={handleEstimateCta}
-                  onWhatsApp={requestWhatsApp}
+                  onWhatsApp={hideDirectWa ? undefined : requestWhatsApp}
                   primaryLabel="Price my car like theirs"
                   microcopy="60-second quote · Sean reviews each setup personally"
                 />
@@ -3804,7 +3819,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                 <TrustSectionCta
                   placement="trust_cta_post_handovers"
                   onEstimate={handleEstimateCta}
-                  onWhatsApp={requestWhatsApp}
+                  onWhatsApp={hideDirectWa ? undefined : requestWhatsApp}
                   microcopy="Bonuses worth AED 4,550+ · No upsell"
                 />
               </div>
@@ -4017,7 +4032,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
             <TrustSectionCta
               placement="trust_install_risk"
               onEstimate={handleEstimateCta}
-              onWhatsApp={requestWhatsApp}
+              onWhatsApp={hideDirectWa ? undefined : requestWhatsApp}
               primaryLabel="Get my prep-first estimate"
               microcopy="Prep-first install · Genuine STEK · Traceable warranty"
             />
@@ -4246,7 +4261,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
             <TrustSectionCta
               placement="trust_faq"
               onEstimate={handleEstimateCta}
-              onWhatsApp={requestWhatsApp}
+              onWhatsApp={hideDirectWa ? undefined : requestWhatsApp}
               primaryLabel="Get my PPF estimate now"
             />
           </div>
@@ -4319,7 +4334,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                 <TrustSectionCta
                   placement="trust_service_area"
                   onEstimate={handleEstimateCta}
-                  onWhatsApp={requestWhatsApp}
+                  onWhatsApp={hideDirectWa ? undefined : requestWhatsApp}
                   primaryLabel="Book my free pickup"
                   microcopy="Free Dubai-wide pickup · We return it showroom-clean"
                 />
@@ -4420,15 +4435,17 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                 Get my PPF estimate
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button
-                type="button"
-                size="lg"
-                onClick={() => requestWhatsApp("trust_final_cta")}
-                className="h-12 w-full gap-2 bg-[#25D366] px-6 text-base font-black text-white hover:bg-[#20bf5d] sm:w-auto"
-              >
-                <MessageCircle className="h-4 w-4" />
-                WhatsApp Sean
-              </Button>
+              {!hideDirectWa ? (
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={() => requestWhatsApp("trust_final_cta")}
+                  className="h-12 w-full gap-2 bg-[#25D366] px-6 text-base font-black text-white hover:bg-[#20bf5d] sm:w-auto"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp Sean
+                </Button>
+              ) : null}
               <a
                 href={TEL_HREF}
                 onClick={() =>
@@ -4493,15 +4510,17 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
               <ArrowRight className="h-4 w-4" />
             </Button>
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                onClick={() => requestWhatsApp("desktop_sticky")}
-                className="h-10 gap-1.5 bg-[#25D366] px-3 text-xs font-black text-white hover:bg-[#20bf5d]"
-                tabIndex={isPanelOffscreen ? 0 : -1}
-              >
-                <MessageCircle className="h-4 w-4" />
-                WhatsApp
-              </Button>
+              {!hideDirectWa ? (
+                <Button
+                  type="button"
+                  onClick={() => requestWhatsApp("desktop_sticky")}
+                  className="h-10 gap-1.5 bg-[#25D366] px-3 text-xs font-black text-white hover:bg-[#20bf5d]"
+                  tabIndex={isPanelOffscreen ? 0 : -1}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </Button>
+              ) : null}
               <a
                 href={TEL_HREF}
                 onClick={() =>
