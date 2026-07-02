@@ -2153,10 +2153,15 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
   const handleWhatsApp = (placement: string) => {
     trackWhatsAppContact(placement);
-    // Observe-only signal for the dashboard (does not affect bidding)...
+    // Observe-only signal for the dashboard (does not affect bidding).
     trackGooglePreFormWhatsAppConversion(estimate ?? undefined);
-    // ...and the counted conversion, guarded so it never double-counts a user.
-    trackGoogleWhatsAppContactConversion(estimate ?? undefined);
+    // Counted Google conversion: on gated funnels only QUALIFIED WhatsApp taps
+    // (calculator complete) count, so Smart Bidding optimises toward buyers who
+    // qualified themselves — raw drive-by taps rarely close and would train
+    // Google to find tyre-kickers. Ungated variants keep counting every tap.
+    if (!isGated || (isComplete && estimate !== null)) {
+      trackGoogleWhatsAppContactConversion(estimate ?? undefined);
+    }
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
   };
 
