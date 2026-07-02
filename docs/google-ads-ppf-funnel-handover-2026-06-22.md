@@ -6,6 +6,18 @@ Customer ID: `5268213497` · Site: `https://www.grandtouchauto.ae` · Deploy: **
 
 ---
 
+## ⭐⭐ UPDATE 2026-07-02 — QUALIFIED-SIGNAL RECONFIGURATION (current truth)
+
+After a detour (campaign was reverted to V1 + flipped to Maximize Clicks + budget cut to 150 — this produced cheap junk clicks, 78% of spend on zero-conv terms, and unqualified WhatsApp chats that don't close), the account was reconfigured on 2026-07-02 as one coherent batch, then FROZEN for 14 days:
+
+- **Bidding: Maximize Conversions** (user switched in UI). Budget still AED 150/day (consider 250 later).
+- **Campaign → V3 gated funnel again** (all 3 RSAs + 6 campaign sitelinks verified).
+- **Counted-signal rewire (commit `e5cf8fb`):** on gated funnels, the counted Google `WhatsApp contact click` fires ONLY on qualified taps (calculator complete). Drive-by pre-calculator taps fire the observe-only action. Form submit remains primary. Rationale: owner confirms direct-WhatsApp leads rarely close; counting them trained Smart Bidding to find tyre-kickers.
+- **+17 negatives** (`add-negatives-jul-2026.mjs`): competitor shops, informational (what is/types of), colour-change ppf, deals, door edge — the Maximize Clicks junk.
+- **Keep the campaign** (do NOT start fresh — history/QS/ad-strength are assets; the wiring was the problem).
+- **Meta lesson (owner-confirmed):** gated Meta funnel worked at ~AED 100/day; raising budget broke it. Scale horizontally (duplicate campaigns at the sweet spot), never vertically.
+- **Expect fewer counted conversions by design.** Judge by CRM captures × close rate. If delivery starves after 2 weeks (<~15 conv/month), fallback = count all WhatsApp taps again (one-line change in `handleWhatsApp`).
+
 ## ⭐ LATEST STATE (2026-06-23) — read this first
 
 **Both paid funnels are now "gated + direct WhatsApp" and live:**
