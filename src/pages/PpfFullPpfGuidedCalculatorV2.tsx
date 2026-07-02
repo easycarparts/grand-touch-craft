@@ -1395,6 +1395,9 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   // One COUNTED Google conversion per user/session — shared by the WhatsApp
   // contact and the unlock-form actions so a single visitor never fires both.
   const googleCountedConversionFiredRef = useRef(false);
+  // One Meta pixel Lead per session — a qualified WhatsApp tap followed by a
+  // form submit must not double-count (2 Meta Leads vs 1 real lead in the CRM).
+  const metaLeadFiredRef = useRef(false);
   // Independent guard for the non-counted observe-only pre-form WhatsApp action.
   const googlePreFormWhatsAppFiredRef = useRef(false);
 
@@ -2150,7 +2153,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       // (tap ≠ message sent) and training Meta to optimise for tyre-kickers.
       // Form submit fires Lead separately in handleUnlockDiscount.
       trackMetaStandardEvent("Contact", metaPayload);
-      if (isComplete && estimate !== null) {
+      if (isComplete && estimate !== null && !metaLeadFiredRef.current) {
+        metaLeadFiredRef.current = true;
         trackMetaStandardEvent("Lead", metaPayload);
       }
     }
@@ -2374,7 +2378,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
           value: targetPrice,
           currency: "AED",
         });
-      } else if (isMetaVariant) {
+      } else if (isMetaVariant && !metaLeadFiredRef.current) {
+        metaLeadFiredRef.current = true;
         trackMetaStandardEvent("Lead", {
           content_name: "Meta Guided Full PPF Calculator V2",
           content_category: "PPF",
