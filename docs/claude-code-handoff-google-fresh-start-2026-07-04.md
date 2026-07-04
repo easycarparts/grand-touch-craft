@@ -71,3 +71,26 @@ Pull exact keyword candidates + bids from `docs/google-ads/keyword-planner-maste
 
 ## 6. Monitoring the old campaign's ghost
 The May campaign stays paused, not removed. If Google reports conversions on it post-pause, they're lagged attributions — don't reactivate. Watch the new campaign's impressions daily for the first week (`node scripts/google-ads/daily-breakdown.mjs --env=.env.google-ads --days=7`); with Max Clicks + capped CPC, delivery starvation should not occur.
+
+---
+
+## EXECUTION LOG — 2026-07-04 (Claude Code)
+
+**Launched.** Campaign `PPF Price Search Dubai - Jul 2026` created and ENABLED — **ID `23996324292`**. `PPF Search UAE - WhatsApp - May 2026` (`23869007416`) confirmed PAUSED (was already paused before the session). All other campaigns remain paused.
+
+- Funnel deploy verified: commit `e28b12e` was already on main/origin; `npm run build` clean; production bundle at grandtouchauto.ae confirmed to contain `ppf_google_price_2026h2`. Owner ran the §1 live test on mobile — WhatsApp opened with quote, CRM lead landed under `ppf_google_price_2026h2`, Telegram fired, no `lead_save_failed`. Test lead junked by owner.
+- Setup script: `scripts/google-ads/setup-ppf-price-search-jul-2026.mjs` (dry-run by default, `--apply` to write, `--enable --apply` to enable). 150 operations applied atomically.
+- Conversion goals: campaign set to goal_config_level CAMPAIGN with **custom conversion goal `6458221953`** ("Lead + Qualified WhatsApp (Jul 2026)") = Submit lead form (7569208694) + WhatsApp contact click (7617388951) only.
+- Assets: 4 campaign-level sitelinks created (Build My PPF Price → funnel, Real Customer Handovers → funnel#real-handovers, Portfolio, Contact — all with the campaign UTM). The 8 existing callout assets and call asset `374948252251` reattached by ID (no duplicates). NO ad-group sitelinks.
+
+**Deviations from §2 (all deliberate, logged):**
+1. **"sharjah" negative NOT carried over** — it was live on the May campaign and would have blocked every Sharjah query on a campaign that targets Sharjah. 83 of 84 May negatives carried.
+2. Added keyword `"paint protection film dubai price"` (phrase) to PPF Price Quote — 90/mo, the top-volume `price_quote_intent` term in `keyword-planner-master-2026-06-18.csv` (§2 says to pull candidates from that theme).
+3. Two pool headlines exceeded the 30-char RSA limit and were trimmed: "Full Car PPF Price In 60 Seconds"→"Full Car PPF Price In 60 Secs"; "Price Shown Instantly — No Forms"→"Price Shown Instantly".
+4. New negatives beyond the carry-over (9): `3m`, `llumar` (strategy listed them but they weren't live), `al nisar`, `car plaza` (June competitor-shop terms), `matte wrap` (kept "matte ppf" — real GTA service), `which is best`, `ceramic coating or ppf`, `car protective wrap`, `black diamond ppf` (owner confirmed GTA does not install Black Diamond). "ppf wrap near me" deliberately NOT negatived (contains kept keyword "ppf near me").
+5. Geo = Dubai province (9041083) + Sharjah province (9047099), PRESENCE. Language English (1000). No ad schedule (24/7 — matches the May campaign, spec silent).
+6. First `--apply` failed on the goal-config enum (`goalConfigLevel: "CUSTOM"` → correct value is `"CAMPAIGN"`); campaign + goal had already been created, fix applied, idempotent re-run completed it.
+
+**Watch list:** Tesla vehicle-specific terms (~10/mo each, cheap bids) are the obvious first expansion from search terms after the 14-day freeze — the planner's `vehicle_specific` theme is dominated by them. Top-of-page bids on core terms run 23–62 AED vs our 20 cap: expect mid-page on "ppf dubai", stronger positions on price/STEK long-tail.
+
+**Owner UI steps still open:** auto-created assets OFF (sitelinks) · call asset 9am–9pm schedule · eyeball that the campaign's goals show the custom goal.
