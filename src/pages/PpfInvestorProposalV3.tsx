@@ -474,7 +474,7 @@ const SETUP_TOTAL = costBuckets.reduce((sum, item) => sum + item.value, 0); // 5
 const SEAN_SALARY_P1 = 12000; // monthly, Phase 1 (until matched)
 const SEAN_SALARY_P2 = 24000; // monthly, Phase 2 (after matched)
 const INVESTOR_P1 = 0.6; // investor share of the pool until capital matched
-const INVESTOR_P2 = 0.4; // investor share of the pool after capital matched
+const INVESTOR_P2 = 0.25; // investor share after capital matched (= 25% ownership)
 
 /* ----------------------------------------------------------------------------
  * Single source of truth for the deal economics.
@@ -508,7 +508,7 @@ function computeDeal(
   const poolP1 = Math.max(0, net - salaryP1);
   const poolP2 = Math.max(0, net - salaryP2);
   const investorP1Monthly = poolP1 * INVESTOR_P1; // 60% while capital is being matched
-  const investorP2Monthly = poolP2 * INVESTOR_P2; // 40% once matched (ongoing)
+  const investorP2Monthly = poolP2 * INVESTOR_P2; // 25% once matched (ongoing)
   const seanP1Monthly = salaryP1 + poolP1 * (1 - INVESTOR_P1);
   const seanP2Monthly = salaryP2 + poolP2 * (1 - INVESTOR_P2);
   // Phase-2 steady-state cash-on-cash — the only return % safe to headline.
@@ -547,7 +547,7 @@ function computeDeal(
 const RETURN_RAMP = [0, 0.3, 0.55, 0.8, 0.95, 1];
 
 /** Build the cumulative investor-cash timeline for a (price, volume) scenario.
- *  The split flips from 60% to 40% the month AFTER cumulative distributions match
+ *  The split flips from 60% to 25% the month AFTER cumulative distributions match
  *  the capital — a milestone, never a dated promise. */
 function buildReturnTimeline(pricePerCar: number, carsPerWeek: number, salaryOn: boolean = true) {
   // The return reflects the in-house staff model (the established operating model) at the
@@ -593,7 +593,7 @@ function buildReturnTimeline(pricePerCar: number, carsPerWeek: number, salaryOn:
 // The base case every headline figure on the page is derived from.
 const BASE_TIMELINE = buildReturnTimeline(12000, 10);
 const BASE_INVESTOR_P1 = BASE_TIMELINE.deal.investorP1Monthly; // 60% while capital is being matched
-const BASE_INVESTOR_P2 = BASE_TIMELINE.deal.investorP2Monthly; // 40% ongoing
+const BASE_INVESTOR_P2 = BASE_TIMELINE.deal.investorP2Monthly; // 25% ongoing
 const BASE_MATCHED_MONTH = BASE_TIMELINE.matchedMonth; // nullable capital-matched milestone month
 const BASE_ANNUAL_COC = BASE_TIMELINE.deal.annualCashOnCashP2; // phase-2 steady-state cash-on-cash
 
@@ -1079,7 +1079,7 @@ export default function PpfInvestorProposalV2() {
   const tweenCumulative = useTween(currentRow.cumulative, !reducedMotion);
   const matchedPct = Math.min(100, (currentRow.cumulative / SETUP_TOTAL) * 100);
   const capitalMatched = currentRow.cumulative >= SETUP_TOTAL;
-  const onPhase2 = currentRow.phase === 2; // split has flipped to 40/60
+  const onPhase2 = currentRow.phase === 2; // split has dropped to 25/75
   // Cumulative cash to the investor across the full 24 months (the climax figure)
   const cumulativeReturn = timeline.rows;
   const milestones = [
@@ -1121,7 +1121,7 @@ export default function PpfInvestorProposalV2() {
 
   // Hero headline return figures - derived from the single base case (12k x 10/wk)
   const baseInvestorP1 = BASE_INVESTOR_P1; // 60% of pool while capital is being matched
-  const baseInvestorP2 = BASE_INVESTOR_P2; // 40% of pool, ongoing
+  const baseInvestorP2 = BASE_INVESTOR_P2; // 25% of pool, ongoing
 
   return (
     <main className="min-h-screen bg-[#070707] text-white">
@@ -1169,14 +1169,14 @@ export default function PpfInvestorProposalV2() {
                 Sean has already generated <strong className="text-white">AED 727k+ in closed, paid revenue</strong> and
                 built the marketing engine himself - all while limited by space. Fund the studio and take{" "}
                 <strong className="text-white">60% of profit until your capital's matched</strong>, then{" "}
-                <strong className="text-white">40% as a passive partner</strong>.
+                <strong className="text-white">25% as a passive partner</strong>.
               </p>
 
               {/* Investor-return summary tiles */}
               <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
                   { label: "Your capital in", value: "AED 500k", accent: "#ffffff" },
-                  { label: "Your profit share", value: "60% → 40%", accent: "#a3e635" },
+                  { label: "Your profit share", value: "60% → 25%", accent: "#a3e635" },
                   { label: "Matched first", value: "You're paid back first", accent: "#42d6c9" },
                   { label: "Then largely", value: "Passive", accent: "#f8b84e" },
                 ].map((tile) => (
@@ -1716,7 +1716,7 @@ export default function PpfInvestorProposalV2() {
                     <p className="text-[10px] text-white/40">until your capital's matched</p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/60">Phase 2 · 40%</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/60">Phase 2 · 25%</p>
                     <p className="mt-0.5 text-3xl font-black text-white/85">
                       {formatShort(tween.investorP2Monthly)}
                       <span className="text-sm font-bold text-white/40">/mo</span>
@@ -1754,7 +1754,7 @@ export default function PpfInvestorProposalV2() {
               </div>
               <p className="text-xs leading-5 text-white/45">
                 Steady-state figures on AED {SETUP_TOTAL.toLocaleString()} capital, at the volume you set (allow 6-12
-                months to ramp). Your capital is matched first - then the split steps from 60/40 to 40/60.
+                months to ramp). Your capital is matched first - then your share steps from 60% down to 25%.
               </p>
             </div>
           </Reveal>
@@ -2307,7 +2307,7 @@ export default function PpfInvestorProposalV2() {
             </h2>
             <p className="mt-5 leading-8 text-white/70">
               This is what you actually walk away with. You take <strong className="text-white">60% of profit until
-              your capital's matched</strong>, then <strong className="text-white">40% as a passive partner</strong>.
+              your capital's matched</strong>, then <strong className="text-white">25% as a passive partner</strong>.
               Set the price and volume, then drag the timeline to watch it stack up - and the point where the split
               flips. Every extra AED 1k on price drops almost entirely into the pool, so the gap is real money.
             </p>
@@ -2416,7 +2416,7 @@ export default function PpfInvestorProposalV2() {
                 <span className="font-semibold text-white/55">
                   {currentRow.month === "Start" ? "Before launch" : `Month ${returnMonth}`} ·{" "}
                   <span className={onPhase2 ? "text-white/70" : "text-[#a3e635]"}>
-                    {onPhase2 ? "Phase 2 · you 40%" : "Phase 1 · you 60%"}
+                    {onPhase2 ? "Phase 2 · you 25%" : "Phase 1 · you 60%"}
                   </span>
                 </span>
                 <span className="text-white/70">
@@ -2446,7 +2446,7 @@ export default function PpfInvestorProposalV2() {
                 </div>
                 <div className="mt-1.5 flex justify-between text-[10px] font-semibold text-white/35">
                   <span>AED 0</span>
-                  <span>Matched → split flips to 40%</span>
+                  <span>Matched → split drops to 25%</span>
                 </div>
               </div>
 
@@ -2523,7 +2523,7 @@ export default function PpfInvestorProposalV2() {
                     <Tooltip contentStyle={{ background: "#0b0b0b", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8 }} formatter={(value: number) => [formatAed(value), "Cumulative to you"]} />
                     <ReferenceLine y={SETUP_TOTAL} stroke="#f8b84e" strokeDasharray="5 4" strokeWidth={2} label={{ value: "Your capital", position: "insideTopRight", fill: "#ffd894", fontSize: 11, fontWeight: 700 }} />
                     {timeline.matchedMonth ? (
-                      <ReferenceLine x={`M${timeline.matchedMonth}`} stroke="#a3e635" strokeDasharray="4 4" strokeWidth={2} label={{ value: "Matched · 60→40", position: "top", fill: "#a3e635", fontSize: 11, fontWeight: 700 }} />
+                      <ReferenceLine x={`M${timeline.matchedMonth}`} stroke="#a3e635" strokeDasharray="4 4" strokeWidth={2} label={{ value: "Matched · 60→25", position: "top", fill: "#a3e635", fontSize: 11, fontWeight: 700 }} />
                     ) : null}
                     <ReferenceLine x={currentRow.month} stroke="#ffffff" strokeDasharray="2 3" strokeOpacity={0.5} label={{ value: "You", position: "top", fill: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: 700 }} />
                     <Area type="monotone" dataKey="cumulative" stroke="#a3e635" strokeWidth={3} fill="url(#returnFill)" />
@@ -2570,7 +2570,7 @@ export default function PpfInvestorProposalV2() {
               <div className="flex items-center gap-3 rounded-xl border border-white/12 bg-black/35 px-5 py-4">
                 <Target className="h-7 w-7 shrink-0 text-[#a3e635]" />
                 <p className="text-sm leading-6 text-white/70">
-                  Once your capital's matched, your 40% share is largely{" "}
+                  Once your capital's matched, your 25% share is largely{" "}
                   <strong className="text-white">passive</strong> - Sean runs everything day to day.
                 </p>
               </div>
@@ -2830,7 +2830,7 @@ export default function PpfInvestorProposalV2() {
             <SectionKicker color="#f8b84e">The deal</SectionKicker>
             <h2 className="mt-4 text-4xl font-black uppercase leading-none sm:text-5xl">A simple, hands-off partnership.</h2>
             <p className="mt-5 leading-8 text-white/70">
-              The investor backs the build and Sean runs everything. You take a <strong className="text-white">40%
+              The investor backs the build and Sean runs everything. You take a <strong className="text-white">25%
               stake</strong>, but an <strong className="text-white">accelerated 60% of dividends until your capital's
               matched</strong> - then distributions simply follow ownership. One fair principle:{" "}
               <strong className="text-white">bigger risk now, bigger share now</strong>.
@@ -2868,11 +2868,11 @@ export default function PpfInvestorProposalV2() {
           <Reveal className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-[#101010] p-6 sm:p-8">
             <p className="text-xs uppercase tracking-[0.22em] text-white/45">Ownership</p>
             <div className="mt-3 flex h-11 overflow-hidden rounded-xl">
-              <div className="flex w-[60%] items-center justify-center bg-[#42d6c9] text-sm font-black uppercase tracking-wide text-black">
-                Sean 60%
+              <div className="flex w-[75%] items-center justify-center bg-[#42d6c9] text-sm font-black uppercase tracking-wide text-black">
+                Sean 75%
               </div>
-              <div className="flex w-[40%] items-center justify-center bg-[#a3e635]/70 text-sm font-black uppercase tracking-wide text-black">
-                Investor 40%
+              <div className="flex w-[25%] items-center justify-center bg-[#a3e635]/70 text-sm font-black uppercase tracking-wide text-black">
+                Investor 25%
               </div>
             </div>
 
@@ -2896,19 +2896,19 @@ export default function PpfInvestorProposalV2() {
                   <span>Phase 2 · ongoing, after matched (follows ownership)</span>
                 </div>
                 <div className="flex h-11 overflow-hidden rounded-xl">
-                  <div className="flex w-[40%] items-center justify-center bg-[#a3e635]/70 text-sm font-black uppercase tracking-wide text-black">
-                    Investor 40%
+                  <div className="flex w-[25%] items-center justify-center bg-[#a3e635]/70 text-sm font-black uppercase tracking-wide text-black">
+                    Investor 25%
                   </div>
-                  <div className="flex w-[60%] items-center justify-center bg-[#42d6c9] text-sm font-black uppercase tracking-wide text-black">
-                    Sean 60%
+                  <div className="flex w-[75%] items-center justify-center bg-[#42d6c9] text-sm font-black uppercase tracking-wide text-black">
+                    Sean 75%
                   </div>
                 </div>
               </div>
             </div>
             <p className="mt-4 text-sm leading-7 text-white/60">
-              You own <strong className="text-white">40%</strong> but take an{" "}
+              You own <strong className="text-white">25%</strong> but take an{" "}
               <strong className="text-white">accelerated 60% of dividends until your capital's matched</strong> - then
-              distributions simply follow ownership (40/60). Throughout, the founder takes a modest salary,{" "}
+              distributions simply follow ownership (25/75). Throughout, the founder takes a modest salary,{" "}
               <strong className="text-white">AED 12k → 24k pcm</strong>, cashflow permitting, before the pool is split.
               All dividends subject to available cash flow.
             </p>
@@ -2917,8 +2917,8 @@ export default function PpfInvestorProposalV2() {
           {/* Concrete terms */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Scale, title: "60/40 ownership", body: "Sean 60%, you 40% - with minority protections (info rights, key-decision sign-off) in the agreement.", color: "#f8b84e" },
-              { icon: CircleDollarSign, title: "Accelerated dividends", body: "60% of dividends until your capital's matched, then your 40% - paid quarterly, subject to cash flow.", color: "#a3e635" },
+              { icon: Scale, title: "75/25 ownership", body: "Sean 75%, you 25% - with minority protections (info rights, key-decision sign-off) in the agreement.", color: "#f8b84e" },
+              { icon: CircleDollarSign, title: "Accelerated dividends", body: "60% of dividends until your capital's matched, then your 25% - paid quarterly, subject to cash flow.", color: "#a3e635" },
               { icon: Rocket, title: "Genuinely hands-off", body: "Sean runs ops, marketing, sales, hiring and growth. Nothing required from you.", color: "#42d6c9" },
               { icon: ClipboardList, title: "Full transparency", body: "Books and numbers shared with you regularly - you always see how it's performing.", color: "#7dd3fc" },
             ].map((card, i) => (
@@ -2951,7 +2951,7 @@ export default function PpfInvestorProposalV2() {
           <Reveal className="max-w-4xl">
             <SectionKicker color="#f8b84e">The ask in one line</SectionKicker>
             <h2 className="mt-4 text-4xl font-black uppercase leading-none sm:text-6xl">
-              Take 60% of profit until your capital's back - then a 40% stake in a business that already works.
+              Take 60% of profit until your capital's back - then a 25% stake in a business that already works.
             </h2>
             <p className="mt-6 text-lg leading-8 text-white/74">
               AED 500k to launch a PPF-first Dubai studio, on top of equipment, stock and a marketing engine that
@@ -2964,7 +2964,7 @@ export default function PpfInvestorProposalV2() {
               </div>
               <div className="rounded-lg border border-white/12 bg-black/40 px-5 py-4 backdrop-blur">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/45">Your profit share</p>
-                <p className="mt-1 text-2xl font-black text-[#a3e635]">60% → 40%</p>
+                <p className="mt-1 text-2xl font-black text-[#a3e635]">60% → 25%</p>
               </div>
               <div className="rounded-lg border border-white/12 bg-black/40 px-5 py-4 backdrop-blur">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/45">Your capital</p>

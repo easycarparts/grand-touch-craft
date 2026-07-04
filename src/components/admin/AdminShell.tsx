@@ -58,6 +58,9 @@ export const AdminShell = ({
             <NavLink to="/admin/leads/tasks" className={navLinkClass}>
               Tasks
             </NavLink>
+            <NavLink to="/admin/close-rates" className={navLinkClass}>
+              Close rates
+            </NavLink>
             <NavLink to="/admin/users" className={navLinkClass}>
               Users
             </NavLink>

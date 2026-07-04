@@ -44,6 +44,7 @@ import AdminGoogleAdsDashboard from "./pages/AdminGoogleAdsDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminLeads from "./pages/AdminLeads";
 import AdminLeadTasks from "./pages/AdminLeadTasks";
+import AdminCloseRates from "./pages/AdminCloseRates";
 import AdminUsers from "./pages/AdminUsers";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
@@ -136,6 +137,14 @@ function App() {
               element={
                 <RequireAdmin>
                   <AdminLeadTasks />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/close-rates"
+              element={
+                <RequireAdmin>
+                  <AdminCloseRates />
                 </RequireAdmin>
               }
             />

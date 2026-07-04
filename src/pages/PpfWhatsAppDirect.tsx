@@ -73,8 +73,10 @@ const formatAED = (value: number) => `AED ${value.toLocaleString("en-AE")}`;
 
 // ── EASY-TO-EDIT COPY ───────────────────────────────────────────────────────
 // Low-commitment, easy-send WhatsApp message — the visitor just hits send.
+// "I found you on Google" reads natural to the customer AND tags the channel in
+// Sean's inbox (this page is the Google funnel; Meta runs its own funnel/wording).
 const DEFAULT_WA_MESSAGE =
-  "Hi Sean, I'm interested in PPF for my car — could you send me a bit more detail?";
+  "Hi Sean, I found you on Google — I'm interested in PPF for my car, could you send me a bit more detail?";
 
 // Keyword chips mirror the highest-click Search terms (helps ad relevance).
 const keywordChips = [

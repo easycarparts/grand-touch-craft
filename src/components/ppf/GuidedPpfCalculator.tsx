@@ -144,8 +144,10 @@ export default function GuidedPpfCalculator({
   const sendWhatsApp = useCallback(() => {
     const series = years ? stekSeriesName(years) : null;
     const sizeLabel = sizeOptions.find((s) => s.value === size)?.label ?? size;
+    // "I found you on Google" tags the channel in Sean's inbox — this calculator
+    // is used only on the Google funnel page (PpfWhatsAppDirect).
     const message =
-      `Hi Sean, I'm interested in PPF for my ${sizeLabel} car ` +
+      `Hi Sean, I found you on Google — I'm interested in PPF for my ${sizeLabel} car ` +
       `(${finish}, ${years}-year STEK${series ? ` ${series}` : ""}). ` +
       `Your site shows from ${price !== null ? formatAED(price) : "—"} — ` +
       `could you send me a bit more detail?`;

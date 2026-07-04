@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+// Lead desk uses server-side pagination + whole-table search via admin_search_leads.
 import { CheckCircle2, ChevronDown, ChevronUp, RefreshCw, Trash2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
@@ -47,7 +48,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { AdminLeadExpandedPanel } from "@/components/admin/AdminLeadExpandedPanel";
-import { buildLeadTasks } from "@/lib/admin-lead-tasks";
 import type { LeadTaskLead } from "@/lib/admin-lead-tasks";
 import { getIntentScore } from "@/lib/funnel-intent";
 import { supabase } from "@/lib/supabase";
@@ -799,10 +799,6 @@ const getLeadRowAccentClass = (lead: Pick<LeadRow, "status" | "quality_label">) 
   return "";
 };
 
-const hiddenLeadStatuses = new Set<LeadStatus>(["lost", "junk"]);
-
-const isLeadVisibleByDefault = (lead: Pick<LeadRow, "status">) => !hiddenLeadStatuses.has(lead.status);
-
 const buildSourceGroup = (lead: LeadRow) => {
   const sourceText = [
     lead.source_platform,
@@ -945,6 +941,9 @@ const makeLeadScheduleDraft = (lead: Pick<LeadRow, "expected_delivery_at">): Lea
 
 const META_ACCESS_TOKEN_EXPIRES_AT = "2026-06-12T09:26:22.000Z";
 
+const LEAD_PAGE_SIZE_OPTIONS = [25, 50, 100];
+const LEAD_PAGE_SIZE_STORAGE_KEY = "adminLeadsPageSize";
+
 const baseLeadSelect =
   "id, primary_session_id, visitor_id, full_name, phone, email, vehicle_make, vehicle_model, vehicle_year, vehicle_label, source_platform, landing_page_variant, funnel_name, lead_source_type, status, quality_label, intent_score, latest_quote_estimate, utm_source, utm_medium, utm_campaign, external_campaign_name, external_adset_name, external_ad_name, utm_content, utm_term, gclid, fbclid, ttclid, notes_summary, import_metadata, expected_delivery_at, assigned_to, first_captured_at, last_activity_at, submitted_at, whatsapp_clicked_at, source_received_at, created_at";
 
@@ -989,8 +988,52 @@ const AdminLeads = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [metaTokenWatchPinned, setMetaTokenWatchPinned] = useState(false);
+
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const stored = Number(window.localStorage.getItem(LEAD_PAGE_SIZE_STORAGE_KEY));
+    return LEAD_PAGE_SIZE_OPTIONS.includes(stored) ? stored : 50;
+  });
+  const [sortMode, setSortMode] = useState<"received" | "activity">("received");
+  const [totalLeadCount, setTotalLeadCount] = useState(0);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [deepLinkLeadId, setDeepLinkLeadId] = useState<string | null>(null);
+  const [summaryCounts, setSummaryCounts] = useState({
+    newLeads: 0,
+    dueFollowups: 0,
+    partialLeads: 0,
+    pendingMetaFeedback: 0,
+    metaLeads: 0,
+  });
+
   const leadTableRef = useRef<HTMLDivElement | null>(null);
   const lastDeepLinkedLeadRef = useRef<string | null>(null);
+  const hasLoadedOnceRef = useRef(false);
+
+  // Debounce the search input so the database is queried only after typing pauses.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Any filter/sort/page-size change returns to the first page.
+  useEffect(() => {
+    setPage(0);
+  }, [
+    debouncedSearchQuery,
+    statusFilter,
+    qualityFilter,
+    sourceFilter,
+    ownerFilter,
+    progressFilter,
+    followupFilter,
+    sortMode,
+    pageSize,
+  ]);
+
+  useEffect(() => {
+    window.localStorage.setItem(LEAD_PAGE_SIZE_STORAGE_KEY, String(pageSize));
+  }, [pageSize]);
 
   const setSaving = (key: string, value: boolean) => {
     setSavingKeys((current) => {
@@ -1089,7 +1132,7 @@ const AdminLeads = () => {
         return;
       }
 
-      if (options?.refresh) {
+      if (options?.refresh || hasLoadedOnceRef.current) {
         setIsRefreshing(true);
       } else {
         setIsLoading(true);
@@ -1101,20 +1144,23 @@ const AdminLeads = () => {
         .eq("is_active", true)
         .order("full_name", { ascending: true });
 
-      const loadLeads = (selectClause: string) =>
-        supabase
-          .from("leads")
-          .select(selectClause)
-          .order("last_activity_at", { ascending: false, nullsFirst: false })
-          .limit(150);
+      // Server-side pagination + whole-table search/filtering. The database
+      // function also returns the true total count for the current filters.
+      const leadsQuery = supabase.rpc("admin_search_leads", {
+        p_search: debouncedSearchQuery.trim() || null,
+        p_status: statusFilter === "all" ? "active" : statusFilter,
+        p_quality: qualityFilter,
+        p_source: sourceFilter,
+        p_owner: ownerFilter,
+        p_progress: progressFilter,
+        p_followup: followupFilter,
+        p_sort: sortMode,
+        p_lead_id: deepLinkLeadId,
+        p_limit: pageSize,
+        p_offset: page * pageSize,
+      });
 
-      const rollupsQuery = supabase
-        .from("admin_session_rollups")
-        .select(
-          "session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at",
-        )
-        .order("ended_at", { ascending: false })
-        .limit(700);
+      const summaryQuery = supabase.rpc("admin_lead_summary");
 
       const feedbackSelect =
         "id, lead_id, platform, feedback_type, feedback_status, external_identifier_type, external_identifier_value, payload, response_payload, sent_at, created_at, updated_at";
@@ -1127,35 +1173,15 @@ const AdminLeads = () => {
         .order("created_at", { ascending: false })
         .limit(200);
 
-      let [
-        adminUsersResult,
-        leadsResult,
-        rollupsResult,
-        alertQueueResult,
-      ] = await Promise.all([
+      const [adminUsersResult, leadsResult, alertQueueResult, summaryResult] = await Promise.all([
         adminUsersQuery,
-        loadLeads(responseTrackingLeadSelect),
-        rollupsQuery,
+        leadsQuery,
         alertQueueQuery,
+        summaryQuery,
       ]);
 
-      if (leadsResult.error?.code === "42703") {
-        console.warn("Lead response tracking columns not available yet, falling back.", leadsResult.error);
-        [
-          adminUsersResult,
-          leadsResult,
-          rollupsResult,
-          alertQueueResult,
-        ] = await Promise.all([
-          adminUsersQuery,
-          loadLeads(baseLeadSelect),
-          rollupsQuery,
-          alertQueueQuery,
-        ]);
-      }
-
-      const loadedLeads =
-        (((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => ({
+      const withLeadDefaults = (lead: Partial<LeadRow>): LeadRow =>
+        ({
           first_whatsapp_contacted_at: null,
           first_whatsapp_contacted_by: null,
           first_called_at: null,
@@ -1163,8 +1189,72 @@ const AdminLeads = () => {
           source_received_at: null,
           created_at: "",
           ...lead,
-        })) as LeadRow[]) ?? [];
+        }) as LeadRow;
+
+      let loadedLeads: LeadRow[] = [];
+      let leadTotal = 0;
+      let leadLoadFailed = false;
+
+      if (leadsResult.error) {
+        // Safety net for environments where the migration has not run yet:
+        // fall back to a plain paginated query (no server-side filters).
+        console.warn("admin_search_leads unavailable, using fallback lead query.", leadsResult.error);
+        const runFallback = (selectClause: string) =>
+          supabase
+            .from("leads")
+            .select(selectClause, { count: "exact" })
+            .order("last_activity_at", { ascending: false, nullsFirst: false })
+            .range(page * pageSize, page * pageSize + pageSize - 1);
+
+        let fallbackResult = await runFallback(responseTrackingLeadSelect);
+        if (fallbackResult.error?.code === "42703") {
+          fallbackResult = await runFallback(baseLeadSelect);
+        }
+
+        if (fallbackResult.error) {
+          console.warn("Failed to load leads", fallbackResult.error);
+          leadLoadFailed = true;
+        } else {
+          loadedLeads = ((fallbackResult.data as Partial<LeadRow>[]) ?? []).map(withLeadDefaults);
+          leadTotal = fallbackResult.count ?? loadedLeads.length;
+        }
+      } else {
+        const rows = (leadsResult.data ?? []) as { lead_data: Partial<LeadRow>; total_count: number }[];
+        loadedLeads = rows.map((row) => withLeadDefaults(row.lead_data));
+        leadTotal = Number(rows[0]?.total_count ?? 0);
+      }
+
       const leadIds = loadedLeads.map((lead) => lead.id).filter(Boolean);
+
+      // Session rollups scoped to the leads on this page instead of a global
+      // "newest 700 rollups" pull.
+      const quoteFilterValue = (value: string) => `"${value.replace(/["\\,]/g, "")}"`;
+      const rollupSessionIds = loadedLeads
+        .map((lead) => lead.primary_session_id)
+        .filter((value): value is string => Boolean(value));
+      const rollupPhones = loadedLeads
+        .map((lead) => (lead.phone ?? "").trim())
+        .filter(Boolean);
+
+      let rollupsResult: { data: unknown; error: { message: string } | null } = { data: [], error: null };
+      if (leadIds.length) {
+        const rollupOrParts = [
+          `lead_id.in.(${leadIds.map(quoteFilterValue).join(",")})`,
+          rollupSessionIds.length ? `session_id.in.(${rollupSessionIds.map(quoteFilterValue).join(",")})` : null,
+          rollupPhones.length ? `lead_phone.in.(${rollupPhones.map(quoteFilterValue).join(",")})` : null,
+        ]
+          .filter(Boolean)
+          .join(",");
+
+        rollupsResult = await supabase
+          .from("admin_session_rollups")
+          .select(
+            "session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at",
+          )
+          .or(rollupOrParts)
+          .order("ended_at", { ascending: false })
+          .limit(1000);
+      }
       const [notesResult, followupsResult, statusHistoryResult, feedbackResult] = await Promise.all([
         fetchLeadScopedRows<LeadNoteRow>("lead_notes", "id, lead_id, author_admin_user_id, body, created_at", leadIds),
         fetchLeadScopedRows<LeadFollowupRow>(
@@ -1187,11 +1277,25 @@ const AdminLeads = () => {
         setAdminUsers((adminUsersResult.data as AdminUserOption[]) ?? []);
       }
 
-      if (leadsResult.error) {
-        console.warn("Failed to load leads", leadsResult.error);
+      if (leadLoadFailed) {
         setLeads([]);
+        setTotalLeadCount(0);
       } else {
         setLeads(loadedLeads);
+        setTotalLeadCount(leadTotal);
+      }
+
+      if (summaryResult.error) {
+        console.warn("Failed to load lead summary counts", summaryResult.error);
+      } else {
+        const rawSummary = (summaryResult.data ?? {}) as Record<string, number>;
+        setSummaryCounts({
+          newLeads: rawSummary.new_leads ?? 0,
+          dueFollowups: rawSummary.due_followups ?? 0,
+          partialLeads: rawSummary.partial_leads ?? 0,
+          pendingMetaFeedback: rawSummary.pending_meta_feedback ?? 0,
+          metaLeads: rawSummary.meta_leads ?? 0,
+        });
       }
 
       if (rollupsResult.error) {
@@ -1236,10 +1340,23 @@ const AdminLeads = () => {
         setAlertQueueRows((alertQueueResult.data as CrmAlertQueueRow[]) ?? []);
       }
 
+      hasLoadedOnceRef.current = true;
       setIsLoading(false);
       setIsRefreshing(false);
     },
-    [],
+    [
+      debouncedSearchQuery,
+      statusFilter,
+      qualityFilter,
+      sourceFilter,
+      ownerFilter,
+      progressFilter,
+      followupFilter,
+      sortMode,
+      page,
+      pageSize,
+      deepLinkLeadId,
+    ],
   );
 
   useEffect(() => {
@@ -1451,93 +1568,13 @@ const AdminLeads = () => {
     statusHistoryByLeadId,
   ]);
 
-  const inboxLeads = useMemo(
-    () => leadsWithIntent.filter((lead) => isLeadVisibleByDefault(lead)),
-    [leadsWithIntent],
-  );
+  // Filtering, search, and sorting all happen in the database now — the rows
+  // in state are exactly the rows for the current page, already ordered.
+  const filteredLeads = leadsWithIntent;
 
-  const filteredLeads = useMemo(() => {
-    const leadPool = statusFilter === "all" ? inboxLeads : leadsWithIntent;
-
-    return leadPool
-      .filter((lead) => {
-        const vehicle = getLeadVehicleText(lead);
-        const haystack = [
-          lead.full_name,
-          lead.phone,
-          lead.email,
-          vehicle,
-          lead.source_platform,
-          lead.landing_page_variant,
-          getLeadCampaignLabel(lead),
-          lead.status,
-          lead.quality_label,
-          lead.assignedAdmin?.full_name,
-          lead.assignedAdmin?.email,
-          lead.notes_summary,
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
-        const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
-        const matchesQuality = qualityFilter === "all" || lead.quality_label === qualityFilter;
-        const matchesSource = sourceFilter === "all" || lead.sourceGroup === sourceFilter;
-        const matchesOwner =
-          ownerFilter === "all" ||
-          (ownerFilter === "unassigned" && !lead.assigned_to) ||
-          lead.assigned_to === ownerFilter;
-        const matchesProgress = progressFilter === "all" || lead.lifecycleLabel === progressFilter;
-        const matchesFollowup =
-          followupFilter === "all" ||
-          (followupFilter === "needs_attention" &&
-            ["overdue", "due_today", "open"].includes(lead.followupState)) ||
-          (followupFilter === "overdue" && lead.followupState === "overdue") ||
-          (followupFilter === "due_today" && lead.followupState === "due_today") ||
-          (followupFilter === "none" && lead.followupState === "none");
-
-        return (
-          matchesSearch &&
-          matchesStatus &&
-          matchesQuality &&
-          matchesSource &&
-          matchesOwner &&
-          matchesProgress &&
-          matchesFollowup
-        );
-      })
-      .sort((left, right) => {
-        const leftTime = getLeadReceivedAt(left);
-        const rightTime = getLeadReceivedAt(right);
-        return new Date(rightTime || 0).getTime() - new Date(leftTime || 0).getTime();
-      });
-  }, [
-    followupFilter,
-    inboxLeads,
-    leadsWithIntent,
-    progressFilter,
-    qualityFilter,
-    searchQuery,
-    ownerFilter,
-    sourceFilter,
-    statusFilter,
-  ]);
-
-  const summary = useMemo(() => {
-    const metaLeads = inboxLeads.filter((lead) => lead.isMetaOriginated);
-    const pendingMetaFeedback = metaLeads.filter((lead) =>
-      lead.feedback.some((entry) => entry.platform === "meta" && entry.feedback_status === "pending"),
-    );
-    const taskCounts = buildLeadTasks(inboxLeads);
-
-    return {
-      newLeads: taskCounts.filter((task) => task.taskKind === "first_touch").length,
-      dueFollowups: taskCounts.filter((task) => ["call_overdue", "call_due_today", "overdue", "due_today"].includes(task.priorityBand)).length,
-      partialLeads: inboxLeads.filter((lead) => lead.lifecycleLabel === "partial").length,
-      pendingMetaFeedback: pendingMetaFeedback.length,
-      metaLeads: metaLeads.length,
-    };
-  }, [inboxLeads]);
+  // Global summary counts come from the admin_lead_summary database function
+  // instead of being derived from whichever leads happen to be loaded.
+  const summary = summaryCounts;
 
   const alertQueueSummary = useMemo(
     () => ({
@@ -1548,8 +1585,16 @@ const AdminLeads = () => {
     [alertQueueRows],
   );
 
-  const defaultVisibleLeadCount = statusFilter === "all" ? inboxLeads.length : leadsWithIntent.length;
-  const leadCountLabel = statusFilter === "all" ? "active leads" : "recent leads";
+  const totalPages = Math.max(1, Math.ceil(totalLeadCount / pageSize));
+  const pageStart = totalLeadCount === 0 ? 0 : page * pageSize + 1;
+  const pageEnd = Math.min(totalLeadCount, page * pageSize + filteredLeads.length);
+
+  // If the current page falls out of range (e.g. after deletions), snap back.
+  useEffect(() => {
+    if (page > 0 && page * pageSize >= totalLeadCount && totalLeadCount > 0) {
+      setPage(Math.max(0, Math.ceil(totalLeadCount / pageSize) - 1));
+    }
+  }, [page, pageSize, totalLeadCount]);
 
   const updateFollowupDraft = (
     leadId: string,
@@ -2134,6 +2179,8 @@ const AdminLeads = () => {
 
   const handleNeedsFirstTouchClick = () => {
     setSearchQuery("");
+    setDebouncedSearchQuery("");
+    setDeepLinkLeadId(null);
     setStatusFilter("new");
     setQualityFilter("all");
     setSourceFilter("all");
@@ -2149,12 +2196,15 @@ const AdminLeads = () => {
 
   const handleClearLeadFilters = () => {
     setSearchQuery("");
+    setDebouncedSearchQuery("");
     setStatusFilter("all");
     setQualityFilter("all");
     setSourceFilter("all");
     setOwnerFilter("all");
     setProgressFilter("all");
     setFollowupFilter("all");
+    setDeepLinkLeadId(null);
+    setPage(0);
     setExpandedLeadId(null);
   };
 
@@ -2163,28 +2213,38 @@ const AdminLeads = () => {
 
     if (!deepLinkedLeadId) {
       lastDeepLinkedLeadRef.current = null;
+      setDeepLinkLeadId(null);
       return;
     }
 
-    if (isLoading || lastDeepLinkedLeadRef.current === deepLinkedLeadId) {
+    if (lastDeepLinkedLeadRef.current === deepLinkedLeadId) {
       return;
     }
 
     lastDeepLinkedLeadRef.current = deepLinkedLeadId;
     setSearchQuery("");
+    setDebouncedSearchQuery("");
     setStatusFilter("all");
     setQualityFilter("all");
     setSourceFilter("all");
     setOwnerFilter("all");
     setProgressFilter("all");
     setFollowupFilter("all");
+    setPage(0);
+    setDeepLinkLeadId(deepLinkedLeadId);
     setExpandedLeadId(deepLinkedLeadId);
+  }, [searchParams]);
 
-    window.setTimeout(() => {
-      const leadRow = document.getElementById(`lead-row-${deepLinkedLeadId}`);
+  useEffect(() => {
+    if (!deepLinkLeadId || isLoading || isRefreshing) return;
+
+    const timer = window.setTimeout(() => {
+      const leadRow = document.getElementById(`lead-row-${deepLinkLeadId}`);
       leadRow?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 120);
-  }, [isLoading, searchParams]);
+
+    return () => window.clearTimeout(timer);
+  }, [deepLinkLeadId, isLoading, isRefreshing]);
 
   const handleCreateManualLead = async () => {
     if (!supabase || !adminProfile?.id) return;
@@ -2780,7 +2840,7 @@ const AdminLeads = () => {
           <Input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search lead, phone, vehicle, campaign"
+            placeholder="Search all leads — name, phone, vehicle, campaign"
             className="border-white/10 bg-black/20 text-white placeholder:text-slate-500 xl:col-span-2"
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -2862,7 +2922,9 @@ const AdminLeads = () => {
 
         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-400">
           <span>
-            Showing {filteredLeads.length} of {defaultVisibleLeadCount} {leadCountLabel}.
+            {totalLeadCount === 0
+              ? "No leads match the current filters."
+              : `Showing ${pageStart}–${pageEnd} of ${totalLeadCount} leads.`}
           </span>
           <Button
             type="button"
@@ -2873,6 +2935,27 @@ const AdminLeads = () => {
           >
             Clear filters
           </Button>
+          <Select value={sortMode} onValueChange={(value) => setSortMode(value as "received" | "activity")}>
+            <SelectTrigger className="h-7 w-auto gap-2 border-white/10 bg-black/20 px-3 text-xs text-slate-300">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="received">Sort: Lead received (newest)</SelectItem>
+              <SelectItem value="activity">Sort: Last activity</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
+            <SelectTrigger className="h-7 w-auto gap-2 border-white/10 bg-black/20 px-3 text-xs text-slate-300">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LEAD_PAGE_SIZE_OPTIONS.map((option) => (
+                <SelectItem key={option} value={String(option)}>
+                  {option} per page
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Badge variant="outline" className="border-white/10 bg-black/20 text-slate-300">
             Partial capture preserved
           </Badge>
@@ -3112,6 +3195,41 @@ const AdminLeads = () => {
               )}
             </TableBody>
           </Table>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+            <p className="text-sm text-slate-400">
+              Page {Math.min(page + 1, totalPages)} of {totalPages}
+              {isRefreshing ? " · Updating..." : ""}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-white/10 bg-black/20 text-slate-300 hover:bg-white/10"
+                disabled={page === 0 || isLoading}
+                onClick={() => {
+                  setPage((current) => Math.max(0, current - 1));
+                  leadTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-white/10 bg-black/20 text-slate-300 hover:bg-white/10"
+                disabled={page + 1 >= totalPages || isLoading}
+                onClick={() => {
+                  setPage((current) => current + 1);
+                  leadTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
       </Card>
 

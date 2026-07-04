@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+// Task board data loading queries open follow-ups directly so tasks never fall off the board.
 
 import { useAdminAuth } from "@/components/admin/AdminAuthProvider";
 import { useToast } from "@/components/ui/use-toast";
@@ -657,6 +658,15 @@ const getRecommendedFeedbackType = (nextState: Pick<LeadRow, "status" | "quality
 };
 
 const fromDateTimeInputValue = (value: string) => (value ? new Date(value).toISOString() : null);
+
+const chunkArray = <T,>(items: T[], size: number) => {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+};
+
 const fetchLeadScopedRows = async <T,>(
   table: string,
   selectClause: string,
@@ -668,17 +678,21 @@ const fetchLeadScopedRows = async <T,>(
   const pageSize = 1000;
   const rows: T[] = [];
 
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase
-      .from(table)
-      .select(selectClause)
-      .in("lead_id", leadIds)
-      .order(orderColumn, { ascending: false })
-      .range(from, from + pageSize - 1);
+  // Chunk the lead ids so the request URL stays within safe limits even when
+  // the task board covers hundreds of leads.
+  for (const idsChunk of chunkArray(leadIds, 100)) {
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .from(table)
+        .select(selectClause)
+        .in("lead_id", idsChunk)
+        .order(orderColumn, { ascending: false })
+        .range(from, from + pageSize - 1);
 
-    if (error) return { data: rows, error };
-    rows.push(...((data as T[] | null) ?? []));
-    if (!data || data.length < pageSize) break;
+      if (error) return { data: rows, error };
+      rows.push(...((data as T[] | null) ?? []));
+      if (!data || data.length < pageSize) break;
+    }
   }
 
   return { data: rows, error: null };
@@ -914,27 +928,85 @@ export const useLeadTaskBoardData = () => {
     if (refresh) setIsRefreshing(true);
     else setIsLoading(true);
 
-    const loadLeads = (selectClause: string) =>
-      supabase.from("leads").select(selectClause).order("last_activity_at", { ascending: false, nullsFirst: false }).limit(150);
+    // Leads that may need a first touch or first call. This is intentionally a
+    // direct query (not "newest N leads") so tasks can never fall off the board
+    // just because a lead is old.
+    const loadAttentionLeads = (selectClause: string, hasResponseColumns: boolean) => {
+      let query = supabase.from("leads").select(selectClause).not("status", "in", "(lost,junk)");
+      query = hasResponseColumns
+        ? query.or("status.eq.new,and(phone.not.is.null,first_called_at.is.null)")
+        : query.eq("status", "new");
+      return query.order("last_activity_at", { ascending: false, nullsFirst: false }).limit(1000);
+    };
+
+    const makeRollupsQuery = () =>
+      supabase.from("admin_session_rollups").select("session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at").order("ended_at", { ascending: false }).limit(700);
+
+    const makeAdminUsersQuery = () =>
+      supabase.from("admin_users").select("id, email, full_name, role, is_active, owner_color").eq("is_active", true).order("full_name", { ascending: true, nullsFirst: false });
 
     const feedbackSelect =
       "id, lead_id, platform, feedback_type, feedback_status, external_identifier_type, external_identifier_value, payload, response_payload, sent_at, created_at, updated_at";
 
+    // Every lead id with an open follow-up, across the entire table.
+    const openFollowupLeadIds = new Set<string>();
+    {
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("lead_followups")
+          .select("lead_id")
+          .eq("status", "open")
+          .order("created_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) {
+          console.warn("Failed to load open follow-up lead ids", error);
+          break;
+        }
+        for (const row of (data as { lead_id: string | null }[]) ?? []) {
+          if (row.lead_id) openFollowupLeadIds.add(row.lead_id);
+        }
+        if (!data || data.length < pageSize) break;
+      }
+    }
+
+    let usedLeadSelect = responseTrackingLeadSelect;
     let [leadsResult, rollupsResult, adminUsersResult] = await Promise.all([
-      loadLeads(responseTrackingLeadSelect),
-      supabase.from("admin_session_rollups").select("session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at").order("ended_at", { ascending: false }).limit(700),
-      supabase.from("admin_users").select("id, email, full_name, role, is_active, owner_color").eq("is_active", true).order("full_name", { ascending: true, nullsFirst: false }),
+      loadAttentionLeads(responseTrackingLeadSelect, true),
+      makeRollupsQuery(),
+      makeAdminUsersQuery(),
     ]);
 
     if (leadsResult.error?.code === "42703") {
+      usedLeadSelect = baseLeadSelect;
       [leadsResult, rollupsResult, adminUsersResult] = await Promise.all([
-        loadLeads(baseLeadSelect),
-        supabase.from("admin_session_rollups").select("session_id, lead_id, lead_name, lead_phone, lead_submitted, whatsapp_clicked, quote_modal_opened, unlock_requested, duration_ms, max_scroll_percent, video_max_progress_percent, package_name, vehicle_size, finish, coverage, quote_estimate, vehicle_make, vehicle_model, vehicle_year, sections_viewed, faq_open_count, ended_at").order("ended_at", { ascending: false }).limit(700),
-        supabase.from("admin_users").select("id, email, full_name, role, is_active, owner_color").eq("is_active", true).order("full_name", { ascending: true, nullsFirst: false }),
+        loadAttentionLeads(baseLeadSelect, false),
+        makeRollupsQuery(),
+        makeAdminUsersQuery(),
       ]);
     }
 
-    const loadedLeads = (((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => withLeadRowDefaults(lead))) ?? [];
+    const attentionLeads = (((leadsResult.data as Partial<LeadRow>[]) ?? []).map((lead) => withLeadRowDefaults(lead))) ?? [];
+
+    // Pull in leads that carry open follow-ups but were not part of the
+    // attention query, so every open task is represented.
+    const attentionLeadIds = new Set(attentionLeads.map((lead) => lead.id));
+    const missingFollowupLeadIds = [...openFollowupLeadIds].filter((id) => !attentionLeadIds.has(id));
+    const followupLeads: LeadRow[] = [];
+    for (const idsChunk of chunkArray(missingFollowupLeadIds, 100)) {
+      const { data, error } = await supabase
+        .from("leads")
+        .select(usedLeadSelect)
+        .in("id", idsChunk)
+        .not("status", "in", "(lost,junk)");
+      if (error) {
+        console.warn("Failed to load leads with open follow-ups", error);
+        break;
+      }
+      followupLeads.push(...(((data as Partial<LeadRow>[]) ?? []).map((lead) => withLeadRowDefaults(lead))));
+    }
+
+    const loadedLeads = [...attentionLeads, ...followupLeads];
     const leadIds = loadedLeads.map((lead) => lead.id).filter(Boolean);
     const [notesResult, followupsResult, statusHistoryResult, feedbackResult] = await Promise.all([
       fetchLeadScopedRows<LeadNoteRow>("lead_notes", "id, lead_id, author_admin_user_id, body, created_at", leadIds),
