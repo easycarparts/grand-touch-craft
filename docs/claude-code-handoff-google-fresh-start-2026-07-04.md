@@ -94,3 +94,13 @@ The May campaign stays paused, not removed. If Google reports conversions on it 
 **Watch list:** Tesla vehicle-specific terms (~10/mo each, cheap bids) are the obvious first expansion from search terms after the 14-day freeze — the planner's `vehicle_specific` theme is dominated by them. Top-of-page bids on core terms run 23–62 AED vs our 20 cap: expect mid-page on "ppf dubai", stronger positions on price/STEK long-tail.
 
 **Owner UI steps still open:** auto-created assets OFF (sitelinks) · call asset 9am–9pm schedule · eyeball that the campaign's goals show the custom goal.
+
+### Addendum (same day): offline conversion uploader built (§4)
+`scripts/google-ads/upload-offline-conversions.mjs` (`npm run ads:upload-offline -- --env=.env.google-ads`, dry-run by default, `--apply` to upload).
+- Uploads Google-attributed CRM leads (gclid OR utm_source/source_platform=google) whose status reached **qualified/quoted → "CRM Qualified Lead"** and **won → "CRM Closed Won"** (value = `latest_quote_estimate`, AED). Conversion time = earliest status transition (from `lead_status_history`, Dubai +04:00). A win also implies a qualified signal (both uploaded).
+- **Matching:** gclid when captured, PLUS SHA-256 hashed E.164 phone (enhanced conversions for leads) on every row that has a phone — this is the path that recovers **WhatsApp-first leads with no gclid**. Historic gclid coverage on Google form leads is only ~37%, so the phone path matters.
+- Both actions created as **secondary** (`primaryForGoal: false`) — they do NOT touch campaign 23996324292's custom goal or the 14-day freeze. Promote later by adding "CRM Qualified Lead" to custom goal `6458221953` once volume justifies (plan §4 says it becomes the bidding target).
+- Re-runs are idempotent (`orderId` = lead id; Google rejects duplicates). Stateless — safe to run daily or with the weekly review.
+- **Blockers checked live:** customer data terms = accepted ✓; **Enhanced conversions for leads = OFF** (API can't set it — owner UI toggle: Goals → Settings → Enhanced conversions for leads). Until ON, phone-only rows are dropped by Google; gclid rows work.
+- **Setup needed once:** add `SUPABASE_SERVICE_ROLE_KEY=` to `.env.supabase` (Supabase dashboard → Project Settings → API). The anon key cannot SELECT leads (RLS).
+- **Owner workflow note:** statuses actually used in the CRM are mostly contacted/won/lost (qualified: 7, quoted: 6 rows ever). The uploader only sees qualified/quoted/won — for the qualified signal to have volume, mark real prospects `qualified` (or `quoted`) instead of leaving them `contacted`. For WhatsApp-first chats, save the lead with source google (or paste the gclid if known) so the uploader includes it.

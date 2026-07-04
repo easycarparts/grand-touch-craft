@@ -31,6 +31,7 @@
     "ads:repoint-final-urls": "node scripts/google-ads/repoint-final-urls.mjs",
     "ads:rebuild-structure": "node scripts/google-ads/rebuild-structure.mjs",
     "ads:add-assets": "node scripts/google-ads/add-assets.mjs",
+    "ads:upload-offline": "node scripts/google-ads/upload-offline-conversions.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "prerender": "node scripts/prerender.js"
