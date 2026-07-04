@@ -1,11 +1,16 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { loadWorkflowConfig, mutate, searchStream, googleAdsPost } from "./api.mjs";
+import { loadWorkflowConfig, mutate, searchStream } from "./api.mjs";
 
 /**
  * Offline conversion upload: CRM (Supabase) -> Google Ads.
  * Plan: docs/google-fresh-start-plan-2026-07-04.md §4 / handoff §4.
+ *
+ * Uploads via the DATA MANAGER API (datamanager.googleapis.com/v1/events:ingest).
+ * The Google Ads API's ConversionUploadService rejected us with
+ * CUSTOMER_NOT_ALLOWLISTED_FOR_THIS_FEATURE — new integrations must use Data
+ * Manager: https://developers.google.com/data-manager/api/devguides/events/google-ads/offline
  *
  * What it uploads (Google-attributed leads only):
  *   - status reached qualified/quoted  -> "CRM Qualified Lead"
@@ -23,9 +28,11 @@ import { loadWorkflowConfig, mutate, searchStream, googleAdsPost } from "./api.m
  * do NOT change what campaign 23996324292 bids toward during the 14-day freeze.
  * Promotion later = add "CRM Qualified Lead" to custom goal 6458221953.
  *
- * Re-runs are safe: orderId = lead id, so Google rejects duplicates.
+ * Re-runs are safe: transactionId = lead id, so Google dedupes repeats.
+ * Ingest is ASYNC — per-event outcomes are checked later:
+ *   node scripts/google-ads/upload-offline-conversions.mjs --env=.env.google-ads --check=<requestId>
  *
- * SAFE BY DEFAULT: dry-run (prints, writes nothing) unless you pass `--apply`.
+ * SAFE BY DEFAULT: dry-run (validateOnly ingest, writes nothing) unless `--apply`.
  * Usage:
  *   node scripts/google-ads/upload-offline-conversions.mjs --env=.env.google-ads
  *   node scripts/google-ads/upload-offline-conversions.mjs --env=.env.google-ads --apply
@@ -33,7 +40,15 @@ import { loadWorkflowConfig, mutate, searchStream, googleAdsPost } from "./api.m
  * Needs in .env.supabase (or --supabase-env=...):
  *   VITE_SUPABASE_URL=...            (already there)
  *   SUPABASE_SERVICE_ROLE_KEY=...    (Supabase dashboard -> Settings -> API -> service_role)
+ *
+ * Prereq (one-time): enable "Data Manager API" on the Google Cloud project that
+ * owns the service account — the error message links straight to the enable page
+ * if it is off.
  */
+
+const DATA_MANAGER_ENDPOINT = "https://datamanager.googleapis.com/v1";
+const DATA_MANAGER_SCOPE = "https://www.googleapis.com/auth/datamanager";
+const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 const QUALIFIED_ACTION_NAME = "CRM Qualified Lead";
 const WON_ACTION_NAME = "CRM Closed Won";
@@ -41,12 +56,68 @@ const DUBAI_OFFSET = "+04:00";
 const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
 
 function parseOptions(argv) {
-  const options = { apply: false, supabaseEnv: ".env.supabase" };
+  const options = { apply: false, supabaseEnv: ".env.supabase", check: "" };
   for (const arg of argv) {
     if (arg === "--apply") options.apply = true;
     if (arg.startsWith("--supabase-env=")) options.supabaseEnv = arg.split("=")[1];
+    if (arg.startsWith("--check=")) options.check = arg.split("=")[1];
   }
   return options;
+}
+
+// --- Data Manager API auth (same service account, different scope) ---
+const base64Url = (input) =>
+  Buffer.from(input).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+
+async function getDataManagerToken(config) {
+  const keyData = JSON.parse(fs.readFileSync(config.serviceAccountKeyPath, "utf8"));
+  const now = Math.floor(Date.now() / 1000);
+  const unsigned = `${base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }))}.${base64Url(
+    JSON.stringify({
+      iss: keyData.client_email,
+      scope: DATA_MANAGER_SCOPE,
+      aud: TOKEN_URL,
+      exp: now + 3600,
+      iat: now,
+    }),
+  )}`;
+  const signer = crypto.createSign("RSA-SHA256");
+  signer.update(unsigned);
+  const jwt = `${unsigned}.${base64Url(signer.sign(keyData.private_key))}`;
+
+  const response = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok || !json.access_token) {
+    throw new Error(`Data Manager token request failed (${response.status}): ${JSON.stringify(json).slice(0, 400)}`);
+  }
+  return json.access_token;
+}
+
+async function dataManagerPost(config, method, body) {
+  const token = await getDataManagerToken(config);
+  const response = await fetch(`${DATA_MANAGER_ENDPOINT}/${method}`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const text = await response.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(`Data Manager returned non-JSON (${response.status}): ${text.slice(0, 400)}`);
+  }
+  if (!response.ok) {
+    throw new Error(`Data Manager ${method} failed (${response.status}): ${JSON.stringify(json, null, 2).slice(0, 2000)}`);
+  }
+  return json;
 }
 
 function parseEnvFile(filePath) {
@@ -109,8 +180,9 @@ function toDubaiDateTime(isoTimestamp) {
   if (!Number.isFinite(utcMs)) return null;
   const local = new Date(utcMs + DUBAI_OFFSET_MS);
   const pad = (n) => String(n).padStart(2, "0");
+  // RFC 3339 with Dubai offset, as Data Manager expects
   return (
-    `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())} ` +
+    `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}T` +
     `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}${DUBAI_OFFSET}`
   );
 }
@@ -244,8 +316,10 @@ async function fetchCrmConversions(sb) {
   return { transitions, leads };
 }
 
+const actionIdFrom = (resourceName) => String(resourceName || "").split("/").pop();
+
 function buildUploads(actionResourceNames, transitions, leads) {
-  const uploads = [];
+  const uploads = []; // { actionName, actionId, event, display }
   const skipped = { notGoogle: 0, noIdentifiers: 0 };
 
   for (const lead of leads) {
@@ -264,41 +338,43 @@ function buildUploads(actionResourceNames, transitions, leads) {
     const entry = transitions.get(lead.id) || {};
     const buckets = [
       entry.qualified && {
-        action: actionResourceNames.get(QUALIFIED_ACTION_NAME),
         actionName: QUALIFIED_ACTION_NAME,
+        actionId: actionIdFrom(actionResourceNames.get(QUALIFIED_ACTION_NAME)),
         time: entry.qualified,
         value: null,
       },
       entry.won && {
-        action: actionResourceNames.get(WON_ACTION_NAME),
         actionName: WON_ACTION_NAME,
+        actionId: actionIdFrom(actionResourceNames.get(WON_ACTION_NAME)),
         time: entry.won,
         value: Number(lead.latest_quote_estimate) > 0 ? Number(lead.latest_quote_estimate) : null,
       },
     ].filter(Boolean);
 
     for (const bucket of buckets) {
-      const conversionDateTime = toDubaiDateTime(bucket.time);
-      if (!conversionDateTime || !bucket.action) continue;
+      const eventTimestamp = toDubaiDateTime(bucket.time);
+      if (!eventTimestamp || !bucket.actionId) continue;
 
-      const conversion = {
-        conversionAction: bucket.action,
-        conversionDateTime,
-        orderId: lead.id,
+      const event = {
+        eventTimestamp,
+        transactionId: lead.id, // dedupe key across re-runs
+        eventSource: "WEB",
       };
-      if (gclid) conversion.gclid = gclid;
-      if (e164) conversion.userIdentifiers = [{ hashedPhoneNumber: sha256(e164) }];
+      if (gclid) event.adIdentifiers = { gclid };
+      if (e164) event.userData = { userIdentifiers: [{ phoneNumber: sha256(e164) }] };
       if (bucket.value) {
-        conversion.conversionValue = bucket.value;
-        conversion.currencyCode = "AED";
+        event.conversionValue = bucket.value;
+        event.currency = "AED";
       }
 
       uploads.push({
-        conversion,
+        actionName: bucket.actionName,
+        actionId: bucket.actionId,
+        event,
         display: {
           leadId: lead.id,
           action: bucket.actionName,
-          time: conversionDateTime,
+          time: eventTimestamp,
           gclid: gclid ? "yes" : "no (phone match)",
           phone: maskPhone(e164),
           value: bucket.value || "",
@@ -311,34 +387,43 @@ function buildUploads(actionResourceNames, transitions, leads) {
   return { uploads, skipped };
 }
 
-function summarizePartialFailure(result, uploads) {
-  const failure = result.partialFailureError;
-  if (!failure) return { uploaded: uploads.length, duplicates: 0, failed: 0 };
+async function ingestForAction(config, actionId, actionName, events, options) {
+  const request = {
+    destinations: [
+      {
+        operatingAccount: { accountType: "GOOGLE_ADS", accountId: config.customerId },
+        productDestinationId: actionId,
+      },
+    ],
+    events,
+    consent: { adUserData: "CONSENT_GRANTED", adPersonalization: "CONSENT_GRANTED" },
+    encoding: "HEX",
+    validateOnly: !options.apply,
+  };
 
-  let duplicates = 0;
-  let failed = 0;
-  const details = failure.details || [];
-  for (const detail of details) {
-    for (const error of detail.errors || []) {
-      const code = Object.values(error.errorCode || {}).join(".");
-      const index = error.location?.fieldPathElements?.find((e) => e.fieldName === "conversions")?.index ?? "?";
-      if (String(code).includes("DUPLICATE") || String(error.message).toLowerCase().includes("duplicate")) {
-        duplicates += 1;
-      } else {
-        failed += 1;
-        console.warn(`  row ${index}: ${code} — ${error.message}`);
-      }
-    }
-  }
-  return { uploaded: uploads.length - duplicates - failed, duplicates, failed };
+  const result = await dataManagerPost(config, "events:ingest", request);
+  const label = options.apply ? "INGESTED" : "VALIDATED (dry-run)";
+  console.log(`${label} ${events.length} event(s) -> ${actionName} (action ${actionId}). requestId: ${result.requestId || "(none)"}`);
+  return result.requestId;
 }
 
 try {
   const options = parseOptions(process.argv.slice(2));
   const config = loadWorkflowConfig(process.argv.slice(2));
+
+  if (options.check) {
+    const token = await getDataManagerToken(config);
+    const response = await fetch(
+      `${DATA_MANAGER_ENDPOINT}/requestStatus:retrieve?requestId=${encodeURIComponent(options.check)}`,
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    console.log(JSON.stringify(await response.json(), null, 2));
+    process.exit(0);
+  }
+
   const sb = loadSupabaseConfig(options);
 
-  console.log(`Mode: ${options.apply ? "APPLY" : "DRY-RUN (nothing uploaded)"}`);
+  console.log(`Mode: ${options.apply ? "APPLY" : "DRY-RUN (validateOnly — nothing recorded)"}`);
 
   const ecl = await checkEnhancedConversionsSetting(config);
   if (!ecl.eclEnabled || !ecl.acceptedCustomerDataTerms) {
@@ -371,26 +456,34 @@ try {
     console.table(uploads.map((u) => u.display));
   }
 
-  if (!options.apply) {
-    console.log("Dry-run complete — nothing uploaded. Re-run with --apply.");
-    process.exit(0);
-  }
-
   if (!uploads.length) {
     console.log("Nothing to upload.");
     process.exit(0);
   }
 
-  const result = await googleAdsPost(config, `customers/${config.customerId}:uploadClickConversions`, {
-    conversions: uploads.map((u) => u.conversion),
-    partialFailure: true,
-  });
+  const requestIds = [];
+  for (const actionName of [QUALIFIED_ACTION_NAME, WON_ACTION_NAME]) {
+    const group = uploads.filter((u) => u.actionName === actionName);
+    if (!group.length) continue;
+    const requestId = await ingestForAction(
+      config,
+      group[0].actionId,
+      actionName,
+      group.map((u) => u.event),
+      options,
+    );
+    if (requestId) requestIds.push(requestId);
+  }
 
-  const summary = summarizePartialFailure(result, uploads);
-  console.log(
-    `Uploaded: ${summary.uploaded} | duplicates (already uploaded before): ${summary.duplicates} | failed: ${summary.failed}`,
-  );
-  console.log("Note: Google can take up to 3h to show uploaded conversions, reported at click date.");
+  if (!options.apply) {
+    console.log("Dry-run complete — Google validated the payload, nothing recorded. Re-run with --apply.");
+  } else {
+    console.log(
+      `Done. Ingest is async — check processing later with --check=<requestId>. ` +
+        `Conversions appear in Google Ads within ~3h, reported at click date.`,
+    );
+    if (requestIds.length) console.log(`requestIds: ${requestIds.join(", ")}`);
+  }
 } catch (error) {
   console.error("upload-offline-conversions failed.");
   console.error(error.message);
