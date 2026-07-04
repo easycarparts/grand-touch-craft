@@ -109,6 +109,8 @@ function App() {
             <Route path="/paint-protection-film-dubai" element={<PpfWhatsAppDirect />} />
             <Route path="/ppf-tiktok-full-car-ppf" element={<PpfFullPpfGuidedCalculator variant="tiktok" />} />
             <Route path="/ppf-dubai-quote" element={<PpfFullPpfGuidedCalculatorV2 variant="dubai_quote" />} />
+            {/* Google fresh-start funnel (Jul 2026): price shown openly, soft capture. */}
+            <Route path="/ppf-dubai-price" element={<PpfFullPpfGuidedCalculatorV2 variant="price" />} />
             <Route path="/ppf-tiktok-quote" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote-v2" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote_2" element={<PpfDubaiQuote variant="tiktok" />} />

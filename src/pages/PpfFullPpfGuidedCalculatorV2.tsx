@@ -79,7 +79,7 @@ import logo from "@/assets/logo.svg";
 
 type PackageYears = 5 | 10 | 12;
 type FlowStep = "size" | "finish" | "package" | "result";
-type GuidedCalculatorVariant = "google" | "tiktok" | "meta" | "dubai_quote" | "v3";
+type GuidedCalculatorVariant = "google" | "tiktok" | "meta" | "dubai_quote" | "v3" | "price";
 
 type GuidedCalculatorVariantConfig = {
   seoKey: string;
@@ -234,6 +234,46 @@ const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVaria
     messageIntro: "Hi Sean, I built a guided full PPF setup on the Grand Touch page.",
     phoneCaptureServiceName: "Guided Full PPF V3 - Phone Captured At Warranty Step",
     bonusClaimServiceName: "Guided Full PPF V3 Bonus Claim",
+  },
+  // PRICE (2026-07): the Google fresh-start funnel. Intent-matched for paid
+  // search ("ppf price dubai" etc.): the exact price is SHOWN openly after the
+  // calculator (no gate, no pre-chat popup — the V3 gate suppressed high-intent
+  // searchers). Capture is soft: after the price reveals, the primary action is
+  // "WhatsApp me this exact quote" (phone -> CRM save -> WhatsApp with the quote
+  // pre-filled). Only post-price WhatsApp taps count as Google conversions.
+  price: {
+    seoKey: "ppf-dubai-price",
+    funnelName: "ppf_google_price_2026h2",
+    landingPageVariant: "google_price_2026h2",
+    defaultSourcePlatform: "google",
+    calculatorType: "guided_full_ppf_price",
+    pageUrl: "https://www.grandtouchauto.ae/ppf-dubai-price",
+    seo: {
+      title: "PPF Dubai Price | See Your Exact Full Car PPF Price",
+      description:
+        "See your exact full car PPF price in Dubai in 60 seconds — car size, finish, warranty, done. Genuine STEK film, free pickup across Dubai, price shown instantly.",
+      keywords:
+        "ppf price dubai, ppf cost dubai, ppf dubai, paint protection film dubai, full car ppf price dubai, stek ppf price, car ppf cost, PPF installer Dubai",
+      ogTitle: "PPF Dubai Price — See Your Exact Price",
+      ogDescription:
+        "Answer three quick questions and your exact full-car PPF price appears instantly. Genuine STEK film, free pickup across Dubai.",
+    },
+    eyebrow: "Premium PPF - Dubai",
+    headline: "See Your Exact",
+    headlineAccent: "PPF Price in Dubai.",
+    mobileIntro:
+      "Three quick taps — car size, finish, warranty — and your exact price appears. No number needed to see it.",
+    desktopIntro:
+      "Answer three quick questions — car size, finish, warranty — and your exact full-car PPF price appears instantly. No phone number needed to see the price.",
+    campaignIntro:
+      "Built for Dubai drivers comparing paint protection film, full body PPF, STEK PPF, and full car PPF installation costs.",
+    campaignTerms: ["PPF Dubai", "Paint protection film", "PPF price", "Full body PPF"],
+    primaryCta: "See my exact price (60s)",
+    secondaryCta: "WhatsApp Sean",
+    proofPoints: ["Price shown instantly", "No commitment", "Sean reviews each setup"],
+    messageIntro: "Hi Sean, I priced my car on the Grand Touch PPF price page.",
+    phoneCaptureServiceName: "Google Price 2026H2 - Phone Captured At Warranty Step",
+    bonusClaimServiceName: "Google Price 2026H2 Quote Claim",
   },
   tiktok: {
     seoKey: "ppf-tiktok-full-car-ppf",
@@ -1362,12 +1402,15 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   // dubai_quote + v3 reuse the Google funnel's conversion behaviour, so they
   // count as a "Google" variant here.
   const isGoogleVariant =
-    variant === "google" || variant === "dubai_quote" || variant === "v3";
+    variant === "google" || variant === "dubai_quote" || variant === "v3" || variant === "price";
   const isTikTokVariant = variant === "tiktok";
   // Gated funnels (V3 + Meta): hide the exact price behind the form, drop the
   // name requirement, and make WhatsApp a direct 1-tap (no pre-chat popup).
   const isGated = variant === "v3" || variant === "meta";
   const isMetaVariant = variant === "meta";
+  // PRICE variant (Google fresh start): price shown openly, no popup, phone-only
+  // soft capture, and only QUALIFIED (post-price) WhatsApp taps count.
+  const isPriceVariant = variant === "price";
   const offerTickerItems = isTikTokVariant ? tiktokTopOffers : topOffers;
   const [step, setStep] = useState<FlowStep>("size");
   const [size, setSize] = useState<PpfPricingSize | null>(null);
@@ -1577,7 +1620,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     listPrice !== null && targetPrice !== null ? listPrice - targetPrice : null;
   const firstName = name.trim().split(/\s+/)[0] ?? "";
   // V3 needs only a valid phone (name optional) to cut last-step friction.
-  const canUnlock = (isGated || name.trim().length >= 2) && phoneCaptured;
+  const canUnlock = (isGated || isPriceVariant || name.trim().length >= 2) && phoneCaptured;
+  // PRICE variant capture intent: "whatsapp" = save then open WhatsApp with the
+  // quote (primary); "lock" = save only (secondary, for quiet researchers).
+  const priceCaptureIntentRef = useRef<"whatsapp" | "lock">("whatsapp");
   // Meta traffic runs "lead-form" style: no direct-WhatsApp escape until the
   // visitor has qualified (calculator complete). Owner data: drive-by Meta
   // WhatsApp chats essentially never close. Google/v3 keeps direct WhatsApp.
@@ -2172,7 +2218,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     // (calculator complete) count, so Smart Bidding optimises toward buyers who
     // qualified themselves — raw drive-by taps rarely close and would train
     // Google to find tyre-kickers. Ungated variants keep counting every tap.
-    if (!isGated || (isComplete && estimate !== null)) {
+    if ((!isGated && !isPriceVariant) || (isComplete && estimate !== null)) {
       trackGoogleWhatsAppContactConversion(estimate ?? undefined);
     }
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
@@ -2252,7 +2298,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     // like the proven V1 funnel. The gated calculator is the rewarded path for
     // people who choose to build their price — it's never a wall in front of
     // WhatsApp. (Other variants keep the soft pre-chat nudge.)
-    if (isGated || (isComplete && estimate !== null)) {
+    if (isGated || isPriceVariant || (isComplete && estimate !== null)) {
       handleWhatsApp(placement);
       return;
     }
@@ -2304,7 +2350,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     }
     if (discountUnlocked || unlocking) return;
 
-    if (!isGated && name.trim().length < 2) {
+    if (!isGated && !isPriceVariant && name.trim().length < 2) {
       setFormStatus("error");
       return;
     }
@@ -2391,8 +2437,32 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       }
     }
 
+    if (!result.ok) {
+      // LOUD failure signal: a Google Ads "Submit lead form" conversion with no
+      // matching CRM lead (2026-07-03) means silent save failures cost real
+      // paid leads. Surface every failure in analytics so it can't hide.
+      trackEvent(
+        "lead_save_failed",
+        {
+          capture_location: "result_discount_unlock",
+          reason: ("reason" in result ? result.reason : null) ?? "unknown",
+          ...buildPayload(),
+        },
+        { emitToTagManagers: false },
+      );
+    }
+
     setUnlocking(false);
     setFormStatus(result.ok ? "saved" : "error");
+
+    // PRICE variant, primary intent: never lose the human. Open WhatsApp with
+    // the quote pre-filled even if the CRM save failed (the failure is logged
+    // above). Analytics-only tap — the counted conversion already fired on a
+    // successful save, and a failed save must not fire one.
+    if (isPriceVariant && priceCaptureIntentRef.current === "whatsapp") {
+      trackWhatsAppContact("result_price_auto_whatsapp");
+      window.open(buildWhatsAppUrl(buildLockedInWhatsAppMessage()), "_blank", "noopener,noreferrer");
+    }
   };
 
   /**
@@ -3571,7 +3641,9 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                               <Lock className="h-4 w-4 shrink-0" />
                               {isGated
                                 ? "Enter your number to reveal your price + 20% off"
-                                : `Enter your details below to get ${targetPrice !== null ? formatAED(targetPrice) : "this price"}`}
+                                : isPriceVariant
+                                  ? `WhatsApp yourself this exact quote — ${targetPrice !== null ? formatAED(targetPrice) : "your price"}`
+                                  : `Enter your details below to get ${targetPrice !== null ? formatAED(targetPrice) : "this price"}`}
                             </p>
                             <p className="mt-0.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-black/65 sm:text-[11px]">
                               {isGated
@@ -3593,7 +3665,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                             className="h-12 w-full bg-[#25D366] font-black text-white shadow-[0_18px_48px_rgba(37,211,102,0.32)] hover:bg-[#20bf5d]"
                           >
                             <MessageCircle className="mr-2 h-4 w-4" />
-                            Send my locked-in price to Sean
+                            {isPriceVariant ? "Open WhatsApp with my quote" : "Send my locked-in price to Sean"}
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
                           <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-[11px]">
@@ -3603,7 +3675,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                       ) : (
                         <>
                         <form onSubmit={handleUnlockDiscount} className="mt-3">
-                          <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5">
+                          <div className={cn("grid gap-2 sm:gap-2.5", !isPriceVariant && "sm:grid-cols-2")}>
+                            {!isPriceVariant ? (
                             <Input
                               value={name}
                               onChange={(event) => {
@@ -3616,6 +3689,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                               aria-label="Your name"
                               className="h-11 border-white/20 bg-white/[0.05] text-white placeholder:text-slate-500 focus-visible:border-[#f7b52b]/70 focus-visible:ring-[#f7b52b]/30"
                             />
+                            ) : null}
                             <PhoneInputWithCountry
                               value={phone}
                               onChange={(value) => {
@@ -3636,9 +3710,14 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                             type="submit"
                             size="lg"
                             disabled={!canUnlock || unlocking}
+                            onClick={() => {
+                              priceCaptureIntentRef.current = "whatsapp";
+                            }}
                             className={cn(
-                              "mt-2.5 h-12 w-full font-black text-black shadow-[0_18px_48px_rgba(247,181,43,0.32)]",
-                              "bg-[#f7b52b] hover:bg-[#ffc94f]",
+                              "mt-2.5 h-12 w-full font-black shadow-[0_18px_48px_rgba(247,181,43,0.32)]",
+                              isPriceVariant
+                                ? "bg-[#25D366] text-white hover:bg-[#20bf5d] shadow-[0_18px_48px_rgba(37,211,102,0.32)]"
+                                : "bg-[#f7b52b] text-black hover:bg-[#ffc94f]",
                               "disabled:bg-white/10 disabled:text-white/45 disabled:shadow-none",
                               canUnlock && !unlocking
                                 ? "animate-guided-free-pulse motion-reduce:animate-none"
@@ -3646,7 +3725,13 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                             )}
                           >
                             {unlocking ? (
-                              "Unlocking..."
+                              "Saving..."
+                            ) : isPriceVariant ? (
+                              <>
+                                <MessageCircle className="mr-2 h-4 w-4" />
+                                WhatsApp me this exact quote
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                              </>
                             ) : (
                               <>
                                 <Lock className="mr-2 h-4 w-4" />
@@ -3655,7 +3740,19 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                               </>
                             )}
                           </Button>
-                          {formStatus === "error" && name.trim().length < 2 ? (
+                          {isPriceVariant ? (
+                            <button
+                              type="submit"
+                              disabled={!canUnlock || unlocking}
+                              onClick={() => {
+                                priceCaptureIntentRef.current = "lock";
+                              }}
+                              className="mt-2.5 w-full text-center text-[11px] font-semibold text-slate-400 underline-offset-4 hover:text-slate-200 hover:underline disabled:opacity-40 sm:text-xs"
+                            >
+                              Just lock this price for 14 days — no WhatsApp yet
+                            </button>
+                          ) : null}
+                          {formStatus === "error" && !isPriceVariant && name.trim().length < 2 ? (
                             <p className="mt-2 text-xs text-red-300 sm:text-sm">
                               Please add your name to lock in your price.
                             </p>
@@ -3665,7 +3762,13 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                               Please enter a valid WhatsApp number to lock in your price.
                             </p>
                           ) : null}
-                          {formStatus === "error" && name.trim().length >= 2 ? (
+                          {formStatus === "error" && isPriceVariant ? (
+                            <p className="mt-2 text-xs text-amber-300 sm:text-sm">
+                              We couldn't save your quote just now — your WhatsApp message has all the
+                              details, or tap again to retry.
+                            </p>
+                          ) : null}
+                          {formStatus === "error" && !isPriceVariant && name.trim().length >= 2 ? (
                             <p className="mt-2 text-xs text-amber-300 sm:text-sm">
                               Your 20% is locked in — we'll save it when you message Sean.
                             </p>

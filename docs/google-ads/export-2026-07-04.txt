@@ -1,0 +1,136 @@
+=== DOCTOR ===
+
+> vite_react_shadcn_ts@0.0.0 ads:doctor
+> node scripts/google-ads/doctor.mjs
+
+Google Ads API connection looks good.
+Customer ID: 5268213497
+Account name: undefined
+Currency: AED
+Timezone: Asia/Dubai
+Manager account: no
+=== CAMPAIGNS 14D ===
+
+> vite_react_shadcn_ts@0.0.0 ads:campaigns
+> node scripts/google-ads/campaigns.mjs
+
+┌─────────┬─────────────────────────────────────────────┬───────────┬─────────────┬────────┬─────────┬───────────┬───────────┬─────────────┬────────────────┐
+│ (index) │ campaign                                    │ status    │ impressions │ clicks │ ctr     │ avgCpcAed │ costAed   │ conversions │ costPerConvAed │
+├─────────┼─────────────────────────────────────────────┼───────────┼─────────────┼────────┼─────────┼───────────┼───────────┼─────────────┼────────────────┤
+│ 0       │ 'PPF Search UAE - WhatsApp - May 2026'      │ 'ENABLED' │ 3345        │ 168    │ '5.02%' │ '14.01'   │ '2354.28' │ '9.00'      │ '261.59'       │
+│ 1       │ 'Leads-Search-1'                            │ 'PAUSED'  │ 0           │ 0      │ '0.00%' │ '0.00'    │ '0.00'    │ '0.00'      │ '0.00'         │
+│ 2       │ 'PPF Search Dubai - High Intent - May 2026' │ 'PAUSED'  │ 0           │ 0      │ '0.00%' │ '0.00'    │ '0.00'    │ '0.00'      │ '0.00'         │
+│ 3       │ 'PPF Search UAE - Calculator AB - May 2026' │ 'PAUSED'  │ 0           │ 0      │ '0.00%' │ '0.00'    │ '0.00'    │ '0.00'      │ '0.00'         │
+│ 4       │ 'PPF V2 Funnel Test - June 2026'            │ 'PAUSED'  │ 0           │ 0      │ '0.00%' │ '0.00'    │ '0.00'    │ '0.00'      │ '0.00'         │
+└─────────┴─────────────────────────────────────────────┴───────────┴─────────────┴────────┴─────────┴───────────┴───────────┴─────────────┴────────────────┘
+=== CAMPAIGNS 30D ===
+
+> vite_react_shadcn_ts@0.0.0 ads:campaigns
+> node scripts/google-ads/campaigns.mjs
+
+┌─────────┬─────────────────────────────────────────────┬───────────┬─────────────┬────────┬─────────┬───────────┬───────────┬─────────────┬────────────────┐
+│ (index) │ campaign                                    │ status    │ impressions │ clicks │ ctr     │ avgCpcAed │ costAed   │ conversions │ costPerConvAed │
+├─────────┼─────────────────────────────────────────────┼───────────┼─────────────┼────────┼─────────┼───────────┼───────────┼─────────────┼────────────────┤
+│ 0       │ 'PPF Search UAE - WhatsApp - May 2026'      │ 'ENABLED' │ 6055        │ 274    │ '4.53%' │ '16.12'   │ '4418.13' │ '29.00'     │ '152.35'       │
+│ 1       │ 'PPF V2 Funnel Test - June 2026'            │ 'PAUSED'  │ 200         │ 15     │ '7.50%' │ '39.12'   │ '586.76'  │ '0.00'      │ '0.00'         │
+│ 2       │ 'Leads-Search-1'                            │ 'PAUSED'  │ 0           │ 0      │ '0.00%' │ '0.00'    │ '0.00'    │ '0.00'      │ '0.00'         │
+│ 3       │ 'PPF Search Dubai - High Intent - May 2026' │ 'PAUSED'  │ 0           │ 0      │ '0.00%' │ '0.00'    │ '0.00'    │ '0.00'      │ '0.00'         │
+│ 4       │ 'PPF Search UAE - Calculator AB - May 2026' │ 'PAUSED'  │ 0           │ 0      │ '0.00%' │ '0.00'    │ '0.00'    │ '0.00'      │ '0.00'         │
+└─────────┴─────────────────────────────────────────────┴───────────┴─────────────┴────────┴─────────┴───────────┴───────────┴─────────────┴────────────────┘
+=== REVIEW 14D ===
+
+> vite_react_shadcn_ts@0.0.0 ads:review
+> node scripts/google-ads/review.mjs
+
+Google Ads review for the last 14 day(s)
+
+Summary
+  Impressions: 3345
+  Clicks: 168
+  Cost: AED 2354.28
+  Conversions: 9.00
+  CTR: 5.02%
+  Avg CPC: AED 14.01
+  Conversion rate: 5.36%
+  Cost per conversion: AED 261.59
+
+Highest-cost search terms with zero conversions
+  - ppf coating | cost AED 66.18 | clicks 4 | conversions 0
+  - stek dynoshield | cost AED 64.42 | clicks 3 | conversions 0
+  - car ppf cost | cost AED 38.24 | clicks 4 | conversions 0
+  - rma ppf | cost AED 35.58 | clicks 2 | conversions 0
+  - car paint protection film | cost AED 32.48 | clicks 2 | conversions 0
+  - ppf matte | cost AED 28.71 | clicks 1 | conversions 0
+  - ppf dynoshield | cost AED 28.19 | clicks 1 | conversions 0
+  - paint protection film | cost AED 23.90 | clicks 2 | conversions 0
+  - black diamond ppf | cost AED 23.87 | clicks 1 | conversions 0
+  - ppf matte wrap | cost AED 23.80 | clicks 1 | conversions 0
+
+Likely negative keyword candidates
+  - ppf matte wrap | cost AED 23.80 | clicks 1 | conversions 0
+  - al sewar auto tyres kalba total energies i ppf i ceramic coating i mechanical i electrical i car wash | cost AED 23.15 | clicks 1 | conversions 0
+  - smart auto mirdif window tinting car detailing nano ceramic coating paint protection film car polishing dubai | cost AED 22.72 | clicks 1 | conversions 0
+  - ppf wrap near me | cost AED 13.71 | clicks 1 | conversions 0
+  - 3m ppf dubai | cost AED 0.00 | clicks 0 | conversions 0
+  - al nisar auto car detailing ppf & window tinting dubai | cost AED 0.00 | clicks 0 | conversions 0
+  - car plaza dubai modification & accessories car android screen car wrapping car seat covers ppf installation in dubai | cost AED 0.00 | clicks 0 | conversions 0
+  - car plaza dubai modification and accessories car android screen car wrapping car seat covers ppf installation in dubai | cost AED 0.00 | clicks 0 | conversions 0
+  - car protective wrap | cost AED 0.00 | clicks 0 | conversions 0
+  - ceramic coating or ppf which is best for car | cost AED 0.00 | clicks 0 | conversions 0
+
+Top converting search terms
+  - stek ppf price | cost AED 109.77 | clicks 3 | conversions 1
+  - ppf | cost AED 80.06 | clicks 5 | conversions 1
+  - ppf للسيارات | cost AED 57.68 | clicks 4 | conversions 1
+  - what is car ppf coating | cost AED 14.67 | clicks 1 | conversions 1
+=== CONVERSIONS ===
+
+> vite_react_shadcn_ts@0.0.0 ads:conversions
+> node scripts/google-ads/conversions.mjs
+
+┌─────────┬──────────────┬─────────────────────────────────────┬───────────┬───────────────────────────────┬─────────────────┬────────────────────┬─────────┬───────────────────────┬──────────────────┬────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ (index) │ id           │ name                                │ status    │ type                          │ origin          │ category           │ primary │ includedInConversions │ countingType     │ ownerCustomer          │ tagSnippetPreview                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                │
+├─────────┼──────────────┼─────────────────────────────────────┼───────────┼───────────────────────────────┼─────────────────┼────────────────────┼─────────┼───────────────────────┼──────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 0       │ '7576759600' │ 'Clicks to call'                    │ 'ENABLED' │ 'GOOGLE_HOSTED'               │ 'GOOGLE_HOSTED' │ 'CONTACT'          │ true    │ false                 │ 'MANY_PER_CLICK' │ 'customers/5268213497' │ ''                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               │
+│ 1       │ '7569549326' │ 'Local actions - Directions'        │ 'ENABLED' │ 'GOOGLE_HOSTED'               │ 'GOOGLE_HOSTED' │ 'GET_DIRECTIONS'   │ true    │ false                 │ 'MANY_PER_CLICK' │ 'customers/5268213497' │ ''                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               │
+│ 2       │ '7575550723' │ 'Local actions - Other engagements' │ 'ENABLED' │ 'GOOGLE_HOSTED'               │ 'GOOGLE_HOSTED' │ 'ENGAGEMENT'       │ true    │ false                 │ 'MANY_PER_CLICK' │ 'customers/5268213497' │ ''                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               │
+│ 3       │ '7569208694' │ 'Submit lead form'                  │ 'ENABLED' │ 'WEBPAGE'                     │ 'WEBSITE'       │ 'SUBMIT_LEAD_FORM' │ true    │ true                  │ 'MANY_PER_CLICK' │ 'customers/5268213497' │ `type=WEBPAGE_ONCLICK | pageFormat=HTML | globalSiteTag=yes | eventSnippet=<!-- Event snippet for Submit lead form conversion page In your html page, add the snippet and call gtag_report_conversion when someone clic... || type=WEBPAGE_ONCLICK | pageFormat=AMP | globalSiteTag=yes | eventSnippet="C_ai6FoTGzJ-Y": { "on": "click", "selector": "CSS_SELECTOR", "vars": { "event_name": "conversion", "value": 1.0, "currency": "AED", "send_t... || type=WEBPAGE | pageFormat=HTML | globalSiteTag=yes | eventSnippet=<!-- Event snippet for Submit lead form conversion page --> <script> gtag('event', 'conversion', { 'send_to': 'AW-17684563059/5R6tCPbqo5kcEP... || type=WEBPAGE | pageFormat=AMP | globalSiteTag=yes | eventSnippet="C_ai6FoTGzJ-Y": { "on": "visible", "vars": { "event_name": "conversion", "value": 1.0, "currency": "AED", "send_to": ["AW-17684563059/5R6tC...` │
+│ 4       │ '7649703525' │ 'WhatsApp before lead form (V2)'    │ 'ENABLED' │ 'WEBPAGE'                     │ 'WEBSITE'       │ 'CONTACT'          │ false   │ false                 │ 'ONE_PER_CLICK'  │ 'customers/5268213497' │ `type=WEBPAGE_ONCLICK | pageFormat=HTML | globalSiteTag=yes | eventSnippet=<!-- Event snippet for WhatsApp before lead form (V2) conversion page In your html page, add the snippet and call gtag_report_conversion whe... || type=WEBPAGE_ONCLICK | pageFormat=AMP | globalSiteTag=yes | eventSnippet="C_pEDKXLVSRbo": { "on": "click", "selector": "CSS_SELECTOR", "vars": { "event_name": "conversion", "value": 5000.0, "currency": "AED", "sen... || type=WEBPAGE | pageFormat=HTML | globalSiteTag=yes | eventSnippet=<!-- Event snippet for WhatsApp before lead form (V2) conversion page --> <script> gtag('event', 'conversion', { 'send_to': 'AW-17684563059/... || type=WEBPAGE | pageFormat=AMP | globalSiteTag=yes | eventSnippet="C_pEDKXLVSRbo": { "on": "visible", "vars": { "event_name": "conversion", "value": 5000.0, "currency": "AED", "send_to": ["AW-17684563059/q_...` │
+│ 5       │ '7617388951' │ 'WhatsApp contact click'            │ 'ENABLED' │ 'WEBPAGE'                     │ 'WEBSITE'       │ 'CONTACT'          │ true    │ true                  │ 'ONE_PER_CLICK'  │ 'customers/5268213497' │ `type=WEBPAGE_ONCLICK | pageFormat=HTML | globalSiteTag=yes | eventSnippet=<!-- Event snippet for WhatsApp contact click conversion page In your html page, add the snippet and call gtag_report_conversion when someon... || type=WEBPAGE_ONCLICK | pageFormat=AMP | globalSiteTag=yes | eventSnippet="C_xvnLina_5_E": { "on": "click", "selector": "CSS_SELECTOR", "vars": { "event_name": "conversion", "send_to": ["AW-17684563059/KqOWCJfDoLAc... || type=WEBPAGE | pageFormat=HTML | globalSiteTag=yes | eventSnippet=<!-- Event snippet for WhatsApp contact click conversion page --> <script> gtag('event', 'conversion', {'send_to': 'AW-17684563059/KqOWCJfDo... || type=WEBPAGE | pageFormat=AMP | globalSiteTag=yes | eventSnippet="C_xvnLina_5_E": { "on": "visible", "vars": { "event_name": "conversion", "send_to": ["AW-17684563059/KqOWCJfDoLAcEPOI1PBB"] } }`                │
+│ 6       │ '7359338535' │ 'grandtouchauto.ae (web) purchase'  │ 'HIDDEN'  │ 'GOOGLE_ANALYTICS_4_PURCHASE' │ 'WEBSITE'       │ 'PURCHASE'         │ false   │ false                 │ 'MANY_PER_CLICK' │ 'customers/5268213497' │ "type=WEBPAGE_ONCLICK | pageFormat=HTML | eventSnippet=<!-- Google tag (gtag.js) event - delayed navigation helper --> <script> // Helper function to delay opening a URL until a gtag event is sen... || type=WEBPAGE | pageFormat=HTML | eventSnippet=<!-- Google tag (gtag.js) event --> <script> gtag('event', 'purchase', { // <event_parameters> }); </script>"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            │
+└─────────┴──────────────┴─────────────────────────────────────┴───────────┴───────────────────────────────┴─────────────────┴────────────────────┴─────────┴───────────────────────┴──────────────────┴────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+=== DAILY BREAKDOWN ===
+
+=== DAILY (enabled campaigns) ===
+┌─────────┬──────────────┬──────┬────────┬──────────┬─────────────┐
+│ (index) │ date         │ impr │ clicks │ costAed  │ conversions │
+├─────────┼──────────────┼──────┼────────┼──────────┼─────────────┤
+│ 0       │ '2026-06-20' │ 237  │ 14     │ '271.92' │ '0.00'      │
+│ 1       │ '2026-06-21' │ 287  │ 15     │ '219.10' │ '0.00'      │
+│ 2       │ '2026-06-22' │ 364  │ 12     │ '214.86' │ '0.00'      │
+│ 3       │ '2026-06-23' │ 328  │ 12     │ '231.27' │ '0.00'      │
+│ 4       │ '2026-06-24' │ 127  │ 13     │ '175.03' │ '2.00'      │
+│ 5       │ '2026-06-25' │ 294  │ 13     │ '162.44' │ '1.00'      │
+│ 6       │ '2026-06-26' │ 197  │ 11     │ '146.50' │ '1.00'      │
+│ 7       │ '2026-06-27' │ 393  │ 14     │ '138.48' │ '1.00'      │
+│ 8       │ '2026-06-28' │ 330  │ 12     │ '129.95' │ '0.00'      │
+│ 9       │ '2026-06-29' │ 338  │ 14     │ '185.34' │ '1.00'      │
+│ 10      │ '2026-06-30' │ 207  │ 15     │ '135.87' │ '0.00'      │
+│ 11      │ '2026-07-01' │ 124  │ 17     │ '151.56' │ '2.00'      │
+│ 12      │ '2026-07-02' │ 190  │ 8      │ '167.51' │ '0.00'      │
+│ 13      │ '2026-07-03' │ 29   │ 6      │ '159.44' │ '1.00'      │
+└─────────┴──────────────┴──────┴────────┴──────────┴─────────────┘
+
+=== CONVERSIONS BY ACTION BY DATE ===
+┌─────────┬──────────────┬──────────────────────────┬────────┐
+│ (index) │ date         │ action                   │ conv   │
+├─────────┼──────────────┼──────────────────────────┼────────┤
+│ 0       │ '2026-06-24' │ 'WhatsApp contact click' │ '2.00' │
+│ 1       │ '2026-06-25' │ 'WhatsApp contact click' │ '1.00' │
+│ 2       │ '2026-06-26' │ 'WhatsApp contact click' │ '1.00' │
+│ 3       │ '2026-06-27' │ 'WhatsApp contact click' │ '1.00' │
+│ 4       │ '2026-06-29' │ 'WhatsApp contact click' │ '1.00' │
+│ 5       │ '2026-07-01' │ 'Submit lead form'       │ '1.00' │
+│ 6       │ '2026-07-01' │ 'WhatsApp contact click' │ '1.00' │
+│ 7       │ '2026-07-03' │ 'Submit lead form'       │ '1.00' │
+└─────────┴──────────────┴──────────────────────────┴────────┘

@@ -206,7 +206,6 @@ const AdminCloseRates = () => {
   }, [excludedSources, excludedFunnels]);
 
   const overall = stats?.overall ?? emptyOverall;
-  const decided = overall.won + overall.lost;
 
   // The by_owner section always covers all owners, so the selector never loses options.
   const ownerOptions = useMemo(
@@ -260,7 +259,7 @@ const AdminCloseRates = () => {
   return (
     <AdminShell
       title="Close Rates"
-      description="Lead-to-job conversion across funnels, sources, and owners. Won amounts are billed ex-VAT where jobs have been reconciled against the job card export, so revenue here reflects real invoiced work. 'Decided' means won + lost — leads that reached an outcome; open leads are not counted against the decided rate."
+      description="Lead-to-job conversion across funnels, sources, and owners. Won amounts are billed ex-VAT where jobs have been reconciled against the job card export, so revenue here reflects real invoiced work. Close rate = won ÷ all leads (excluding junk)."
     >
       <div className="flex flex-wrap items-center gap-3">
         <Select value={ownerFilter} onValueChange={setOwnerFilter}>
@@ -391,8 +390,7 @@ const AdminCloseRates = () => {
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Won</p>
           <p className="mt-3 text-3xl font-semibold text-emerald-200">{overall.won}</p>
           <p className="mt-2 text-sm text-slate-400">
-            {formatPercent(overall.won, overall.total)} of all leads ·{" "}
-            {formatPercent(overall.won, decided)} of decided
+            {formatPercent(overall.won, overall.total)} close rate
           </p>
         </Card>
         <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(10,10,10,0.96))] p-5">
@@ -423,8 +421,7 @@ const AdminCloseRates = () => {
                 <TableHead>Leads</TableHead>
                 <TableHead>Won</TableHead>
                 <TableHead>Lost</TableHead>
-                <TableHead>Close rate (all)</TableHead>
-                <TableHead>Close rate (decided)</TableHead>
+                <TableHead>Close rate</TableHead>
                 <TableHead>Revenue (ex VAT)</TableHead>
                 <TableHead>Avg follow-ups</TableHead>
                 <TableHead>Avg days to close</TableHead>
@@ -433,7 +430,7 @@ const AdminCloseRates = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-slate-400">
+                  <TableCell colSpan={8} className="text-slate-400">
                     Loading...
                   </TableCell>
                 </TableRow>
@@ -453,7 +450,6 @@ const AdminCloseRates = () => {
                     <TableCell className="text-emerald-200">{row.won}</TableCell>
                     <TableCell className="text-rose-200">{row.lost}</TableCell>
                     <TableCell>{formatPercent(row.won, row.total)}</TableCell>
-                    <TableCell>{formatPercent(row.won, row.won + row.lost)}</TableCell>
                     <TableCell>{formatAed(row.revenue)}</TableCell>
                     <TableCell>{row.avg_followups_won}</TableCell>
                     <TableCell>{row.avg_days_to_close || "—"}</TableCell>
@@ -482,15 +478,14 @@ const AdminCloseRates = () => {
                 <TableHead>Won</TableHead>
                 <TableHead>Lost</TableHead>
                 <TableHead>Open</TableHead>
-                <TableHead>Close rate (all)</TableHead>
-                <TableHead>Close rate (decided)</TableHead>
+                <TableHead>Close rate</TableHead>
                 <TableHead>Revenue (ex VAT)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-slate-400">
+                  <TableCell colSpan={7} className="text-slate-400">
                     Loading...
                   </TableCell>
                 </TableRow>
@@ -532,7 +527,6 @@ const AdminCloseRates = () => {
                         <TableCell className="font-medium text-rose-200">{source.lost}</TableCell>
                         <TableCell>{source.open}</TableCell>
                         <TableCell>{formatPercent(source.won, source.total)}</TableCell>
-                        <TableCell>{formatPercent(source.won, source.won + source.lost)}</TableCell>
                         <TableCell className="font-medium text-white">{formatAed(source.revenue)}</TableCell>
                       </TableRow>
                       {isExpanded
@@ -556,7 +550,6 @@ const AdminCloseRates = () => {
                               <TableCell className="text-rose-200">{funnel.lost}</TableCell>
                               <TableCell>{funnel.open}</TableCell>
                               <TableCell>{formatPercent(funnel.won, funnel.total)}</TableCell>
-                              <TableCell>{formatPercent(funnel.won, funnel.won + funnel.lost)}</TableCell>
                               <TableCell>{formatAed(funnel.revenue)}</TableCell>
                             </TableRow>
                           ))
@@ -585,15 +578,14 @@ const AdminCloseRates = () => {
                 <TableHead>Leads</TableHead>
                 <TableHead>Won</TableHead>
                 <TableHead>Lost</TableHead>
-                <TableHead>Close rate (all)</TableHead>
-                <TableHead>Close rate (decided)</TableHead>
+                <TableHead>Close rate</TableHead>
                 <TableHead>Revenue (ex VAT)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-slate-400">
+                  <TableCell colSpan={6} className="text-slate-400">
                     Loading...
                   </TableCell>
                 </TableRow>
@@ -605,7 +597,6 @@ const AdminCloseRates = () => {
                     <TableCell className="text-emerald-200">{row.won}</TableCell>
                     <TableCell className="text-rose-200">{row.lost}</TableCell>
                     <TableCell>{formatPercent(row.won, row.total)}</TableCell>
-                    <TableCell>{formatPercent(row.won, row.won + row.lost)}</TableCell>
                     <TableCell>{formatAed(row.revenue)}</TableCell>
                   </TableRow>
                 ))
@@ -616,11 +607,10 @@ const AdminCloseRates = () => {
       </Card>
 
       <p className="text-xs text-slate-500">
-        Notes: recent leads are naturally still open, so "close rate (all)" understates true performance for
-        fresh periods — "close rate (decided)" (won ÷ won + lost) is the fairer number there. Won revenue only
-        includes leads with a quoted amount; jobs done before the CRM existed (January–mid April) are not
-        represented here. The g700 customizer is permanently excluded — it is a configurator for existing
-        customers, not a lead source.
+        Notes: close rate = won ÷ all leads, so very recent periods read low while their leads are still
+        being worked. Won revenue only includes leads with a quoted amount; jobs done before the CRM existed
+        (January–mid April) are not represented here. The g700 customizer is permanently excluded — it is a
+        configurator for existing customers, not a lead source.
       </p>
     </AdminShell>
   );
