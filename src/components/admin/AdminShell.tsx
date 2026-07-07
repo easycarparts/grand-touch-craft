@@ -70,6 +70,9 @@ export const AdminShell = ({
             <NavLink to="/admin/google-ads-dashboard" className={navLinkClass}>
               Google Ads
             </NavLink>
+            <NavLink to="/admin/action-plan" className={navLinkClass}>
+              Action plan
+            </NavLink>
           </div>
         </div>
 

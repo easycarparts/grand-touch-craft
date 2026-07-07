@@ -42,6 +42,7 @@ import PpfTikTokGuidedQuote from "./pages/PpfTikTokGuidedQuote";
 import PpfTikTokGuidedFunnel from "./pages/PpfTikTokGuidedFunnel";
 import AdminFunnelDashboard from "./pages/AdminFunnelDashboard";
 import AdminGoogleAdsDashboard from "./pages/AdminGoogleAdsDashboard";
+import AdminActionPlan from "./pages/AdminActionPlan";
 import AdminLogin from "./pages/AdminLogin";
 import AdminLeads from "./pages/AdminLeads";
 import AdminLeadTasks from "./pages/AdminLeadTasks";
@@ -171,6 +172,14 @@ function App() {
               element={
                 <RequireAdmin>
                   <AdminGoogleAdsDashboard />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/action-plan"
+              element={
+                <RequireAdmin>
+                  <AdminActionPlan />
                 </RequireAdmin>
               }
             />
