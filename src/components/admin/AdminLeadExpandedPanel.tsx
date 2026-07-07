@@ -106,6 +106,36 @@ const readPayloadNumber = (payload: Record<string, unknown> | null | undefined, 
   return null;
 };
 
+const readPayloadBoolean = (payload: Record<string, unknown> | null | undefined, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "boolean") return value;
+  }
+
+  return null;
+};
+
+const formatPricePosition = (value: string) => {
+  const labels: Record<string, string> = {
+    expected: "Expected the price",
+    quality_stretch: "Higher than expected, quality matters",
+    spend_less: "Wanted to spend less",
+  };
+
+  return labels[value] || formatTokenLabel(value);
+};
+
+const formatBudgetBand = (value: string) => {
+  const labels: Record<string, string> = {
+    under_7k: "Under AED 7k",
+    "7_9k": "AED 7-9k",
+    "9_12k": "AED 9-12k",
+    whatever: "Whatever it takes",
+  };
+
+  return labels[value] || formatTokenLabel(value);
+};
+
 const makeLeadSourceDraft = (lead: LeadTaskLead): LeadSourceDraft => ({
   sourcePlatform: lead.source_platform || "manual",
   utmSource: lead.utm_source || "",
@@ -281,6 +311,11 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
   const selectedWarranty = readPayloadString(latestSnapshotPayload, "warranty_years", "warranty");
   const selectedExtras = readPayloadString(latestSnapshotPayload, "selected_extras");
   const bonusEligible = latestSnapshotPayload.bonus_eligible === true;
+  const pricePosition = readPayloadString(latestSnapshotPayload, "price_position");
+  const shopsCount = readPayloadString(latestSnapshotPayload, "shops_count");
+  const competitorQuotes = readPayloadString(latestSnapshotPayload, "competitor_quotes");
+  const targetBudget = readPayloadString(latestSnapshotPayload, "target_budget");
+  const ppfQualified = readPayloadBoolean(latestSnapshotPayload, "ppf_qualified");
   const selectedEstimate =
     lead.latestRollup?.quote_estimate ??
     readPayloadNumber(latestSnapshotPayload, "final_price", "service_price", "estimate_value") ??
@@ -331,7 +366,7 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
 
   return (
     <div className="py-2">
-﻿                              <Tabs defaultValue="overview" className="space-y-4">
+                              <Tabs defaultValue="overview" className="space-y-4">
                                 <TabsList className="h-10 border border-white/10 bg-black/20 p-1">
                                   <TabsTrigger value="overview" className="text-sm">
                                     Overview
@@ -758,6 +793,38 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                           <span className="text-slate-500">Package:</span>{" "}
                                           <span className="text-white">{selectedPackage || "Not captured"}</span>
                                         </p>
+                                        {pricePosition ? (
+                                          <p>
+                                            <span className="text-slate-500">Price reaction:</span>{" "}
+                                            <span className="text-white">{formatPricePosition(pricePosition)}</span>
+                                          </p>
+                                        ) : null}
+                                        {ppfQualified !== null ? (
+                                          <p>
+                                            <span className="text-slate-500">PPF qualifier:</span>{" "}
+                                            <span className={ppfQualified ? "text-emerald-200" : "text-amber-200"}>
+                                              {ppfQualified ? "Budget-qualified" : "Over budget / not trained to Meta"}
+                                            </span>
+                                          </p>
+                                        ) : null}
+                                        {shopsCount ? (
+                                          <p>
+                                            <span className="text-slate-500">Shops spoken to:</span>{" "}
+                                            <span className="text-white">{shopsCount}</span>
+                                          </p>
+                                        ) : null}
+                                        {competitorQuotes ? (
+                                          <p>
+                                            <span className="text-slate-500">Other quotes:</span>{" "}
+                                            <span className="text-white">{competitorQuotes}</span>
+                                          </p>
+                                        ) : null}
+                                        {targetBudget ? (
+                                          <p>
+                                            <span className="text-slate-500">Comfort budget:</span>{" "}
+                                            <span className="text-white">{formatBudgetBand(targetBudget)}</span>
+                                          </p>
+                                        ) : null}
                                         {selectedExtras ? (
                                           <p className="sm:col-span-2">
                                             <span className="text-slate-500">Extras:</span>{" "}

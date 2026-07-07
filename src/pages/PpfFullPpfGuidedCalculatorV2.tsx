@@ -78,7 +78,27 @@ import {
 import logo from "@/assets/logo.svg";
 
 type PackageYears = 5 | 10 | 12;
-type FlowStep = "size" | "finish" | "package" | "result";
+type FlowStep = "car" | "size" | "finish" | "package" | "qualify" | "result";
+/** Meta-variant qualification layer. */
+type PricePosition = "expected" | "quality_stretch" | "spend_less";
+type QualifySubStep =
+  | "position"
+  | "ladder_count"
+  | "ladder_quotes"
+  | "ladder_budget"
+  | "quality_confirm"
+  | "educate";
+type BudgetBand = "under_7k" | "7_9k" | "9_12k" | "whatever";
+
+/** Rough affordability inference: premium badges pass at any age; mainstream
+ * badges older than ~4 years get the ceramic/tint downsell instead of PPF. */
+const PREMIUM_BRAND_RE =
+  /bentley|rolls|porsche|ferrari|lambo|aston|mclaren|maybach|mercedes|amg|bmw|audi|range|land rover|defender|g[- ]?wagon|g ?63|cadillac|escalade|corvette|lexus|tesla|patrol|land cruiser|lc ?300|maserati|jaguar|genesis|rivian|lucid|lotus|bugatti|koenigsegg|rs ?[3-7]|m[2-8]\b|gt ?3|911|cayenne|urus|cullinan|ghost|phantom|bronco|denali/i;
+const isLikelyLowValueCar = (text: string, year: number | null) => {
+  if (!text.trim() || !year) return false;
+  if (PREMIUM_BRAND_RE.test(text)) return false;
+  return new Date().getFullYear() - year >= 4;
+};
 type GuidedCalculatorVariant = "google" | "tiktok" | "meta" | "dubai_quote" | "v3" | "price";
 
 type GuidedCalculatorVariantConfig = {
@@ -1412,7 +1432,23 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   // soft capture, and only QUALIFIED (post-price) WhatsApp taps count.
   const isPriceVariant = variant === "price";
   const offerTickerItems = isTikTokVariant ? tiktokTopOffers : topOffers;
+  // All variants open on the visual size picker (lowest-friction first tap);
+  // meta then asks car model + year as step 2 before the finish step.
   const [step, setStep] = useState<FlowStep>("size");
+  const [carYear, setCarYear] = useState<number | null>(null);
+  const [showCarDownsell, setShowCarDownsell] = useState(false);
+  // Qualification layer (between package and result on meta).
+  const [qualifySub, setQualifySub] = useState<QualifySubStep>("position");
+  const [pricePosition, setPricePosition] = useState<PricePosition | null>(null);
+  const [shopsCount, setShopsCount] = useState<string | null>(null);
+  const [quotesBand, setQuotesBand] = useState<string | null>(null);
+  const [budgetBand, setBudgetBand] = useState<BudgetBand | null>(null);
+  // carTierOk: junk-car inference gate. qualifierPassed: null until the price
+  // qualifier resolves. Refs mirror state for same-tick routing decisions.
+  const [carTierOk, setCarTierOk] = useState(true);
+  const [qualifierPassed, setQualifierPassed] = useState<boolean | null>(null);
+  const qualifierPassedRef = useRef<boolean | null>(null);
+  const carTierOkRef = useRef(true);
   const [size, setSize] = useState<PpfPricingSize | null>(null);
   const [finish, setFinish] = useState<PpfPricingFinish | null>(null);
   const [warrantyYears, setWarrantyYears] = useState<PackageYears | null>(null);
@@ -1628,6 +1664,12 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   // visitor has qualified (calculator complete). Owner data: drive-by Meta
   // WhatsApp chats essentially never close. Google/v3 keeps direct WhatsApp.
   const hideDirectWa = isMetaVariant && !isComplete;
+  // The Meta Lead diet: a Lead only fires for visitors whose car passed the
+  // tier inference AND who resolved the price qualifier as budget-viable.
+  // Everyone else is still captured + tagged in the CRM — Meta just never
+  // trains on them.
+  const ppfLeadQualified =
+    !isMetaVariant || (carTierOk && qualifierPassed === true);
 
   const trackEvent = useCallback(
     (
@@ -1685,6 +1727,13 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
   const buildPayload = useCallback(
     () => ({
+      car_year: carYear ?? undefined,
+      car_tier_ok: carYear ? carTierOk : undefined,
+      price_position: pricePosition ?? undefined,
+      shops_count: shopsCount ?? undefined,
+      competitor_quotes: quotesBand ?? undefined,
+      target_budget: budgetBand ?? undefined,
+      ppf_qualified: qualifierPassed ?? undefined,
       size,
       vehicle_size: size,
       finish,
@@ -1703,7 +1752,14 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     }),
     [
       bonusEligible,
+      budgetBand,
+      carTierOk,
+      carYear,
       estimate,
+      pricePosition,
+      qualifierPassed,
+      quotesBand,
+      shopsCount,
       finish,
       name,
       phone,
@@ -1948,7 +2004,22 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     };
   }, [step, trackEvent]);
 
-  const goToStep = (nextStep: FlowStep, reason: string) => {
+  const goToStep = (rawNextStep: FlowStep, reason: string) => {
+    // Meta variant central routing: (a) any entry to the calculator passes the
+    // car step until model+year are answered; (b) any attempt to reach the
+    // result passes the price qualifier until it has resolved.
+    let nextStep = rawNextStep;
+    if (rawNextStep === "finish" && isMetaVariant && (!vehicle.trim() || !carYear)) {
+      // Size → finish must pass the car step (model + year) first.
+      nextStep = "car";
+    } else if (
+      rawNextStep === "result" &&
+      isMetaVariant &&
+      qualifierPassedRef.current === null
+    ) {
+      nextStep = "qualify";
+      setQualifySub("position");
+    }
     setStep(nextStep);
     window.setTimeout(() => {
       flowPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2069,6 +2140,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       phone: cleaned,
       vehicleModel: vehicle.trim(),
       payload: {
+        ...buildPayload(),
         service_name: variantConfig.phoneCaptureServiceName,
         package_name: selectedPackage?.title,
         warranty_years: warrantyYears,
@@ -2220,7 +2292,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       // (tap ≠ message sent) and training Meta to optimise for tyre-kickers.
       // Form submit fires Lead separately in handleUnlockDiscount.
       trackMetaStandardEvent("Contact", metaPayload);
-      if (isComplete && estimate !== null && !metaLeadFiredRef.current) {
+      if (isComplete && estimate !== null && ppfLeadQualified && !metaLeadFiredRef.current) {
         metaLeadFiredRef.current = true;
         trackMetaStandardEvent("Lead", metaPayload);
       }
@@ -2408,6 +2480,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       phone: phone.trim(),
       vehicleModel: vehicle.trim(),
       payload: {
+        ...buildPayload(),
         service_name: variantConfig.bonusClaimServiceName,
         service_price: targetPrice,
         final_price: targetPrice,
@@ -2445,7 +2518,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
           value: targetPrice,
           currency: "AED",
         });
-      } else if (isMetaVariant && !metaLeadFiredRef.current) {
+      } else if (isMetaVariant && ppfLeadQualified && !metaLeadFiredRef.current) {
         metaLeadFiredRef.current = true;
         trackMetaStandardEvent("Lead", {
           content_name: "Meta Guided Full PPF Calculator V2",
@@ -2653,8 +2726,11 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     });
   };
 
-  const activeStepIndex = stepOrder.indexOf(step);
-  const progress = Math.round(((activeStepIndex + 1) / stepOrder.length) * 100);
+  const flowSteps: FlowStep[] = isMetaVariant
+    ? ["size", "car", "finish", "package", "qualify", "result"]
+    : stepOrder;
+  const activeStepIndex = flowSteps.indexOf(step);
+  const progress = Math.round(((activeStepIndex + 1) / flowSteps.length) * 100);
 
   return (
     <div className="min-h-screen bg-[#070707] text-white">
@@ -3046,7 +3122,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                 <div className="mb-3 sm:mb-5">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 sm:text-xs">
-                      Step {activeStepIndex + 1} of {stepOrder.length}
+                      Step {activeStepIndex + 1} of {flowSteps.length}
                     </p>
                     <p className="text-[10px] font-semibold text-[#f7b52b] sm:text-xs">{progress}% complete</p>
                   </div>
@@ -3057,6 +3133,430 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                     />
                   </div>
                 </div>
+
+                {step === "car" ? (
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
+                      2. Your car
+                    </p>
+                    <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-3xl">
+                      So we price it right.
+                    </h2>
+
+                    <p className="mt-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/55">
+                      What car is it?
+                    </p>
+                    <Input
+                      value={vehicle}
+                      onChange={(event) => setVehicle(event.target.value)}
+                      placeholder="e.g. Defender 110, Cayenne S, Patrol"
+                      aria-label="Your car"
+                      className="mt-2 h-12 border-white/20 bg-white/[0.05] text-white placeholder:text-slate-500 focus-visible:border-[#f7b52b]/70 focus-visible:ring-[#f7b52b]/30"
+                    />
+
+                    <p className="mt-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/55">
+                      Model year
+                    </p>
+                    <div className="mt-2 grid grid-cols-4 gap-2">
+                      {[2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019].map((year) => (
+                        <button
+                          key={year}
+                          type="button"
+                          onClick={() => {
+                            setCarYear(year);
+                            trackEvent("guided_qualification_answered", {
+                              field: "car_year",
+                              value: year,
+                              ...buildPayload(),
+                            });
+                          }}
+                          className={cn(
+                            "rounded-xl border px-2 py-2.5 text-sm font-bold transition",
+                            carYear === year
+                              ? "border-[#f7b52b] bg-[#f7b52b]/15 text-[#f7b52b]"
+                              : "border-white/15 bg-white/[0.04] text-slate-200 hover:border-[#f7b52b]/50",
+                          )}
+                        >
+                          {year}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCarYear(2015);
+                          trackEvent("guided_qualification_answered", {
+                            field: "car_year",
+                            value: "older",
+                            ...buildPayload(),
+                          });
+                        }}
+                        className={cn(
+                          "col-span-4 rounded-xl border px-2 py-2.5 text-sm font-bold transition",
+                          carYear === 2015
+                            ? "border-[#f7b52b] bg-[#f7b52b]/15 text-[#f7b52b]"
+                            : "border-white/15 bg-white/[0.04] text-slate-200 hover:border-[#f7b52b]/50",
+                        )}
+                      >
+                        2018 or older
+                      </button>
+                    </div>
+
+                    {showCarDownsell ? (
+                      /* Honest downsell — no PPF Lead will fire for this path. */
+                      <div className="mt-4 rounded-xl border border-white/15 bg-black/30 p-3.5">
+                        <p className="text-sm font-black text-white">
+                          Straight answer: full-body PPF usually isn't the right
+                          spend on this car.
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          The film can cost a third of the car's value. Where your
+                          money <span className="text-[#25D366] font-bold">does</span>{" "}
+                          make sense: ceramic coating or window tint — big
+                          difference, fraction of the price.
+                        </p>
+                        <div className="mt-3 grid gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              trackWhatsAppContact("qualification_downsell");
+                              window.open(
+                                buildWhatsAppUrl(
+                                  "Hi Sean, I was looking at PPF but my car may suit ceramic coating or window tint better. What would you recommend?",
+                                ),
+                                "_blank",
+                                "noopener,noreferrer",
+                              );
+                            }}
+                            className="h-11 w-full gap-2 bg-[#25D366] text-sm font-black text-white hover:bg-[#20bf5d]"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                            Ask Sean about ceramic & tint
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCarTierOk(false);
+                              carTierOkRef.current = false;
+                              trackEvent("guided_qualification_continue_anyway", buildPayload());
+                              goToStep("finish", "car_continue_anyway");
+                            }}
+                            className="text-center text-[11px] font-semibold text-slate-400 underline-offset-4 hover:text-slate-200 hover:underline"
+                          >
+                            I still want my full PPF price →
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="lg"
+                        disabled={!vehicle.trim() || !carYear}
+                        onClick={() => {
+                          if (isLikelyLowValueCar(vehicle, carYear)) {
+                            setShowCarDownsell(true);
+                            trackEvent("guided_car_downsell_shown", buildPayload());
+                            return;
+                          }
+                          setCarTierOk(true);
+                          carTierOkRef.current = true;
+                          trackEvent("guided_qualification_completed", buildPayload());
+                          goToStep("finish", "car_continue");
+                        }}
+                        className="mt-5 h-12 w-full gap-2 bg-[#f7b52b] font-black text-black hover:bg-[#ffc94f] disabled:bg-white/10 disabled:text-white/45"
+                      >
+                        Continue
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ) : null}
+
+                {step === "qualify" && listPrice !== null && estimate !== null ? (
+                  (() => {
+                    const fiveYearReal =
+                      size && finish
+                        ? getPpfPriceRange("STEK", 5, size, "Full Body", finish).min
+                        : null;
+                    const BAND_MAX: Record<BudgetBand, number> = {
+                      under_7k: 7000,
+                      "7_9k": 9000,
+                      "9_12k": 12000,
+                      whatever: Number.POSITIVE_INFINITY,
+                    };
+                    const setupLabel = [selectedSize?.label, finish, `${warrantyYears}-year`]
+                      .filter(Boolean)
+                      .join(" · ");
+                    const resolveQualifier = (passed: boolean, reason: string) => {
+                      qualifierPassedRef.current = passed;
+                      setQualifierPassed(passed);
+                      trackEvent("guided_price_qualifier_resolved", {
+                        qualifier_passed: passed,
+                        qualifier_reason: reason,
+                        ...buildPayload(),
+                      });
+                      goToStep("result", reason);
+                    };
+                    const chip = (active: boolean) =>
+                      cn(
+                        "rounded-xl border px-3 py-3 text-left text-sm font-bold transition",
+                        active
+                          ? "border-[#f7b52b] bg-[#f7b52b]/15 text-[#f7b52b]"
+                          : "border-white/15 bg-white/[0.04] text-slate-200 hover:border-[#f7b52b]/50",
+                      );
+                    const downshiftAvailable =
+                      budgetBand !== null &&
+                      fiveYearReal !== null &&
+                      BAND_MAX[budgetBand] >= fiveYearReal &&
+                      warrantyYears !== 5;
+
+                    return (
+                      <div>
+                        {qualifySub === "position" ? (
+                          <>
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
+                              5. Real talk
+                            </p>
+                            <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-2xl">
+                              Your setup — {setupLabel} — starts from{" "}
+                              <span className="text-[#f7b52b]">{formatAED(estimate)}</span> done
+                              properly, with the online discount applied.
+                            </h2>
+                            <p className="mt-2 text-sm text-slate-400">Where do you sit?</p>
+                            <div className="mt-3 grid gap-2">
+                              <button
+                                type="button"
+                                className={chip(false)}
+                                onClick={() => {
+                                  setPricePosition("expected");
+                                  resolveQualifier(true, "price_expected");
+                                }}
+                              >
+                                That's about what I expected
+                              </button>
+                              <button
+                                type="button"
+                                className={chip(false)}
+                                onClick={() => {
+                                  setPricePosition("quality_stretch");
+                                  setQualifySub("quality_confirm");
+                                }}
+                              >
+                                More than I thought — but quality matters to me
+                              </button>
+                              <button
+                                type="button"
+                                className={chip(false)}
+                                onClick={() => {
+                                  setPricePosition("spend_less");
+                                  setQualifySub("ladder_count");
+                                }}
+                              >
+                                I'm looking to spend less than that
+                              </button>
+                            </div>
+                          </>
+                        ) : null}
+
+                        {qualifySub === "quality_confirm" ? (
+                          <>
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#25D366] sm:text-xs">
+                              Good call
+                            </p>
+                            <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-2xl">
+                              Locked to your setup: from{" "}
+                              <span className="text-[#25D366]">{formatAED(estimate)}</span> with the
+                              online discount — and here's what that buys you.
+                            </h2>
+                            <ul className="mt-3 space-y-1.5 text-sm text-slate-300">
+                              <li className="flex items-center gap-2">
+                                <Check className="h-4 w-4 text-[#25D366]" /> Genuine film, warranty
+                                registered in your name
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <Check className="h-4 w-4 text-[#25D366]" /> Done once, done right —
+                                Sean signs off every car
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <Check className="h-4 w-4 text-[#25D366]" /> Free pickup & delivery
+                                across Dubai
+                              </li>
+                            </ul>
+                            <Button
+                              type="button"
+                              size="lg"
+                              onClick={() => resolveQualifier(true, "quality_confirmed")}
+                              className="mt-4 h-12 w-full gap-2 bg-[#f7b52b] font-black text-black hover:bg-[#ffc94f]"
+                            >
+                              Continue — quality matters
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : null}
+
+                        {qualifySub === "ladder_count" ? (
+                          <>
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
+                              Smart move
+                            </p>
+                            <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-2xl">
+                              PPF quotes in Dubai are all over the place. How many shops have you
+                              spoken to?
+                            </h2>
+                            <div className="mt-3 grid gap-2">
+                              {["This is my first", "2–3", "4+"].map((label) => (
+                                <button
+                                  key={label}
+                                  type="button"
+                                  className={chip(false)}
+                                  onClick={() => {
+                                    setShopsCount(label);
+                                    setQualifySub("ladder_quotes");
+                                  }}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        ) : null}
+
+                        {qualifySub === "ladder_quotes" ? (
+                          <>
+                            <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-2xl">
+                              What are the quotes looking like so far?
+                            </h2>
+                            <div className="mt-3 grid gap-2">
+                              {["Under AED 6k", "AED 6–8k", "AED 8–10k", "No numbers yet"].map(
+                                (label) => (
+                                  <button
+                                    key={label}
+                                    type="button"
+                                    className={chip(false)}
+                                    onClick={() => {
+                                      setQuotesBand(label);
+                                      setQualifySub("ladder_budget");
+                                    }}
+                                  >
+                                    {label}
+                                  </button>
+                                ),
+                              )}
+                            </div>
+                          </>
+                        ) : null}
+
+                        {qualifySub === "ladder_budget" ? (
+                          <>
+                            <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-2xl">
+                              And honestly — what are you comfortable spending to have it done
+                              properly, with a registered warranty?
+                            </h2>
+                            <div className="mt-3 grid gap-2">
+                              {(
+                                [
+                                  ["under_7k", "Under AED 7k"],
+                                  ["7_9k", "AED 7–9k"],
+                                  ["9_12k", "AED 9–12k"],
+                                  ["whatever", "Whatever it takes to do it right"],
+                                ] as [BudgetBand, string][]
+                              ).map(([value, label]) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  className={chip(false)}
+                                  onClick={() => {
+                                    setBudgetBand(value);
+                                    if (BAND_MAX[value] >= estimate) {
+                                      resolveQualifier(true, "budget_fits");
+                                    } else {
+                                      setQualifySub("educate");
+                                    }
+                                  }}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        ) : null}
+
+                        {qualifySub === "educate" ? (
+                          <>
+                            {downshiftAvailable && fiveYearReal !== null ? (
+                              <>
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#25D366] sm:text-xs">
+                                  Good news
+                                </p>
+                                <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-2xl">
+                                  Your {warrantyYears}-year setup starts from {formatAED(estimate)}{" "}
+                                  even with the discount — but the same install with the{" "}
+                                  <span className="text-[#25D366]">5-year package</span> lands
+                                  around {fiveYearReal !== null ? formatAED(Math.round(fiveYearReal / 10) * 10) : ""}.
+                                  Inside your range.
+                                </h2>
+                                <div className="mt-4 grid gap-2">
+                                  <Button
+                                    type="button"
+                                    size="lg"
+                                    onClick={() => {
+                                      setWarrantyYears(5);
+                                      trackEvent("guided_qualifier_downshift_5yr", buildPayload());
+                                      resolveQualifier(true, "downshift_5yr");
+                                    }}
+                                    className="h-12 w-full gap-2 bg-[#25D366] font-black text-white hover:bg-[#20bf5d]"
+                                  >
+                                    Switch to 5-year & see my price
+                                    <ArrowRight className="h-4 w-4" />
+                                  </Button>
+                                  <button
+                                    type="button"
+                                    onClick={() => resolveQualifier(false, "over_budget_kept_setup")}
+                                    className="text-center text-[11px] font-semibold text-slate-400 underline-offset-4 hover:text-slate-200 hover:underline"
+                                  >
+                                    Keep my {warrantyYears}-year setup — show the price anyway →
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
+                                  Straight answer
+                                </p>
+                                <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-2xl">
+                                  We won't be your cheapest quote — on purpose.
+                                </h2>
+                                <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                                  A genuine film roll can cost close to what some shops charge for
+                                  the <span className="font-bold text-white">entire install</span>.
+                                  Quotes far below the real range usually mean fake film, partial
+                                  coverage, or a warranty that doesn't exist. We don't compete on
+                                  price — we compete on never having to think about your paint
+                                  again.
+                                </p>
+                                <div className="mt-4 grid gap-2">
+                                  <Button
+                                    type="button"
+                                    size="lg"
+                                    onClick={() => resolveQualifier(false, "under_budget_continue")}
+                                    className="h-12 w-full gap-2 bg-[#f7b52b] font-black text-black hover:bg-[#ffc94f]"
+                                  >
+                                    Show me my real price anyway
+                                    <ArrowRight className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+                                  Either way — before you book anywhere: ask the shop for the film's
+                                  warranty registration number. If they can't show one, you have
+                                  your answer.
+                                </p>
+                              </>
+                            )}
+                          </>
+                        ) : null}
+                      </div>
+                    );
+                  })()
+                ) : null}
 
                 {step === "size" ? (
                   <div>
@@ -3453,47 +3953,58 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                       ) : targetPrice !== null && listPrice !== null ? (
                         /* ---------- PRE-UNLOCK ---------- */
                         isGated ? (
-                          /* V3: fully locked reward bundle. Nothing is inferable
-                             (no anchor, no %math) — the reveal is the payoff. */
+                          /* Gated funnels: show the real discounted price up front,
+                             then use the form to lock it in and hand off to Sean. */
                           <>
                             <div className="mt-3 flex items-center gap-2 sm:mt-3.5">
                               <Sparkles className="h-5 w-5 shrink-0 text-[#f7b52b]" />
                               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f7b52b] sm:text-xs">
-                                Your reward bundle is ready
+                                Your selected setup is ready
                               </p>
                             </div>
 
-                            {/* BEFORE price — small, muted, with an animated red strike so it
-                                clearly reads as the OLD price, not what they'll pay. */}
-                            <p className="mt-2.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/35 sm:text-[10px]">
-                              Before your discount
-                            </p>
-                            <div className="flex items-center gap-2.5">
-                              <span className="relative inline-block">
-                                <span className="text-2xl font-black leading-none tracking-tight text-white/35 sm:text-3xl">
-                                  {formatAED(listPrice)}
+                            <div className="mt-3 rounded-xl border border-[#25D366]/35 bg-[#25D366]/[0.06] p-3">
+                              <div className="flex flex-wrap items-end justify-between gap-2">
+                                <div>
+                                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/40 sm:text-[10px]">
+                                    Full setup price
+                                  </p>
+                                  <span className="relative mt-1 inline-block">
+                                    <span className="text-xl font-black leading-none tracking-tight text-white/38 line-through sm:text-2xl">
+                                      {formatAED(listPrice)}
+                                    </span>
+                                    <span
+                                      aria-hidden="true"
+                                      className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#ff6b6b] shadow-[0_0_10px_rgba(255,107,107,0.75)]"
+                                    />
+                                  </span>
+                                </div>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#25D366] ring-1 ring-[#25D366]/40">
+                                  <BadgePercent className="h-3 w-3" />
+                                  20% lower
                                 </span>
-                                <span
-                                  aria-hidden="true"
-                                  className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#ff6b6b] shadow-[0_0_10px_rgba(255,107,107,0.75)] animate-guided-strike motion-reduce:animate-none"
-                                />
-                              </span>
-                              <span className="rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#25D366] ring-1 ring-[#25D366]/40">
-                                −20%
-                              </span>
-                            </div>
-                            <p className="mt-1.5 flex items-center gap-1.5 text-sm font-black leading-tight text-white sm:text-base">
-                              Your real price is <span className="text-[#25D366]">lower</span> — it's locked
-                              <ChevronDown className="h-4 w-4 shrink-0 text-[#f7b52b] animate-bounce motion-reduce:animate-none" />
-                            </p>
+                              </div>
 
-                            {/* Locked perks — calm (no shimmer); the price card is the green hero */}
+                              <p className="mt-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/55 sm:text-[10px]">
+                                Your online price
+                              </p>
+                              <p className="mt-0.5 text-[2.5rem] font-black leading-none tracking-tight text-[#25D366] sm:text-[3.7rem]">
+                                {formatAED(targetPrice)}
+                              </p>
+                              <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45 sm:text-[11px]">
+                                For your {selectedSize?.label} · {finish} · {selectedPackage?.title} setup
+                              </p>
+                            </div>
+
                             <div className="mt-2.5 grid gap-1.5">
                               {[
-                                { label: "Your discounted price", hero: true },
-                                { label: "20% online discount", hero: false },
-                                { label: "AED 4,550 in free extras", hero: false },
-                                { label: "Free pickup & delivery", hero: false },
+                                {
+                                  label: "20% online discount",
+                                  value: discountSavings !== null ? `Save ${formatAED(discountSavings)}` : "Applied",
+                                  hero: true,
+                                },
+                                { label: "AED 4,550 in free extras", value: "Included", hero: false },
+                                { label: "Free pickup & delivery", value: "Included", hero: false },
                               ].map((perk) => (
                                 <div
                                   key={perk.label}
@@ -3519,13 +4030,13 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                       perk.hero ? "bg-[#25D366]/15 text-[#25D366]" : "bg-white/10 text-white/55",
                                     )}
                                   >
-                                    Locked
+                                    {perk.value}
                                   </span>
                                 </div>
                               ))}
                             </div>
                             <p className="mt-2.5 text-center text-[11px] font-black uppercase tracking-[0.1em] text-[#f7b52b] sm:text-xs">
-                              You're one step away — add your number to reveal &amp; lock it in
+                              Add your number to hold this price and get Sean's final confirmation
                             </p>
                           </>
                         ) : (
@@ -3661,7 +4172,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                             <p className="flex items-center justify-center gap-1.5 text-center text-[13px] font-black leading-tight text-black sm:text-[15px]">
                               <Lock className="h-4 w-4 shrink-0" />
                               {isGated
-                                ? "Enter your number to reveal your price + 20% off"
+                                ? `Enter your number to lock this price — ${targetPrice !== null ? formatAED(targetPrice) : "20% off"}`
                                 : isPriceVariant
                                   ? `WhatsApp yourself this exact quote — ${targetPrice !== null ? formatAED(targetPrice) : "your price"}`
                                   : `Enter your details below to get ${targetPrice !== null ? formatAED(targetPrice) : "this price"}`}
