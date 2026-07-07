@@ -111,6 +111,8 @@ function App() {
             <Route path="/ppf-dubai-quote" element={<PpfFullPpfGuidedCalculatorV2 variant="dubai_quote" />} />
             {/* Google fresh-start funnel (Jul 2026): price shown openly, soft capture. */}
             <Route path="/ppf-dubai-price" element={<PpfFullPpfGuidedCalculatorV2 variant="price" />} />
+            {/* Free-play price builder (staging for the /ppf-dubai-price swap — not linked from ads yet). */}
+            <Route path="/ppf-dubai-price-v2" element={<PpfFullPpfGuidedCalculatorV2 variant="builder" />} />
             <Route path="/ppf-tiktok-quote" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote-v2" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote_2" element={<PpfDubaiQuote variant="tiktok" />} />

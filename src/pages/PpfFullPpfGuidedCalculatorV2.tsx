@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PhoneInputWithCountry } from "@/components/PhoneInputWithCountry";
+import { PpfPriceBuilder } from "@/components/ppf/PpfPriceBuilder";
 import stekWarrantySticker from "../../Landscape STEK Sticker.png";
 import {
   captureLeadSnapshot,
@@ -99,7 +100,7 @@ const isLikelyLowValueCar = (text: string, year: number | null) => {
   if (PREMIUM_BRAND_RE.test(text)) return false;
   return new Date().getFullYear() - year >= 4;
 };
-type GuidedCalculatorVariant = "google" | "tiktok" | "meta" | "dubai_quote" | "v3" | "price";
+type GuidedCalculatorVariant = "google" | "tiktok" | "meta" | "dubai_quote" | "v3" | "price" | "builder";
 
 type GuidedCalculatorVariantConfig = {
   seoKey: string;
@@ -294,6 +295,47 @@ const guidedVariantConfig: Record<GuidedCalculatorVariant, GuidedCalculatorVaria
     messageIntro: "Hi Sean, I priced my car on the Grand Touch PPF price page.",
     phoneCaptureServiceName: "Google Price 2026H2 - Phone Captured At Warranty Step",
     bonusClaimServiceName: "Google Price 2026H2 Quote Claim",
+  },
+  // BUILDER (2026-07): free-play configurator evolution of `price`. Same open
+  // pricing philosophy, but the calculator is a G700-customizer-style toy:
+  // every control always visible, the exact price updates live, no step
+  // lock-in (the stepper lost ~75% of starters before the price; a visitor who
+  // flinches at the 12-year price can flip to 5-year instead of bouncing).
+  // Own route + funnel keys for a clean read before it swaps onto
+  // /ppf-dubai-price.
+  builder: {
+    seoKey: "ppf-dubai-price-v2",
+    funnelName: "ppf_google_builder_2026h2",
+    landingPageVariant: "google_builder_2026h2",
+    defaultSourcePlatform: "google",
+    calculatorType: "builder_full_ppf_price",
+    pageUrl: "https://www.grandtouchauto.ae/ppf-dubai-price-v2",
+    seo: {
+      title: "PPF Dubai Price | Build Your Exact Full Car PPF Price",
+      description:
+        "Your exact full car PPF price, live on screen — flip car size, finish, and warranty and watch it update. Genuine STEK film, free pickup across Dubai.",
+      keywords:
+        "ppf price dubai, ppf cost dubai, ppf dubai, paint protection film dubai, full car ppf price dubai, stek ppf price, car ppf cost, PPF installer Dubai",
+      ogTitle: "PPF Dubai Price — Build Your Exact Price",
+      ogDescription:
+        "Flip car size, finish, and warranty and watch your exact full-car PPF price update live. Genuine STEK film, free pickup across Dubai.",
+    },
+    eyebrow: "Premium PPF - Dubai",
+    headline: "See Your Exact",
+    headlineAccent: "PPF Price in Dubai.",
+    mobileIntro:
+      "Your exact price is already on screen below — flip car size, finish, and warranty and watch it update live.",
+    desktopIntro:
+      "Your exact full-car PPF price is already on screen below. Flip car size, finish, and warranty and watch the price update live — no phone number needed to see it.",
+    campaignIntro:
+      "Built for Dubai drivers comparing paint protection film, full body PPF, STEK PPF, and full car PPF installation costs.",
+    campaignTerms: ["PPF Dubai", "Paint protection film", "PPF price", "Full body PPF"],
+    primaryCta: "Build my exact price",
+    secondaryCta: "WhatsApp Sean",
+    proofPoints: ["Price shown instantly", "No commitment", "Sean reviews each setup"],
+    messageIntro: "Hi Sean, I built my exact PPF price on the Grand Touch price builder.",
+    phoneCaptureServiceName: "Google Builder 2026H2 - Bonus Lock Phone",
+    bonusClaimServiceName: "Google Builder 2026H2 Quote Claim",
   },
   tiktok: {
     seoKey: "ppf-tiktok-full-car-ppf",
@@ -1422,15 +1464,21 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   // dubai_quote + v3 reuse the Google funnel's conversion behaviour, so they
   // count as a "Google" variant here.
   const isGoogleVariant =
-    variant === "google" || variant === "dubai_quote" || variant === "v3" || variant === "price";
+    variant === "google" ||
+    variant === "dubai_quote" ||
+    variant === "v3" ||
+    variant === "price" ||
+    variant === "builder";
   const isTikTokVariant = variant === "tiktok";
   // Gated funnels (V3 + Meta): hide the exact price behind the form, drop the
   // name requirement, and make WhatsApp a direct 1-tap (no pre-chat popup).
   const isGated = variant === "v3" || variant === "meta";
   const isMetaVariant = variant === "meta";
   // PRICE variant (Google fresh start): price shown openly, no popup, phone-only
-  // soft capture, and only QUALIFIED (post-price) WhatsApp taps count.
-  const isPriceVariant = variant === "price";
+  // soft capture, and only QUALIFIED (post-price) WhatsApp taps count. The
+  // builder variant inherits all of this — it only swaps the calculator UI.
+  const isPriceVariant = variant === "price" || variant === "builder";
+  const isBuilderVariant = variant === "builder";
   const offerTickerItems = isTikTokVariant ? tiktokTopOffers : topOffers;
   // All variants open on the visual size picker (lowest-friction first tap);
   // meta then asks car model + year as step 2 before the finish step.
@@ -1479,6 +1527,12 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const metaLeadFiredRef = useRef(false);
   // Independent guard for the non-counted observe-only pre-form WhatsApp action.
   const googlePreFormWhatsAppFiredRef = useRef(false);
+  // Builder variant opens with a default setup preselected (price visible from
+  // first paint), so "calculator complete" alone can't gate qualified WhatsApp
+  // taps — require an actual interaction (control change or phone capture).
+  const builderInteractedRef = useRef(false);
+  const builderSeededRef = useRef(false);
+  const builderPriceViewedRef = useRef(false);
 
   const sizeGridRef = useRef<HTMLDivElement>(null);
   const sizeCardRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -2186,6 +2240,26 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     warrantyYears,
   ]);
 
+  // BUILDER: seed the most-chosen setup so the exact price is on screen from
+  // the first paint (the ad promise). Direct state writes — default selections
+  // must not pollute the guided_step_completed funnel stats.
+  useEffect(() => {
+    if (!isBuilderVariant || builderSeededRef.current) return;
+    builderSeededRef.current = true;
+    setSize("Medium");
+    setFinish("Gloss");
+    setWarrantyYears(10);
+  }, [isBuilderVariant]);
+
+  // BUILDER: the price is revealed on load, so log the price-view once the
+  // seeded estimate exists (keeps the Funnel dashboard's reveal-rate honest).
+  useEffect(() => {
+    if (!isBuilderVariant || builderPriceViewedRef.current || estimate === null) return;
+    builderPriceViewedRef.current = true;
+    trackEvent("price_viewed", buildPayload());
+    trackEvent("guided_price_revealed", buildPayload());
+  }, [isBuilderVariant, estimate, trackEvent, buildPayload]);
+
   const toggleExtra = (extra: string) => {
     setSelectedExtras((current) => {
       const exists = current.includes(extra);
@@ -2311,7 +2385,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     // (calculator complete) count, so Smart Bidding optimises toward buyers who
     // qualified themselves — raw drive-by taps rarely close and would train
     // Google to find tyre-kickers. Ungated variants keep counting every tap.
-    if ((!isGated && !isPriceVariant) || (isComplete && estimate !== null)) {
+    if (
+      (!isGated && !isPriceVariant) ||
+      (isComplete && estimate !== null && (!isBuilderVariant || builderInteractedRef.current))
+    ) {
       trackGoogleWhatsAppContactConversion(estimate ?? undefined);
     }
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
@@ -3119,6 +3196,36 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
               </div>
 
               <div ref={flowPanelRef} className="min-w-0 scroll-mt-14 rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(13,13,13,0.98))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.42)] sm:scroll-mt-20 sm:rounded-[28px] sm:p-5">
+                {isBuilderVariant && size && finish && warrantyYears ? (
+                  <PpfPriceBuilder
+                    size={size}
+                    finish={finish}
+                    warrantyYears={warrantyYears}
+                    vehicle={vehicle}
+                    phone={phone}
+                    phoneCaptured={Boolean(phoneCapturedAt)}
+                    onSelectSize={(next) => {
+                      builderInteractedRef.current = true;
+                      selectSize(next);
+                    }}
+                    onSelectFinish={(next) => {
+                      builderInteractedRef.current = true;
+                      selectFinish(next);
+                    }}
+                    onSelectWarranty={(next) => {
+                      builderInteractedRef.current = true;
+                      selectPackage(next);
+                    }}
+                    onVehicleChange={setVehicle}
+                    onPhoneChange={setPhone}
+                    onLockBonuses={() => {
+                      builderInteractedRef.current = true;
+                      void handlePhoneCapture();
+                    }}
+                    onWhatsApp={handleWhatsApp}
+                  />
+                ) : (
+                <>
                 <div className="mb-3 sm:mb-5">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 sm:text-xs">
@@ -4323,6 +4430,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
                   </div>
                 ) : null}
+                </>
+                )}
               </div>
             </div>
           </div>
