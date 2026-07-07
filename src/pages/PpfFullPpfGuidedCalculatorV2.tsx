@@ -2062,7 +2062,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       capture_location: "warranty_bonus_lock",
       ...buildPayload(),
     });
-    await captureLeadSnapshot({
+    const result = await captureLeadSnapshot({
       snapshotType: "contact",
       context: funnelContext,
       fullName: name.trim(),
@@ -2077,9 +2077,28 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
         bonus_eligible: bonusEligible,
       },
     });
+
+    if (result.ok) {
+      // A phone in the CRM is a submitted lead no matter which field captured
+      // it. Launch week (Jul 4-6) proved this path is where real Google users
+      // actually leave their number: 5 CRM leads saved here, zero Google
+      // conversions recorded, because only the post-price paths fired the tag.
+      trackGoogleSubmitLeadConversion(targetPrice ?? estimate ?? undefined);
+    } else {
+      trackEvent(
+        "lead_save_failed",
+        {
+          capture_location: "warranty_bonus_lock",
+          reason: ("reason" in result ? result.reason : null) ?? "unknown",
+          ...buildPayload(),
+        },
+        { emitToTagManagers: false },
+      );
+    }
   }, [
     bonusEligible,
     buildPayload,
+    estimate,
     finish,
     funnelContext,
     name,
@@ -2087,7 +2106,9 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     phoneCapturedAt,
     selectedPackage,
     size,
+    targetPrice,
     trackEvent,
+    trackGoogleSubmitLeadConversion,
     variantConfig,
     vehicle,
     warrantyYears,
