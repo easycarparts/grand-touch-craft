@@ -72,11 +72,9 @@ import logo from "@/assets/logo.svg";
 
 /** Tint tier ids — Action Essential / STEK Smart Ceramic / STEK Nex Premium. */
 type TintTier = "action" | "smart" | "nex";
-type FlowStep = "size" | "finish" | "package" | "result";
+type FlowStep = "size" | "package" | "result";
 /** Car-size brackets (same visual size step as the PPF funnel). */
 type TintSize = "Small" | "Medium" | "SUV" | "Sports";
-/** Shade preference — stored on the lead, never changes the price. */
-type ShadePreference = "Light & legal" | "Factory look" | "Dark as legally allowed";
 
 type TintFunnelConfig = {
   seoKey: string;
@@ -103,7 +101,6 @@ type TintFunnelConfig = {
   secondaryCta: string;
   proofPoints: string[];
   messageIntro: string;
-  phoneCaptureServiceName: string;
   bonusClaimServiceName: string;
 };
 
@@ -149,7 +146,6 @@ const funnelConfig: TintFunnelConfig = {
   secondaryCta: "WhatsApp Sean",
   proofPoints: ["60-second quote", "Installed in ~3 hours", "Sean reviews each setup"],
   messageIntro: "Hi Sean, I built a ceramic tint setup on the Grand Touch tint page.",
-  phoneCaptureServiceName: "Tint Dubai Quote - Phone Captured At Package Step",
   bonusClaimServiceName: "Tint Dubai Quote Bonus Claim",
 };
 
@@ -189,44 +185,16 @@ const sizeOptions: Array<{
   },
 ];
 
-// Shade preference — a LOOK choice only. It's stored on the lead so Sean knows
-// what the buyer wants, but it never changes the price (heat rejection comes
-// from the ceramic layer, not the darkness — the FAQ repeats that education).
-const finishOptions: Array<{
-  value: ShadePreference;
-  label: string;
-  helper: string;
-  proof: string;
-}> = [
-  {
-    value: "Light & legal",
-    label: "Light & legal",
-    helper: "Subtle, maximum visibility",
-    proof:
-      "A lighter shade that stays well inside UAE legal limits. You still get the full ceramic heat rejection — darkness isn't what blocks the heat.",
-  },
-  {
-    value: "Factory look",
-    label: "Factory look",
-    helper: "OEM privacy-glass match",
-    proof:
-      "Matches the factory privacy glass most SUVs ship with — clean, discreet, and fully road-legal in the UAE.",
-  },
-  {
-    value: "Dark as legally allowed",
-    label: "Dark as legal",
-    helper: "Max legal darkness",
-    proof:
-      "As dark as UAE regulations allow. Your shade choice never changes the price — pick the look you want every day.",
-  },
-];
-
+// Film specs per tier — shown as compact differentiators on the package cards.
+// TODO: owner to confirm exact specs from STEK data sheets (stekautomotive.com
+// lists the ACTION+/SMART+/NEX+ lines but publishes no TSER/IR/UV numbers).
 const packageOptions: Array<{
   tier: TintTier;
   title: string;
   shortName: string;
   label: string;
   value: string;
+  specs: string[];
   badge?: string;
 }> = [
   {
@@ -235,6 +203,7 @@ const packageOptions: Array<{
     shortName: "Action",
     label: "Essential",
     value: "Budget pick, good heat rejection",
+    specs: ["IR rejection ~55%", "UV 99%", "Dyed-carbon film"],
   },
   {
     tier: "smart",
@@ -242,6 +211,7 @@ const packageOptions: Array<{
     shortName: "Smart",
     label: "Most chosen",
     value: "Ceramic heat rejection, crystal night clarity, strong STEK warranty",
+    specs: ["IR rejection ~88%", "UV 99%", "Ceramic layer"],
     badge: "POPULAR",
   },
   {
@@ -250,6 +220,7 @@ const packageOptions: Array<{
     shortName: "Nex",
     label: "Ultimate",
     value: "Maximum IR rejection, premium warranty",
+    specs: ["IR rejection ~97%", "UV 99%", "Nano-ceramic"],
   },
 ];
 
@@ -265,7 +236,7 @@ const TINT_PRICE_TABLE: Record<TintTier, Record<TintSize, number>> = {
 
 const getTintPrice = (tier: TintTier, size: TintSize) => TINT_PRICE_TABLE[tier][size];
 
-const stepOrder: FlowStep[] = ["size", "finish", "package", "result"];
+const stepOrder: FlowStep[] = ["size", "package", "result"];
 
 /**
  * Top-bar bonuses — claimable extras only, kept distinct from the standard
@@ -1216,7 +1187,6 @@ const TintDubaiQuoteFunnel = () => {
   // Opens on the visual size picker (lowest-friction first tap).
   const [step, setStep] = useState<FlowStep>("size");
   const [size, setSize] = useState<TintSize | null>(null);
-  const [finish, setFinish] = useState<ShadePreference | null>(null);
   const [tintTier, setTintTier] = useState<TintTier | null>(null);
   const [vehicle, setVehicle] = useState("");
   const [name, setName] = useState("");
@@ -1267,10 +1237,8 @@ const TintDubaiQuoteFunnel = () => {
     [],
   );
 
-  const [phoneAttentionFired, setPhoneAttentionFired] = useState(false);
   const [animatedPhonePlaceholder, setAnimatedPhonePlaceholder] = useState("50 123 4567");
   const [isPhoneFocused, setIsPhoneFocused] = useState(false);
-  const [phoneCapturedAt, setPhoneCapturedAt] = useState<string | null>(null);
   const phonePlaceholderExamples = useMemo(
     () => ["50 123 4567", "55 234 5678", "56 345 6789", "52 456 7890"],
     [],
@@ -1281,12 +1249,6 @@ const TintDubaiQuoteFunnel = () => {
       setVehicleAttentionFired(true);
     }
   }, [size, vehicleAttentionFired]);
-
-  useEffect(() => {
-    if (tintTier && !phoneAttentionFired) {
-      setPhoneAttentionFired(true);
-    }
-  }, [tintTier, phoneAttentionFired]);
 
   useEffect(() => {
     if (!tintTier) {
@@ -1393,8 +1355,8 @@ const TintDubaiQuoteFunnel = () => {
 
   const selectedSize = sizeOptions.find((option) => option.value === size) ?? null;
   const selectedPackage = packageOptions.find((option) => option.tier === tintTier) ?? null;
-  const estimate = size && finish && tintTier ? getTintPrice(tintTier, size) : null;
-  const isComplete = Boolean(size && finish && tintTier && estimate !== null);
+  const estimate = size && tintTier ? getTintPrice(tintTier, size) : null;
+  const isComplete = Boolean(size && tintTier && estimate !== null);
   const policyBonusEligible = Boolean(size && tintTier);
   const phoneCaptured = isLikelyRealPhone(phone);
   const bonusEligible = policyBonusEligible && phoneCaptured;
@@ -1456,8 +1418,6 @@ const TintDubaiQuoteFunnel = () => {
     () => ({
       size,
       vehicle_size: size,
-      finish,
-      shade_preference: finish,
       tint_tier: tintTier,
       package_name: selectedPackage?.title,
       estimate_value: estimate,
@@ -1474,7 +1434,6 @@ const TintDubaiQuoteFunnel = () => {
     [
       bonusEligible,
       estimate,
-      finish,
       name,
       phone,
       phoneCaptured,
@@ -1490,24 +1449,20 @@ const TintDubaiQuoteFunnel = () => {
   const buildProjectedPayload = useCallback(
     ({
       nextSize = size,
-      nextFinish = finish,
       nextTintTier = tintTier,
     }: {
       nextSize?: TintSize | null;
-      nextFinish?: ShadePreference | null;
       nextTintTier?: TintTier | null;
     } = {}) => {
       const projectedPackage =
         packageOptions.find((option) => option.tier === nextTintTier) ?? null;
       const projectedEstimate =
-        nextSize && nextFinish && nextTintTier ? getTintPrice(nextTintTier, nextSize) : null;
+        nextSize && nextTintTier ? getTintPrice(nextTintTier, nextSize) : null;
 
       return {
         ...buildPayload(),
         size: nextSize,
         vehicle_size: nextSize,
-        finish: nextFinish,
-        shade_preference: nextFinish,
         tint_tier: nextTintTier,
         package_name: projectedPackage?.title,
         estimate_value: projectedEstimate,
@@ -1515,7 +1470,7 @@ const TintDubaiQuoteFunnel = () => {
         service_price: projectedEstimate,
       };
     },
-    [buildPayload, finish, size, tintTier],
+    [buildPayload, size, tintTier],
   );
 
   useEffect(() => {
@@ -1787,16 +1742,6 @@ const TintDubaiQuoteFunnel = () => {
     trackEvent("calculator_selection_changed", payload);
   };
 
-  const selectFinish = (nextFinish: ShadePreference) => {
-    setFinish(nextFinish);
-    const payload = {
-      step_name: "finish",
-      ...buildProjectedPayload({ nextFinish }),
-    };
-    trackEvent("guided_step_completed", payload);
-    trackEvent("calculator_selection_changed", payload);
-  };
-
   const selectPackage = (nextYears: TintTier) => {
     setTintTier(nextYears);
     const payload = {
@@ -1814,64 +1759,6 @@ const TintDubaiQuoteFunnel = () => {
     goToStep("result", "reveal_setup");
   };
 
-  const handlePhoneCapture = useCallback(async () => {
-    const cleaned = phone.trim();
-    if (!isLikelyRealPhone(cleaned)) return;
-    if (phoneCapturedAt === cleaned) return;
-
-    setPhoneCapturedAt(cleaned);
-    trackEvent("guided_phone_captured", {
-      step_name: "package",
-      capture_location: "warranty_bonus_lock",
-      ...buildPayload(),
-    });
-    const result = await captureLeadSnapshot({
-      snapshotType: "contact",
-      context: funnelContext,
-      fullName: name.trim(),
-      phone: cleaned,
-      vehicleModel: vehicle.trim(),
-      payload: {
-        ...buildPayload(),
-        service_name: variantConfig.phoneCaptureServiceName,
-        package_name: selectedPackage?.title,
-        tint_tier: tintTier,
-        finish,
-        shade_preference: finish,
-        vehicle_size: size,
-        bonus_eligible: bonusEligible,
-      },
-    });
-
-    if (!result.ok) {
-      trackEvent(
-        "lead_save_failed",
-        {
-          capture_location: "warranty_bonus_lock",
-          reason: ("reason" in result ? result.reason : null) ?? "unknown",
-          ...buildPayload(),
-        },
-        { emitToTagManagers: false },
-      );
-    }
-  }, [
-    bonusEligible,
-    buildPayload,
-    estimate,
-    finish,
-    funnelContext,
-    name,
-    phone,
-    phoneCapturedAt,
-    selectedPackage,
-    size,
-    targetPrice,
-    trackEvent,
-    variantConfig,
-    vehicle,
-    tintTier,
-  ]);
-
   const toggleExtra = (extra: string) => {
     setSelectedExtras((current) => {
       const exists = current.includes(extra);
@@ -1886,12 +1773,12 @@ const TintDubaiQuoteFunnel = () => {
   };
 
   const whatsAppMessage = useMemo(() => {
-    if (!isComplete || !estimate || !selectedPackage || !finish || !selectedSize) {
+    if (!isComplete || !estimate || !selectedPackage || !selectedSize) {
       const lines = [
         "Hi Sean, I want a ceramic window tint quote.",
         vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
-        size || finish || selectedPackage
-          ? `Selected so far: ${[size, finish, selectedPackage?.title].filter(Boolean).join(", ")}.`
+        size || selectedPackage
+          ? `Selected so far: ${[size, selectedPackage?.title].filter(Boolean).join(", ")}.`
           : "",
         "Can you confirm the best option and earliest slot?",
       ].filter(Boolean);
@@ -1899,7 +1786,7 @@ const TintDubaiQuoteFunnel = () => {
       return lines.join(" ");
     }
 
-    const setupParts = [selectedSize.label, selectedPackage.title, `shade: ${finish}`].filter(Boolean);
+    const setupParts = [selectedSize.label, selectedPackage.title].filter(Boolean);
     const lines = [
       "Hi Sean, I built a ceramic tint setup on the Grand Touch tint page.",
       vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
@@ -1913,7 +1800,6 @@ const TintDubaiQuoteFunnel = () => {
     return lines.join(" ");
   }, [
     estimate,
-    finish,
     isComplete,
     bonusEligible,
     premiumBonusLabel,
@@ -2009,11 +1895,7 @@ const TintDubaiQuoteFunnel = () => {
   // targetPrice, and flags the 20% online discount. Kept separate from the
   // generic `whatsAppMessage` so the higher-funnel pre-chat path is untouched.
   const buildLockedInWhatsAppMessage = () => {
-    const setupParts = [
-      selectedSize?.label,
-      selectedPackage?.title,
-      finish ? `shade: ${finish}` : null,
-    ].filter(Boolean);
+    const setupParts = [selectedSize?.label, selectedPackage?.title].filter(Boolean);
     const lines = [
       `Hi Sean, it's ${name.trim() || "a customer"} — I unlocked the 20% online discount on the ceramic tint builder.`,
       vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
@@ -2091,7 +1973,6 @@ const TintDubaiQuoteFunnel = () => {
       targetPrice === null ||
       listPrice === null ||
       !size ||
-      !finish ||
       !selectedPackage
     ) {
       return;
@@ -2142,8 +2023,6 @@ const TintDubaiQuoteFunnel = () => {
         list_price: listPrice,
         discount_savings: discountSavings,
         package_name: selectedPackage.title,
-        finish,
-        shade_preference: finish,
         vehicle_size: size,
         coverage: "Full Car Tint",
         bonus_eligible: bonusEligible,
@@ -2354,11 +2233,6 @@ const TintDubaiQuoteFunnel = () => {
     pulseCalculator();
 
     if (step === "size" && size) {
-      goToStep("finish", "mobile_sticky_continue");
-      return;
-    }
-
-    if (step === "finish" && finish) {
       goToStep("package", "mobile_sticky_continue");
       return;
     }
@@ -2467,7 +2341,7 @@ const TintDubaiQuoteFunnel = () => {
                     Build your ceramic tint price in 60 seconds.
                   </h1>
                   <p className="mt-2 text-xs leading-5 text-slate-300">
-                    Tap your car size below, choose finish and warranty, then unlock the online offer.
+                    Tap your car size below, choose your tint package, then unlock the online offer.
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-slate-200">
                     <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1">
@@ -2889,72 +2763,7 @@ const TintDubaiQuoteFunnel = () => {
                       type="button"
                       size="lg"
                       disabled={!size}
-                      onClick={() => goToStep("finish", "size_continue")}
-                      className="mt-3 h-11 w-full bg-[#f7b52b] font-black text-black hover:bg-[#ffc94f] disabled:bg-white/10 disabled:text-white/45 sm:mt-4 sm:h-12"
-                    >
-                      Continue to Shade
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : null}
-
-                {step === "finish" ? (
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => goToStep("size", "back")}
-                      className="mb-2 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white sm:mb-4 sm:gap-2 sm:text-sm"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Back to size
-                    </button>
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
-                      2. Shade preference
-                    </p>
-                    <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-3xl">
-                      How dark do you want to go?
-                    </h2>
-                    <p className="mt-2 text-xs text-slate-400 sm:mt-3 sm:text-sm">
-                      All shades are UAE-legal, and your choice never changes the price — heat
-                      rejection comes from the ceramic layer, not the darkness.
-                    </p>
-
-                    <div className="mt-3 grid gap-2 sm:mt-5 sm:grid-cols-3 sm:gap-3">
-                      {finishOptions.map((option, index) => {
-                        const isSelected = finish === option.value;
-                        const showGlow = !finish;
-
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => selectFinish(option.value)}
-                            className={cn(
-                              optionButton,
-                              "flex h-full flex-col p-3 sm:p-4",
-                              isSelected ? "border-[#f7b52b] ring-1 ring-[#f7b52b]/40" : "border-white/10",
-                            )}
-                          >
-                            <div className="flex-1">
-                              <p className="text-lg font-black sm:text-2xl">{option.label}</p>
-                              <p className="mt-0.5 text-[11px] text-[#f7b52b] sm:mt-1 sm:text-sm">
-                                {option.helper}
-                              </p>
-                              <p className="mt-3 hidden text-sm leading-6 text-slate-300 sm:block">
-                                {option.proof}
-                              </p>
-                            </div>
-                            {showGlow ? <GuidedCardGlow delay={index * 1.6} /> : null}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <Button
-                      type="button"
-                      size="lg"
-                      disabled={!finish}
-                      onClick={() => goToStep("package", "finish_continue")}
+                      onClick={() => goToStep("package", "size_continue")}
                       className="mt-3 h-11 w-full bg-[#f7b52b] font-black text-black hover:bg-[#ffc94f] disabled:bg-white/10 disabled:text-white/45 sm:mt-4 sm:h-12"
                     >
                       Continue to Packages
@@ -2967,14 +2776,14 @@ const TintDubaiQuoteFunnel = () => {
                   <div>
                     <button
                       type="button"
-                      onClick={() => goToStep("finish", "back")}
+                      onClick={() => goToStep("size", "back")}
                       className="mb-2 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white sm:mb-4 sm:gap-2 sm:text-sm"
                     >
                       <ChevronLeft className="h-4 w-4" />
-                      Back to shade
+                      Back to size
                     </button>
                     <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
-                      3. Tint package
+                      2. Tint package
                     </p>
                     <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-3xl">
                       How much heat do you want gone?
@@ -2984,6 +2793,9 @@ const TintDubaiQuoteFunnel = () => {
                       {packageOptions.map((option, index) => {
                         const isSelected = tintTier === option.tier;
                         const showGlow = !tintTier;
+                        // Price anchor for the CURRENT selected size (step 1
+                        // guarantees `size` is set before this step renders).
+                        const tierFromPrice = size ? getTintPrice(option.tier, size) : null;
 
                         return (
                           <button
@@ -3018,7 +2830,28 @@ const TintDubaiQuoteFunnel = () => {
                             </div>
                             <div className="min-w-0 flex-1 pr-12 sm:mt-4 sm:flex-none sm:pr-0">
                               <p className="text-sm font-black leading-tight sm:text-base">{option.label}</p>
-                              <p className="mt-0.5 text-[11px] leading-snug text-slate-400 sm:mt-1 sm:text-xs sm:leading-5">
+                              {tierFromPrice !== null ? (
+                                <p
+                                  className={cn(
+                                    "mt-0.5 text-[13px] font-black tabular-nums sm:mt-1 sm:text-base",
+                                    isSelected ? "text-[#f7b52b]" : "text-white",
+                                  )}
+                                >
+                                  From {formatAED(tierFromPrice)}
+                                </p>
+                              ) : null}
+                              <ul className="mt-1 space-y-0.5 sm:mt-1.5">
+                                {option.specs.map((spec) => (
+                                  <li
+                                    key={spec}
+                                    className="flex items-center gap-1 text-[10px] font-semibold leading-tight text-slate-300 sm:justify-center sm:text-[11px]"
+                                  >
+                                    <Check className="h-2.5 w-2.5 shrink-0 text-[#f7b52b]/80 sm:h-3 sm:w-3" />
+                                    {spec}
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="mt-1 text-[10px] leading-snug text-slate-400 sm:mt-1.5 sm:text-[11px] sm:leading-4">
                                 {option.value}
                               </p>
                             </div>
@@ -3028,53 +2861,6 @@ const TintDubaiQuoteFunnel = () => {
                       })}
                     </div>
 
-                    {tintTier ? (
-                      <div
-                        className={cn(
-                          "mt-3 rounded-2xl border bg-[#f7b52b]/[0.05] p-2.5 transition-all duration-500 sm:mt-4 sm:p-4",
-                          "border-[#f7b52b]/35",
-                          phoneAttentionFired && "animate-guided-attention motion-reduce:animate-none",
-                        )}
-                      >
-                        <div className="flex items-center gap-2 sm:items-start sm:gap-3">
-                          <BadgeCheck className="h-4 w-4 shrink-0 text-[#f7b52b] sm:mt-0.5 sm:h-5 sm:w-5" />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#f7b52b] sm:text-base sm:tracking-[0.14em]">
-                              Save your number — unlock 20% off next
-                            </p>
-                            <p className="mt-0.5 hidden text-xs leading-5 text-slate-300 sm:block">
-                              Add your number now, then claim your 20% online discount on the next step.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="relative mt-2 sm:mt-3">
-                          <PhoneInputWithCountry
-                            value={phone}
-                            onChange={setPhone}
-                            onFocus={() => setIsPhoneFocused(true)}
-                            onBlur={() => {
-                              setIsPhoneFocused(false);
-                              void handlePhoneCapture();
-                            }}
-                            placeholder={animatedPhonePlaceholder}
-                            className="border-[#f7b52b]/30 bg-white/[0.04]"
-                            ariaLabel="Phone for bonus lock"
-                          />
-                          {!phone && !isPhoneFocused ? (
-                            <span
-                              aria-hidden
-                              className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-[#f7b52b] animate-guided-caret-blink motion-reduce:animate-none"
-                            >
-                              |
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:mt-2 sm:text-[10px] sm:tracking-[0.18em]">
-                          Optional · No spam
-                        </p>
-                      </div>
-                    ) : null}
-
                     <Button
                       type="button"
                       size="lg"
@@ -3082,7 +2868,7 @@ const TintDubaiQuoteFunnel = () => {
                       onClick={revealSetup}
                       className="mt-3 h-11 w-full animate-pulse bg-[#25D366] font-black text-white shadow-[0_18px_48px_rgba(37,211,102,0.32)] hover:bg-[#20bf5d] disabled:animate-none disabled:bg-white/10 disabled:text-white/45 sm:mt-4 sm:h-12"
                     >
-                      {phone.trim().length >= 7 ? "Reveal My Setup + Lock Bonus" : "Reveal My Setup"}
+                      Reveal My Setup
                       <Sparkles className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
@@ -3110,7 +2896,7 @@ const TintDubaiQuoteFunnel = () => {
                       )}
                     >
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                        {[selectedSize?.label, finish, selectedPackage?.title]
+                        {[selectedSize?.label, selectedPackage?.title]
                           .filter(Boolean)
                           .map((chip) => (
                             <span
@@ -3249,7 +3035,7 @@ const TintDubaiQuoteFunnel = () => {
                                 {formatAED(targetPrice)}
                               </p>
                               <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45 sm:text-[11px]">
-                                For your {selectedSize?.label} · {finish} · {selectedPackage?.title} setup
+                                For your {selectedSize?.label} · {selectedPackage?.title} setup
                               </p>
                             </div>
 
@@ -4457,14 +4243,10 @@ const TintDubaiQuoteFunnel = () => {
             {step === "size" && !size
               ? "Pick a car size to start"
               : step === "size"
-                ? "Continue to Shade"
-                : step === "finish" && !finish
-                  ? "Pick a shade"
-                  : step === "finish"
-                    ? "Continue to Packages"
-                    : step === "package" && !tintTier
-                      ? "Pick a tint package"
-                      : "Reveal My Setup"}
+                ? "Continue to Packages"
+                : step === "package" && !tintTier
+                  ? "Pick a tint package"
+                  : "Reveal My Setup"}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -4496,7 +4278,7 @@ const TintDubaiQuoteFunnel = () => {
             </li>
             <li className="flex items-start gap-2.5">
               <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
-              <span>Or message Sean now — he'll still need your car, size &amp; finish</span>
+              <span>Or message Sean now — he'll still need your car, size &amp; package</span>
             </li>
           </ul>
 
