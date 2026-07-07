@@ -46,14 +46,20 @@ export function parseArgs(argv) {
     json: false,
   };
 
-  for (const arg of argv) {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
     if (!arg.startsWith("--")) {
       continue;
     }
 
     const [rawKey, rawValue] = arg.slice(2).split("=");
     const key = rawKey.trim();
-    const value = rawValue ?? "true";
+    const next = argv[index + 1];
+    const value =
+      rawValue ??
+      (next && !next.startsWith("--")
+        ? (index += 1, next)
+        : "true");
 
     if (key === "env") {
       args.env = value;
