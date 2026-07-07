@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  CarFront,
   Eye,
   Gift,
   Handshake,
@@ -26,13 +27,14 @@ import {
   MapPin,
   MessageCircle,
   MousePointerClick,
+  PanelTop,
   Phone,
   Play,
   ScanSearch,
   ShieldCheck,
   Sparkles,
   Star,
-  Truck,
+  Sun,
   UserCheck,
   Volume2,
   VolumeX,
@@ -70,11 +72,12 @@ import { updatePageSEO } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
 
-/** Tint tier ids — Action Essential / STEK Smart Ceramic / STEK Nex Premium. */
+/** Tint tier ids — STEK Action Essential / STEK Smart Ceramic / STEK Nex Premium. */
 type TintTier = "action" | "smart" | "nex";
 type FlowStep = "size" | "package" | "result";
 /** Car-size brackets (same visual size step as the PPF funnel). */
-type TintSize = "Small" | "Medium" | "SUV" | "Sports";
+type TintSize = "Small" | "Medium" | "Sports" | "SUV";
+type InstallTiming = "today" | "tomorrow" | "this_week" | "checking";
 
 type TintFunnelConfig = {
   seoKey: string;
@@ -125,7 +128,7 @@ const funnelConfig: TintFunnelConfig = {
   seo: {
     title: "Ceramic Window Tint Dubai | Installed in 3 Hours | Grand Touch",
     description:
-      "Build your ceramic window tint setup, see your Dubai price instantly, then claim 20% off, a free sun-strip visor, and free pickup direct with Sean on WhatsApp.",
+      "Build your ceramic window tint setup, see your Dubai price instantly, then claim 20% off and a free sun-strip visor direct with Sean on WhatsApp.",
     keywords:
       "window tint dubai, ceramic tint dubai, car tinting dubai, tint price dubai, STEK tint dubai, heat rejection tint dubai, legal tint dubai",
     ogTitle: "Ceramic Window Tint Dubai",
@@ -133,10 +136,10 @@ const funnelConfig: TintFunnelConfig = {
       "Ceramic window tint installed in ~3 hours — build your setup, see your price, unlock 20% off, and confirm with Sean on WhatsApp.",
   },
   eyebrow: "Ceramic Window Tint - Dubai",
-  headline: "Ceramic Tint Price",
+  headline: "Ceramic Window Tint Price",
   headlineAccent: "in Dubai.",
   mobileIntro:
-    "Build your setup, see your ceramic tint price instantly, then claim 20% off, a free sun-strip visor, and free pickup with Sean on WhatsApp.",
+    "Build your setup, see your ceramic tint price instantly, then claim 20% off and a free sun-strip visor with Sean on WhatsApp.",
   desktopIntro:
     "Use this tint builder to price ceramic window tint for your car, SUV, or sports car — real heat rejection, UAE-legal shades, installed in about 3 hours — then lock in 20% off with Sean on WhatsApp.",
   campaignIntro:
@@ -161,27 +164,27 @@ const sizeOptions: Array<{
 }> = [
   {
     value: "Small",
-    label: "Small",
-    example: "A45 / Golf / 3 Series",
+    label: "Hatchback / Small",
+    example: "Golf / A45 / Yaris",
     image: "/calculator-a45-gloss.jpg",
   },
   {
     value: "Medium",
-    label: "Medium",
-    example: "E-Class / 5 Series",
+    label: "Sedan",
+    example: "Camry / 5 Series / E-Class",
     image: "/calculator-e63s-gloss.jpg",
+  },
+  {
+    value: "Sports",
+    label: "Sports / Exotic",
+    example: "911 / GT3 / SF90 / Huracán",
+    image: "/calculator-gt3-gloss.jpg",
   },
   {
     value: "SUV",
     label: "SUV / 4x4",
     example: "Patrol / Defender / Cayenne",
     image: "/calculator-patrol-gloss.jpg",
-  },
-  {
-    value: "Sports",
-    label: "Sports",
-    example: "911 / GT3 / R8",
-    image: "/calculator-gt3-gloss.jpg",
   },
 ];
 
@@ -199,7 +202,7 @@ const packageOptions: Array<{
 }> = [
   {
     tier: "action",
-    title: "Action Essential",
+    title: "STEK Action Essential",
     shortName: "Action",
     label: "Essential",
     value: "Budget pick, good heat rejection",
@@ -225,31 +228,72 @@ const packageOptions: Array<{
 ];
 
 // Full-car ceramic tint pricing by size × tier (AED, excl. VAT). These are the
-// TRUE prices Sean honors — the 20% strikethrough anchor is derived from them
-// (list = round(target / 0.8 / 10) * 10), same margin-neutral math as the PPF
-// funnel. Sports uses the Medium price.
+// TRUE starting prices Sean honors — ranges use the low end as the quoted
+// anchor; Sean confirms the final figure once he knows the exact car. The 20%
+// strikethrough anchor is derived from them (list = round(target / 0.8 / 10) * 10).
 const TINT_PRICE_TABLE: Record<TintTier, Record<TintSize, number>> = {
-  action: { Small: 699, Medium: 799, Sports: 799, SUV: 899 },
-  smart: { Small: 1199, Medium: 1399, Sports: 1399, SUV: 1599 },
-  nex: { Small: 2799, Medium: 2999, Sports: 2999, SUV: 3299 },
+  action: { Small: 649, Medium: 799, Sports: 899, SUV: 999 },
+  smart: { Small: 1299, Medium: 1499, Sports: 1499, SUV: 1699 },
+  nex: { Small: 2199, Medium: 2399, Sports: 2499, SUV: 2799 },
 };
 
 const getTintPrice = (tier: TintTier, size: TintSize) => TINT_PRICE_TABLE[tier][size];
+
+type TintAddOnId = "windshield" | "panoramic";
+
+const TINT_ADD_ONS: Array<{
+  id: TintAddOnId;
+  label: string;
+  description: string;
+  price: number;
+  icon: typeof CarFront;
+}> = [
+  {
+    id: "windshield",
+    label: "Clear front windshield heat film",
+    description: "Cuts dashboard heat while keeping the front glass clear",
+    price: 499,
+    icon: CarFront,
+  },
+  {
+    id: "panoramic",
+    label: "Panoramic roof tint",
+    description: "Heat rejection film for the glass roof",
+    price: 699,
+    icon: PanelTop,
+  },
+];
+
+const EMPTY_SELECTED_ADD_ONS: Record<TintAddOnId, boolean> = {
+  windshield: false,
+  panoramic: false,
+};
+
+const installTimingOptions: Array<{ value: InstallTiming; label: string }> = [
+  { value: "today", label: "Today" },
+  { value: "tomorrow", label: "Tomorrow" },
+  { value: "this_week", label: "This week" },
+  { value: "checking", label: "Just checking" },
+];
+
+const formatSelectedAddOns = (selected: Record<TintAddOnId, boolean>) =>
+  TINT_ADD_ONS.filter((addon) => selected[addon.id]).map(
+    (addon) => `${addon.label} (+AED ${addon.price})`,
+  );
 
 const stepOrder: FlowStep[] = ["size", "package", "result"];
 
 /**
  * Top-bar bonuses — claimable extras only, kept distinct from the standard
  * "free add-ons" stack shown in the Dialog. These are the things a user
- * unlocks by completing the funnel: discount, free tint, free pickup,
- * extended warranty, and a direct line to Sean.
+ * unlocks by completing the funnel: discount, free tint, extended warranty,
+ * and a direct line to Sean.
  */
 const topOffers: Array<{
-  icon: typeof Truck;
+  icon: typeof BadgePercent;
   text: string;
 }> = [
   { icon: BadgePercent, text: "Claim 20% off your ceramic tint setup" },
-  { icon: Truck, text: "Free pickup & drop-off across Dubai" },
   { icon: Sparkles, text: "Free sun-strip visor with every install" },
   { icon: ShieldCheck, text: "Front windshield film available (+AED 499)" },
   { icon: Zap, text: "Installed in ~3 hours · quote direct from Sean" },
@@ -276,12 +320,12 @@ const trustFaqs: Array<{ question: string; answer: string }> = [
   {
     question: "How long does a tint install take?",
     answer:
-      "Around 3 hours for a full car — glass decontamination, precision-cut film, installation, and QC. You can wait at the studio or use the free Dubai-wide pickup and drop-off. We'll also tell you the safe window before you roll the windows down (usually 24–48 hours while the film cures).",
+      "Around 3 hours for a full car — glass decontamination, precision-cut film, installation, and QC. You can wait comfortably at our DIP 2 studio while we work. We'll also tell you the safe window before you roll the windows down (usually 24–48 hours while the film cures).",
   },
   {
     question: "What's the difference between Action, Smart Ceramic, and Nex?",
     answer:
-      "Action Essential is the budget pick — solid heat rejection and a clean look. STEK Smart Ceramic is the most chosen: true ceramic heat rejection, crystal clarity at night, and a strong STEK warranty. STEK Nex Premium is the maximum — the highest IR rejection in the range with the premium warranty. Sean will tell you honestly which tier fits how you use the car.",
+      "STEK Action Essential is the budget pick — solid heat rejection and a clean look. STEK Smart Ceramic is the most chosen: true ceramic heat rejection, crystal clarity at night, and a strong STEK warranty. STEK Nex Premium is the maximum — the highest IR rejection in the range with the premium warranty. Sean will tell you honestly which tier fits how you use the car.",
   },
   {
     question: "How does the warranty registration work?",
@@ -324,16 +368,6 @@ const includedFreeItems: Array<{ title: string; description: string; value: numb
     value: 299,
   },
   {
-    title: "Old tint removal & glass decontamination",
-    description: "Existing film stripped properly, glass cleaned before the new film goes on.",
-    value: 300,
-  },
-  {
-    title: "Full glass clean & handover detail",
-    description: "Crystal-clear windows inside and out at handover.",
-    value: 200,
-  },
-  {
     title: "STEK warranty registration",
     description: "Registered to your car — bubbling, peeling & fade covered on paper, not verbally.",
     value: 150,
@@ -345,15 +379,8 @@ const includedFreeItems: Array<{ title: string; description: string; value: numb
   },
 ];
 
-// Free pickup (sourced from topOffers) folded into the value stack. PLACEHOLDER value.
-const freePickupStackItem = {
-  title: "Free pickup & drop-off across Dubai",
-  description: "Dubai-wide, by Sean's team — at a time that suits you.",
-  value: 250,
-};
-
-// The full Step 4 value stack = free inclusions + pickup. Total ≈ AED 4,550.
-const valueStackItems = [...includedFreeItems, freePickupStackItem];
+// The full Step 4 value stack = free inclusions bundled with every install.
+const valueStackItems = [...includedFreeItems];
 const valueStackTotal = valueStackItems.reduce((sum, item) => sum + item.value, 0);
 
 const buildWhatsAppUrl = (message: string) =>
@@ -1191,7 +1218,9 @@ const TintDubaiQuoteFunnel = () => {
   const [vehicle, setVehicle] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
+  const [selectedAddOns, setSelectedAddOns] =
+    useState<Record<TintAddOnId, boolean>>(EMPTY_SELECTED_ADD_ONS);
+  const [installTiming, setInstallTiming] = useState<InstallTiming>("this_week");
   const [formStatus, setFormStatus] = useState<"idle" | "saving" | "saved" | "error" | "invalid_phone">("idle");
   const [preChatOpen, setPreChatOpen] = useState(false);
   const [pendingWaPlacement, setPendingWaPlacement] = useState<string | null>(null);
@@ -1361,8 +1390,8 @@ const TintDubaiQuoteFunnel = () => {
   const phoneCaptured = isLikelyRealPhone(phone);
   const bonusEligible = policyBonusEligible && phoneCaptured;
   const premiumBonusLabel = bonusEligible
-    ? "20% saving, free pickup & sun-strip visor unlocked"
-    : "20% saving, free pickup & sun-strip visor available";
+    ? "20% saving & sun-strip visor unlocked"
+    : "20% saving & sun-strip visor available";
 
   // ── Gamified 20% unlock pricing — MARGIN-NEUTRAL ANCHOR ─────────────────
   // `estimate` is the TRUE price Sean honors → that's the unlocked target.
@@ -1373,7 +1402,34 @@ const TintDubaiQuoteFunnel = () => {
   const listPrice = estimate !== null ? Math.round(estimate / 0.8 / 10) * 10 : null;
   const discountSavings =
     listPrice !== null && targetPrice !== null ? listPrice - targetPrice : null;
+  const addOnTotal = useMemo(
+    () =>
+      TINT_ADD_ONS.reduce(
+        (sum, addon) => sum + (selectedAddOns[addon.id] ? addon.price : 0),
+        0,
+      ),
+    [selectedAddOns],
+  );
+  const todayPrice = targetPrice !== null ? targetPrice + addOnTotal : null;
+  const selectedAddOnLabels = useMemo(() => formatSelectedAddOns(selectedAddOns), [selectedAddOns]);
+  const selectedInstallTimingLabel =
+    installTimingOptions.find((option) => option.value === installTiming)?.label ?? "This week";
+  const priceIncludesLine = useMemo(() => {
+    if (!selectedSize || !selectedPackage) return "";
+    const parts = [`${selectedSize.label} ${selectedPackage.title}`];
+    if (selectedAddOns.windshield) parts.push("front windshield film");
+    if (selectedAddOns.panoramic) parts.push("panoramic roof tint");
+    return `Includes ${parts.join(" + ")}`;
+  }, [selectedAddOns, selectedPackage, selectedSize]);
   const firstName = name.trim().split(/\s+/)[0] ?? "";
+  const reserveButtonText = useMemo(() => {
+    if (todayPrice === null) return "Reserve my tint offer";
+    if (installTiming === "checking") return `Send me the ${formatAED(todayPrice)} offer`;
+    if (installTiming === "today" || installTiming === "tomorrow") {
+      return `Reserve my ${formatAED(todayPrice)} slot`;
+    }
+    return `Reserve my ${formatAED(todayPrice)} tint offer`;
+  }, [installTiming, todayPrice]);
   // V3 needs only a valid phone (name optional) to cut last-step friction.
   const canUnlock = (isGated || isPriceVariant || name.trim().length >= 2) && phoneCaptured;
   // PRICE variant capture intent: "whatsapp" = save then open WhatsApp with the
@@ -1420,16 +1476,18 @@ const TintDubaiQuoteFunnel = () => {
       vehicle_size: size,
       tint_tier: tintTier,
       package_name: selectedPackage?.title,
-      estimate_value: estimate,
-      final_price: estimate,
-      service_price: estimate,
+      estimate_value: todayPrice ?? estimate,
+      final_price: todayPrice ?? estimate,
+      service_price: todayPrice ?? estimate,
       coverage: "Full Car Tint",
       lead_name: name.trim() || undefined,
       lead_phone: phoneCaptured ? phone.trim() : undefined,
       vehicle_model: vehicle.trim() || undefined,
       bonus_eligible: bonusEligible,
       bonus_label: premiumBonusLabel,
-      selected_extras: selectedExtras.join(", "),
+      selected_extras: selectedAddOnLabels.join(", "),
+      preferred_install_timing: installTiming,
+      preferred_install_timing_label: selectedInstallTimingLabel,
     }),
     [
       bonusEligible,
@@ -1438,11 +1496,14 @@ const TintDubaiQuoteFunnel = () => {
       phone,
       phoneCaptured,
       premiumBonusLabel,
-      selectedExtras,
+      selectedAddOnLabels,
+      selectedInstallTimingLabel,
       selectedPackage,
       size,
       vehicle,
       tintTier,
+      todayPrice,
+      installTiming,
     ],
   );
 
@@ -1759,16 +1820,27 @@ const TintDubaiQuoteFunnel = () => {
     goToStep("result", "reveal_setup");
   };
 
-  const toggleExtra = (extra: string) => {
-    setSelectedExtras((current) => {
-      const exists = current.includes(extra);
-      const next = exists ? current.filter((item) => item !== extra) : [...current, extra];
+  const toggleAddOn = (addOnId: TintAddOnId) => {
+    setSelectedAddOns((current) => {
+      const nextSelected = !current[addOnId];
+      const next = { ...current, [addOnId]: nextSelected };
       trackEvent("guided_extra_toggled", {
-        extra,
-        selected: !exists,
-        selected_extras: next.join(", "),
+        extra: addOnId,
+        selected: nextSelected,
+        selected_extras: formatSelectedAddOns(next).join(", "),
       });
       return next;
+    });
+  };
+
+  const selectInstallTiming = (nextTiming: InstallTiming) => {
+    setInstallTiming(nextTiming);
+    const timingLabel =
+      installTimingOptions.find((option) => option.value === nextTiming)?.label ?? "This week";
+    trackEvent("guided_install_timing_selected", {
+      ...buildPayload(),
+      preferred_install_timing: nextTiming,
+      preferred_install_timing_label: timingLabel,
     });
   };
 
@@ -1787,13 +1859,19 @@ const TintDubaiQuoteFunnel = () => {
     }
 
     const setupParts = [selectedSize.label, selectedPackage.title].filter(Boolean);
+    const addOnSummary = selectedAddOnLabels.length
+      ? `Add-ons: ${selectedAddOnLabels.join(", ")}.`
+      : "";
     const lines = [
       "Hi Sean, I built a ceramic tint setup on the Grand Touch tint page.",
       vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
       `Setup: ${setupParts.join(", ")}.`,
-      `Price: ${formatAED(estimate)} (excl. VAT).`,
+      todayPrice !== null
+        ? `Price: ${formatAED(todayPrice)} (tint ${formatAED(estimate)}${addOnTotal ? ` + add-ons ${formatAED(addOnTotal)}` : ""}, excl. VAT).`
+        : `Price: ${formatAED(estimate)} (excl. VAT).`,
+      addOnSummary,
+      `Preferred install time: ${selectedInstallTimingLabel}.`,
       bonusEligible ? `Bonus: ${premiumBonusLabel}.` : "",
-      selectedExtras.length ? `I am also interested in: ${selectedExtras.join(", ")}.` : "",
       "Can you confirm final price and availability?",
     ].filter(Boolean);
 
@@ -1803,7 +1881,10 @@ const TintDubaiQuoteFunnel = () => {
     isComplete,
     bonusEligible,
     premiumBonusLabel,
-    selectedExtras,
+    selectedAddOnLabels,
+    selectedInstallTimingLabel,
+    addOnTotal,
+    todayPrice,
     selectedPackage,
     selectedSize,
     size,
@@ -1890,6 +1971,10 @@ const TintDubaiQuoteFunnel = () => {
     [],
   );
 
+  useEffect(() => {
+    if (!discountUnlocked || todayPrice === null) return;
+    setAnimatedPrice(todayPrice);
+  }, [discountUnlocked, todayPrice, selectedAddOns]);
 
   // The locked-in WhatsApp message — uses the captured name and the DISCOUNTED
   // targetPrice, and flags the 20% online discount. Kept separate from the
@@ -1901,9 +1986,11 @@ const TintDubaiQuoteFunnel = () => {
       vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
       setupParts.length ? `Setup: ${setupParts.join(", ")}.` : "",
       listPrice !== null ? `Was ${formatAED(listPrice)}.` : "",
-      targetPrice !== null
-        ? `My locked-in price: ${formatAED(targetPrice)} (20% online discount applied, excl. VAT).`
+      todayPrice !== null
+        ? `My locked-in price: ${formatAED(todayPrice)} (tint ${formatAED(targetPrice ?? todayPrice)}${addOnTotal ? ` + add-ons ${formatAED(addOnTotal)}` : ""}, 20% online discount applied, excl. VAT).`
         : "",
+      selectedAddOnLabels.length ? `Add-ons: ${selectedAddOnLabels.join(", ")}.` : "",
+      `Preferred install time: ${selectedInstallTimingLabel}.`,
       "Can you confirm my final price and earliest slot?",
     ].filter(Boolean);
     return lines.join(" ");
@@ -2000,7 +2087,7 @@ const TintDubaiQuoteFunnel = () => {
     // checks off. Count-down respects prefers-reduced-motion (snaps to final).
     setDiscountUnlocked(true);
     setAnimatedPrice(listPrice);
-    runPriceCountdown(listPrice, targetPrice);
+    runPriceCountdown(listPrice, todayPrice ?? targetPrice);
 
     trackEvent("save_quote_submitted", {
       form_type: "guided_discount_unlock",
@@ -2018,15 +2105,15 @@ const TintDubaiQuoteFunnel = () => {
       payload: {
         ...buildPayload(),
         service_name: variantConfig.bonusClaimServiceName,
-        service_price: targetPrice,
-        final_price: targetPrice,
+        service_price: todayPrice ?? targetPrice,
+        final_price: todayPrice ?? targetPrice,
         list_price: listPrice,
         discount_savings: discountSavings,
         package_name: selectedPackage.title,
         vehicle_size: size,
         coverage: "Full Car Tint",
         bonus_eligible: bonusEligible,
-        selected_extras: selectedExtras.join(", "),
+        selected_extras: selectedAddOnLabels.join(", "),
       },
     });
 
@@ -2036,10 +2123,10 @@ const TintDubaiQuoteFunnel = () => {
         ...buildPayload(),
       });
 
-      // New gamification dataLayer event (value = discounted targetPrice).
+      // New gamification dataLayer event (value = today's total incl. selected add-ons).
       trackEvent("discount_unlocked", {
         ...buildPayload(),
-        value: targetPrice,
+        value: todayPrice ?? targetPrice,
         currency: "AED",
         list_price: listPrice,
         discount_savings: discountSavings,
@@ -2052,7 +2139,7 @@ const TintDubaiQuoteFunnel = () => {
         trackMetaStandardEvent("Lead", {
           content_name: "Tint Dubai Quote Funnel",
           content_category: "Window Tint",
-          value: targetPrice,
+          value: todayPrice ?? targetPrice,
           currency: "AED",
         });
       }
@@ -2157,7 +2244,7 @@ const TintDubaiQuoteFunnel = () => {
         image: "https://www.grandtouchauto.ae/guided-sean-with-patrols.png",
         url: variantConfig.pageUrl,
         telephone: "+971567191045",
-        priceRange: "AED 699 – AED 3,299",
+        priceRange: "AED 649 – AED 2,799",
         address: {
           "@type": "PostalAddress",
           streetAddress: "DIP 2, Thani Warehouse 3 11b",
@@ -2193,8 +2280,8 @@ const TintDubaiQuoteFunnel = () => {
         offers: {
           "@type": "AggregateOffer",
           priceCurrency: "AED",
-          lowPrice: "699",
-          highPrice: "3299",
+          lowPrice: "649",
+          highPrice: "2799",
         },
       },
       {
@@ -2379,7 +2466,7 @@ const TintDubaiQuoteFunnel = () => {
                   {[
                     { src: "/guided-911-gloss.png", alt: "Porsche 911 with gloss PPF" },
                     { src: "/guided-cullinan-ppf.png", alt: "Rolls-Royce Cullinan with PPF" },
-                    { src: "/guided-rolls-install.png", alt: "PPF install in progress" },
+                    { src: "/guided-tint-install.png", alt: "Ceramic window tint install in progress" },
                   ].map((img) => (
                     <div
                       key={img.src}
@@ -2425,7 +2512,7 @@ const TintDubaiQuoteFunnel = () => {
                 <div className="mt-3 grid grid-cols-3 gap-1.5">
                   {[
                     { icon: BadgePercent, label: "20% off setup" },
-                    { icon: Truck, label: "Free pickup" },
+                    { icon: Clock, label: "~3 hour install" },
                     { icon: Sparkles, label: "Free sun-strip" },
                   ].map(({ icon: Icon, label }) => (
                     <div
@@ -2547,9 +2634,9 @@ const TintDubaiQuoteFunnel = () => {
                       sub: "Any package",
                     },
                     {
-                      icon: Truck,
-                      label: "Free pickup",
-                      sub: "Dubai-wide",
+                      icon: Clock,
+                      label: "~3 hour install",
+                      sub: "DIP 2 studio",
                     },
                     {
                       icon: Sparkles,
@@ -2788,6 +2875,17 @@ const TintDubaiQuoteFunnel = () => {
                     <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-3xl">
                       How much heat do you want gone?
                     </h2>
+                    <div className="mt-2 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 sm:mt-3 sm:px-3.5 sm:py-3">
+                      <img
+                        src="/stek-logo.webp"
+                        alt="STEK"
+                        loading="lazy"
+                        className="h-7 w-auto shrink-0 object-contain opacity-95 sm:h-8"
+                      />
+                      <p className="text-[11px] font-black uppercase leading-snug tracking-[0.08em] text-slate-200 sm:text-xs sm:tracking-[0.1em]">
+                        All packages use genuine STEK window tint
+                      </p>
+                    </div>
 
                     <div className="mt-3 grid gap-2 sm:mt-5 sm:grid-cols-3 sm:gap-3">
                       {packageOptions.map((option, index) => {
@@ -2804,21 +2902,22 @@ const TintDubaiQuoteFunnel = () => {
                             onClick={() => selectPackage(option.tier)}
                             className={cn(
                               optionButton,
-                              "flex h-full items-center gap-3 px-3 py-2.5 text-left sm:flex-col sm:items-center sm:justify-between sm:gap-0 sm:px-4 sm:py-6 sm:text-center",
+                              "flex h-full w-full flex-col px-3.5 py-3 text-left sm:items-center sm:px-4 sm:py-6 sm:text-center",
                               isSelected
                                 ? "border-[#f7b52b] bg-[#f7b52b]/10 ring-1 ring-[#f7b52b]/40"
                                 : "border-white/10",
                             )}
                           >
                             {option.badge ? (
-                              <span className="absolute right-2 top-2 rounded-full bg-[#f7b52b] px-1.5 py-0.5 text-[8px] font-black tracking-[0.12em] text-black shadow-[0_0_22px_rgba(247,181,43,0.45)] sm:right-3 sm:top-3 sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
+                              <span className="absolute right-2 top-2 rounded-full bg-[#f7b52b] px-2 py-0.5 text-[8px] font-black tracking-[0.12em] text-black shadow-[0_0_22px_rgba(247,181,43,0.45)] sm:right-3 sm:top-3 sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
                                 {option.badge}
                               </span>
                             ) : null}
-                            <div className="flex shrink-0 items-baseline gap-1 sm:flex-col sm:items-center sm:gap-0">
+                            {/* Row 1: tier name + series sublabel (badge sits top-right) */}
+                            <div className="flex flex-wrap items-baseline gap-x-2 pr-16 sm:flex-col sm:items-center sm:gap-0 sm:pr-0">
                               <span
                                 className={cn(
-                                  "text-[1.7rem] font-black leading-none tracking-tight sm:text-[2.6rem]",
+                                  "text-2xl font-black leading-none tracking-tight sm:text-[2.6rem]",
                                   isSelected ? "text-[#f7b52b]" : "text-white",
                                 )}
                               >
@@ -2828,33 +2927,41 @@ const TintDubaiQuoteFunnel = () => {
                                 {option.title}
                               </span>
                             </div>
-                            <div className="min-w-0 flex-1 pr-12 sm:mt-4 sm:flex-none sm:pr-0">
-                              <p className="text-sm font-black leading-tight sm:text-base">{option.label}</p>
+                            {/* Row 2: label + price anchor (price = second-most prominent) */}
+                            <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 sm:mt-4 sm:flex-col sm:items-center sm:gap-0">
+                              <p className="text-xs font-black uppercase tracking-[0.08em] leading-tight text-slate-200 sm:text-base sm:normal-case sm:tracking-normal sm:text-white">
+                                {option.label}
+                              </p>
                               {tierFromPrice !== null ? (
                                 <p
                                   className={cn(
-                                    "mt-0.5 text-[13px] font-black tabular-nums sm:mt-1 sm:text-base",
+                                    "text-lg font-black tabular-nums leading-tight sm:mt-1 sm:text-base",
                                     isSelected ? "text-[#f7b52b]" : "text-white",
                                   )}
                                 >
                                   From {formatAED(tierFromPrice)}
                                 </p>
                               ) : null}
-                              <ul className="mt-1 space-y-0.5 sm:mt-1.5">
-                                {option.specs.map((spec) => (
-                                  <li
-                                    key={spec}
-                                    className="flex items-center gap-1 text-[10px] font-semibold leading-tight text-slate-300 sm:justify-center sm:text-[11px]"
-                                  >
-                                    <Check className="h-2.5 w-2.5 shrink-0 text-[#f7b52b]/80 sm:h-3 sm:w-3" />
-                                    {spec}
-                                  </li>
-                                ))}
-                              </ul>
-                              <p className="mt-1 text-[10px] leading-snug text-slate-400 sm:mt-1.5 sm:text-[11px] sm:leading-4">
-                                {option.value}
-                              </p>
                             </div>
+                            {/* Row 3: specs — compact one-liner on mobile, checklist on sm+ */}
+                            <p className="mt-1.5 text-[11px] font-semibold leading-snug text-slate-300 sm:hidden">
+                              {option.specs.join(" · ")}
+                            </p>
+                            <ul className="mt-1.5 hidden space-y-0.5 sm:block">
+                              {option.specs.map((spec) => (
+                                <li
+                                  key={spec}
+                                  className="flex items-center gap-1 text-[11px] font-semibold leading-tight text-slate-300 sm:justify-center"
+                                >
+                                  <Check className="h-3 w-3 shrink-0 text-[#f7b52b]/80" />
+                                  {spec}
+                                </li>
+                              ))}
+                            </ul>
+                            {/* Row 4: positioning copy */}
+                            <p className="mt-1 text-[10px] leading-snug text-slate-400 sm:mt-1.5 sm:text-[11px] sm:leading-4">
+                              {option.value}
+                            </p>
                             {showGlow ? <GuidedCardGlow delay={index * 1.6} /> : null}
                           </button>
                         );
@@ -2896,243 +3003,179 @@ const TintDubaiQuoteFunnel = () => {
                       )}
                     >
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                        {[selectedSize?.label, selectedPackage?.title]
-                          .filter(Boolean)
-                          .map((chip) => (
-                            <span
-                              key={chip}
-                              className="rounded-full border border-white/10 bg-black/30 px-2.5 py-0.5 text-[10px] font-bold sm:px-3 sm:py-1 sm:text-xs"
-                            >
-                              {chip}
-                            </span>
-                          ))}
+                        {selectedSize && selectedPackage ? (
+                          <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-0.5 text-[10px] font-bold sm:px-3 sm:py-1 sm:text-xs">
+                            {selectedSize.label} · {selectedPackage.title}
+                          </span>
+                        ) : null}
                       </div>
 
-                      {/* Optional paid extra — clear heat-rejection windshield film.
-                          Toggles into selectedExtras so it lands in the WhatsApp
-                          message and the CRM payload; price untouched (Sean quotes it). */}
-                      <button
-                        type="button"
-                        onClick={() => toggleExtra("Front windshield film (+AED 499)")}
-                        className={cn(
-                          "mt-2.5 flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition",
-                          selectedExtras.includes("Front windshield film (+AED 499)")
-                            ? "border-[#f7b52b] bg-[#f7b52b]/10"
-                            : "border-white/10 bg-black/30 hover:border-[#f7b52b]/50",
-                        )}
-                      >
-                        <span className="flex min-w-0 items-center gap-2 text-xs font-bold text-slate-200 sm:text-sm">
-                          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#f7b52b]" />
-                          <span className="truncate">
-                            Add front windshield film — clear, heat-rejecting
-                          </span>
-                        </span>
-                        <span
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-white/10 bg-black/25 px-2.5 py-1.5">
+                        {[
+                          { icon: Sun, label: "Heat rejection" },
+                          { icon: ShieldCheck, label: "UV protection" },
+                          { icon: Clock, label: "3-hour install" },
+                        ].map(({ icon: Icon, label }) => (
+                          <div
+                            key={label}
+                            className="flex min-w-0 flex-1 items-center justify-center gap-1.5 text-center"
+                          >
+                            <Icon className="h-3.5 w-3.5 shrink-0 text-[#f7b52b]" />
+                            <p className="text-[9px] font-black leading-tight text-slate-300 sm:text-[10px]">
+                              {label}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {targetPrice !== null && todayPrice !== null ? (
+                        <div
                           className={cn(
-                            "shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em]",
-                            selectedExtras.includes("Front windshield film (+AED 499)")
-                              ? "bg-[#f7b52b]/20 text-[#f7b52b]"
-                              : "bg-white/10 text-white/70",
+                            "mt-3 rounded-xl border p-3 transition-colors duration-500 sm:p-3.5",
+                            discountUnlocked
+                              ? "border-[#25D366]/35 bg-[#25D366]/[0.06]"
+                              : "border-white/10 bg-black/30",
                           )}
                         >
-                          {selectedExtras.includes("Front windshield film (+AED 499)")
-                            ? "Added · +AED 499"
-                            : "+AED 499"}
-                        </span>
-                      </button>
-
-                      {discountUnlocked && listPrice !== null && targetPrice !== null ? (
-                        /* ---------- POST-UNLOCK: locked-in green price ---------- */
-                        <>
-                          <div className="mt-3 flex items-center gap-2 sm:mt-3.5">
-                            <span className={cn("relative text-sm font-bold text-white/40 sm:text-base", !isGated && "line-through")}>
-                              {formatAED(listPrice)}
-                              {isGated ? (
-                                <span
-                                  aria-hidden="true"
-                                  className="pointer-events-none absolute left-0 top-1/2 h-[2px] w-full origin-left -translate-y-1/2 rounded-full bg-[#25D366] shadow-[0_0_8px_rgba(37,211,102,0.7)] animate-guided-strike motion-reduce:animate-none"
-                                />
-                              ) : null}
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#25D366] ring-1 ring-[#25D366]/40 sm:text-[10px]">
-                              <BadgePercent className="h-3 w-3" />
-                              20% OFF
-                            </span>
-                          </div>
-
-                          <p className="mt-1 text-[9px] font-black uppercase tracking-[0.22em] text-white/50 sm:text-[10px]">
-                            Your locked-in price
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/55">
+                            Price summary
                           </p>
-
-                          <p className="mt-0.5 text-[2.6rem] font-black leading-none tracking-tight text-[#25D366] transition-colors duration-500 sm:mt-1 sm:text-[4rem]">
-                            {formatAED(animatedPrice ?? targetPrice)}
-                          </p>
-
-                          {discountSavings !== null ? (
-                            <div
-                              className="mt-2 animate-fade-up motion-reduce:animate-none"
-                              style={{ animationDelay: "0.45s", animationFillMode: "both" }}
-                            >
-                              <span className="inline-flex flex-wrap items-center gap-1.5 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-[#25D366] ring-1 ring-[#25D366]/45 sm:text-[11px]">
-                                <BadgePercent className="h-3.5 w-3.5" />
-                                20% off + extras locked in · save {formatAED(discountSavings)} + ≈{formatAED(valueStackTotal)} free
+                          <div className="mt-2 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+                              <span className="font-semibold text-slate-300">
+                                Base {selectedSize?.label} · {selectedPackage?.title}
+                              </span>
+                              <span className="font-black tabular-nums text-white">
+                                {formatAED(targetPrice)}
                               </span>
                             </div>
-                          ) : null}
-
-                          <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
-                            Excludes VAT · Sean confirms final price
-                          </p>
-
-                          {isGated ? (
-                            <div className="mt-3 flex justify-center">
-                              <span className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[#25D366]/60 bg-[#25D366]/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-[#25D366] animate-guided-stamp-in motion-reduce:animate-none sm:text-xs">
-                                <Sparkles className="h-4 w-4" />
-                                You unlocked {formatAED((discountSavings ?? 0) + valueStackTotal)} of value
-                              </span>
-                            </div>
-                          ) : null}
-                        </>
-                      ) : targetPrice !== null && listPrice !== null ? (
-                        /* ---------- PRE-UNLOCK ---------- */
-                        isGated ? (
-                          /* Gated funnels: show the real discounted price up front,
-                             then use the form to lock it in and hand off to Sean. */
-                          <>
-                            <div className="mt-3 flex items-center gap-2 sm:mt-3.5">
-                              <Sparkles className="h-5 w-5 shrink-0 text-[#f7b52b]" />
-                              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f7b52b] sm:text-xs">
-                                Your selected setup is ready
-                              </p>
-                            </div>
-
-                            <div className="mt-3 rounded-xl border border-[#25D366]/35 bg-[#25D366]/[0.06] p-3">
-                              <div className="flex flex-wrap items-end justify-between gap-2">
-                                <div>
-                                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/40 sm:text-[10px]">
-                                    Full setup price
-                                  </p>
-                                  <span className="relative mt-1 inline-block">
-                                    <span className="text-xl font-black leading-none tracking-tight text-white/38 line-through sm:text-2xl">
-                                      {formatAED(listPrice)}
-                                    </span>
-                                    <span
-                                      aria-hidden="true"
-                                      className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#ff6b6b] shadow-[0_0_10px_rgba(255,107,107,0.75)]"
-                                    />
-                                  </span>
-                                </div>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#25D366] ring-1 ring-[#25D366]/40">
-                                  <BadgePercent className="h-3 w-3" />
-                                  20% lower
+                            {TINT_ADD_ONS.filter((addon) => selectedAddOns[addon.id]).map((addon) => (
+                              <div
+                                key={addon.id}
+                                className="flex items-center justify-between gap-2 text-xs sm:text-sm"
+                              >
+                                <span className="font-semibold text-slate-400">{addon.label}</span>
+                                <span className="font-black tabular-nums text-[#f7b52b]">
+                                  +{formatAED(addon.price)}
                                 </span>
                               </div>
-
-                              <p className="mt-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/55 sm:text-[10px]">
-                                Your online price
-                              </p>
-                              <p className="mt-0.5 text-[2.5rem] font-black leading-none tracking-tight text-[#25D366] sm:text-[3.7rem]">
-                                {formatAED(targetPrice)}
-                              </p>
-                              <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45 sm:text-[11px]">
-                                For your {selectedSize?.label} · {selectedPackage?.title} setup
-                              </p>
-                            </div>
-
-                            <div className="mt-2.5 grid gap-1.5">
-                              {[
-                                {
-                                  label: "20% online discount",
-                                  value: discountSavings !== null ? `Save ${formatAED(discountSavings)}` : "Applied",
-                                  hero: true,
-                                },
-                                { label: "AED 4,550 in free extras", value: "Included", hero: false },
-                                { label: "Free pickup & delivery", value: "Included", hero: false },
-                              ].map((perk) => (
-                                <div
-                                  key={perk.label}
-                                  className={cn(
-                                    "flex items-center justify-between gap-2 rounded-xl border px-3 py-2",
-                                    perk.hero
-                                      ? "border-[#25D366]/45 bg-[#25D366]/[0.07]"
-                                      : "border-white/10 bg-black/30",
-                                  )}
-                                >
-                                  <span className="flex min-w-0 items-center gap-2 text-xs font-bold text-slate-200 sm:text-sm">
-                                    <Lock
-                                      className={cn(
-                                        "h-3.5 w-3.5 shrink-0",
-                                        perk.hero ? "text-[#25D366]" : "text-[#f7b52b]",
-                                      )}
-                                    />
-                                    <span className="truncate">{perk.label}</span>
-                                  </span>
-                                  <span
-                                    className={cn(
-                                      "shrink-0 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] sm:text-[9px]",
-                                      perk.hero ? "bg-[#25D366]/15 text-[#25D366]" : "bg-white/10 text-white/55",
-                                    )}
-                                  >
-                                    {perk.value}
+                            ))}
+                            {listPrice !== null && discountSavings !== null ? (
+                              <>
+                                <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2 text-[11px]">
+                                  <span className="font-semibold text-slate-500">Regular tint price</span>
+                                  <span className="font-bold tabular-nums text-white/40 line-through">
+                                    {formatAED(listPrice)}
                                   </span>
                                 </div>
-                              ))}
-                            </div>
-                            <p className="mt-2.5 text-center text-[11px] font-black uppercase tracking-[0.1em] text-[#f7b52b] sm:text-xs">
-                              Add your number to hold this price and get Sean's final confirmation
-                            </p>
-                          </>
-                        ) : (
-                          /* V2: full price strikes out, discounted price is the hero */
-                          <>
-                            <p className="mt-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/40 sm:mt-3.5 sm:text-[10px]">
-                              Full setup price
-                            </p>
-                            <div className="relative mt-0.5 inline-block">
-                              <span className="text-2xl font-black leading-none tracking-tight text-white/45 sm:text-3xl">
-                                {formatAED(listPrice)}
-                              </span>
-                              <span
-                                aria-hidden="true"
-                                className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#f7b52b] shadow-[0_0_10px_rgba(247,181,43,0.7)] animate-guided-strike motion-reduce:animate-none"
-                                style={{ animationDelay: "0.4s" }}
-                              />
-                            </div>
-                            <p
-                              className="mt-2.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/55 animate-guided-anchor-up motion-reduce:animate-none sm:text-[10px]"
-                              style={{ animationDelay: "0.75s" }}
-                            >
+                                <div className="flex items-center justify-between gap-2 text-[11px]">
+                                  <span className="font-semibold text-[#25D366]">20% online discount</span>
+                                  <span className="font-black tabular-nums text-[#25D366]">
+                                    −{formatAED(discountSavings)}
+                                  </span>
+                                </div>
+                              </>
+                            ) : null}
+                          </div>
+                          <div className="mt-3 border-t border-white/10 pt-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/50 sm:text-[10px]">
                               Your price today
                             </p>
                             <p
-                              className="mt-0.5 text-[2.6rem] font-black leading-none tracking-tight text-white animate-guided-price-in motion-reduce:animate-none sm:mt-1 sm:text-[4rem]"
-                              style={{ animationDelay: "0.7s" }}
+                              className={cn(
+                                "mt-0.5 text-[2.4rem] font-black leading-none tracking-tight transition-colors duration-500 sm:text-[3.2rem]",
+                                discountUnlocked ? "text-[#25D366]" : "text-white",
+                              )}
                             >
-                              {formatAED(targetPrice)}
+                              {formatAED(
+                                discountUnlocked && animatedPrice !== null ? animatedPrice : todayPrice,
+                              )}
                             </p>
-                            {discountSavings !== null ? (
-                              <div
-                                className="mt-2 animate-fade-up motion-reduce:animate-none"
-                                style={{ animationDelay: "0.95s", animationFillMode: "both" }}
-                              >
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#25D366] ring-1 ring-[#25D366]/45 sm:text-xs">
-                                  <BadgePercent className="h-3.5 w-3.5" />
-                                  Save {formatAED(discountSavings)} · 20% off
-                                </span>
-                              </div>
-                            ) : null}
-                            <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
-                              Excludes VAT · Sean confirms final price
+                            <p className="mt-2 text-[11px] leading-relaxed text-slate-300 sm:text-xs">
+                              {priceIncludesLine}
                             </p>
-                          </>
-                        )
+                            <p className="mt-1.5 text-[10px] font-semibold leading-relaxed text-slate-500">
+                              Tint-only from {formatAED(targetPrice)} · add-ons optional · excludes VAT
+                            </p>
+                          </div>
+                        </div>
                       ) : (
-                        <p className="mt-3 text-[2.6rem] font-black leading-none tracking-tight text-white sm:mt-3.5 sm:text-[4rem]">
+                        <p className="mt-4 text-2xl font-black leading-none tracking-tight text-white">
                           Setup ready
                         </p>
                       )}
 
                       {/* VALUE STACK — V2 always; V3 reveals the itemized extras on unlock */}
+                      <div className="mt-2.5">
+                        <div className="flex items-end justify-between gap-2">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#f7b52b]">
+                              Optional add-ons
+                            </p>
+                            <p className="mt-0.5 text-[10px] font-semibold leading-tight text-slate-500">
+                              Not included in base price
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-[0.08em] text-white/45">
+                            tap to add
+                          </span>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          {TINT_ADD_ONS.map((addon) => {
+                            const selected = selectedAddOns[addon.id];
+                            const AddOnIcon = addon.icon;
+                            const compactLabel =
+                              addon.id === "windshield" ? "Front windshield" : "Panoramic roof";
+                            const compactDescription =
+                              addon.id === "windshield" ? "Clear heat film" : "Glass roof tint";
+                            return (
+                              <button
+                                key={addon.id}
+                                type="button"
+                                onClick={() => toggleAddOn(addon.id)}
+                                className={cn(
+                                  "flex min-h-[66px] w-full items-center gap-2 rounded-xl border p-2 text-left transition",
+                                  selected
+                                    ? "border-[#f7b52b] bg-[#f7b52b]/10"
+                                    : "border-white/10 bg-black/25 hover:border-[#f7b52b]/40",
+                                )}
+                              >
+                                <span
+                                  className={cn(
+                                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border bg-white/5",
+                                    selected
+                                      ? "border-[#f7b52b] text-[#f7b52b]"
+                                      : "border-white/10 text-[#f7b52b]",
+                                  )}
+                                >
+                                  {selected ? (
+                                    <Check className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <AddOnIcon className="h-3.5 w-3.5" />
+                                  )}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-[11px] font-black leading-tight text-white">
+                                    {compactLabel}
+                                  </span>
+                                  <span className="mt-0.5 block text-[10px] font-semibold leading-tight text-slate-500">
+                                    {compactDescription}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "mt-1 block text-[10px] font-black uppercase tracking-[0.06em]",
+                                      selected ? "text-[#f7b52b]" : "text-white/65",
+                                    )}
+                                  >
+                                    {selected ? "Added" : `+${formatAED(addon.price)}`}
+                                  </span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       {(!isGated || discountUnlocked) ? (
                       <div
                         className={cn(
@@ -3149,8 +3192,8 @@ const TintDubaiQuoteFunnel = () => {
                           )}
                         >
                           {discountUnlocked
-                            ? "Extras locked in — included free"
-                            : "What's included free with your setup"}
+                            ? "Free inclusions — locked in"
+                            : "Free inclusions with your setup"}
                         </p>
                         <ul className="mt-1.5 space-y-0.5">
                           {valueStackItems.map((item, index) => (
@@ -3215,10 +3258,10 @@ const TintDubaiQuoteFunnel = () => {
                             <p className="flex items-center justify-center gap-1.5 text-center text-[13px] font-black leading-tight text-black sm:text-[15px]">
                               <Lock className="h-4 w-4 shrink-0" />
                               {isGated
-                                ? `Enter your number to lock this price — ${targetPrice !== null ? formatAED(targetPrice) : "20% off"}`
+                                ? `Enter your number to lock this price — ${todayPrice !== null ? formatAED(todayPrice) : targetPrice !== null ? formatAED(targetPrice) : "20% off"}`
                                 : isPriceVariant
-                                  ? `WhatsApp yourself this exact quote — ${targetPrice !== null ? formatAED(targetPrice) : "your price"}`
-                                  : `Enter your details below to get ${targetPrice !== null ? formatAED(targetPrice) : "this price"}`}
+                                  ? `WhatsApp yourself this exact quote — ${todayPrice !== null ? formatAED(todayPrice) : targetPrice !== null ? formatAED(targetPrice) : "your price"}`
+                                  : `Enter your details below to reserve ${todayPrice !== null ? formatAED(todayPrice) : targetPrice !== null ? formatAED(targetPrice) : "this price"}`}
                             </p>
                             <p className="mt-0.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-black/65 sm:text-[11px]">
                               {isGated
@@ -3281,6 +3324,33 @@ const TintDubaiQuoteFunnel = () => {
                             />
                           </div>
 
+                          <div className="mt-2.5 rounded-xl border border-white/10 bg-black/25 p-2.5">
+                            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/55">
+                              When would you like to install?
+                            </p>
+                            <div className="mt-2 grid grid-cols-2 gap-1.5">
+                              {installTimingOptions.map((option) => {
+                                const selected = installTiming === option.value;
+                                return (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => selectInstallTiming(option.value)}
+                                    className={cn(
+                                      "min-h-10 rounded-lg border px-2 py-2 text-center text-[11px] font-black leading-tight transition sm:text-xs",
+                                      selected
+                                        ? "border-[#f7b52b] bg-[#f7b52b] text-black shadow-[0_10px_24px_rgba(247,181,43,0.22)]"
+                                        : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-[#f7b52b]/45 hover:text-white",
+                                    )}
+                                    aria-pressed={selected}
+                                  >
+                                    {option.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
                           <Button
                             type="submit"
                             size="lg"
@@ -3310,7 +3380,7 @@ const TintDubaiQuoteFunnel = () => {
                             ) : (
                               <>
                                 <Lock className="mr-2 h-4 w-4" />
-                                Lock in my 20% discount
+                                {reserveButtonText}
                                 <Sparkles className="ml-2 h-4 w-4" />
                               </>
                             )}
@@ -3504,7 +3574,7 @@ const TintDubaiQuoteFunnel = () => {
                   placement="trust_cta_post_handovers"
                   onEstimate={handleEstimateCta}
                   onWhatsApp={hideDirectWa ? undefined : requestWhatsApp}
-                  microcopy="Bonuses worth AED 4,550+ · No upsell"
+                  microcopy={`Bonuses worth ${formatAED(valueStackTotal)}+ · No upsell`}
                 />
               </div>
             </div>
@@ -3951,9 +4021,8 @@ const TintDubaiQuoteFunnel = () => {
           </div>
         </section>
 
-        {/* 5b. Service area & pickup — Dubai-wide free collection. Map + the
-            zones we hit on a weekly route so suburb buyers know they're not
-            outside the catchment. */}
+        {/* 5b. Studio location — DIP 2 workshop + map so buyers know where
+            the install happens and which areas customers typically drive from. */}
         <section
           data-funnel-section="trust_service_area"
           className="border-t border-white/10 bg-[#070707] px-3 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
@@ -3963,16 +4032,16 @@ const TintDubaiQuoteFunnel = () => {
               <div>
                 <p className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-[11px]">
                   <MapPin className="h-3.5 w-3.5" />
-                  Service area · Dubai-wide free pickup
+                  Studio location · DIP 2
                 </p>
                 <h2 className="mt-2 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">
-                  Free collection from
-                  <span className="block text-[#f7b52b]">anywhere in Dubai.</span>
+                  Installed at our
+                  <span className="block text-[#f7b52b]">DIP 2 workshop.</span>
                 </h2>
                 <p className="mt-3 text-base leading-7 text-slate-300 sm:text-lg">
-                  We're based in DIP 2 and run a weekly pickup route across Dubai. Hand the
-                  keys to Sean's driver, we collect, install, and return the car ready —
-                  showroom-clean, with a full briefing.
+                  We're based in Dubai Investment Park 2. Drop the car off, wait in the
+                  lounge if you like, and collect it in about 3 hours — showroom-clean,
+                  with a full briefing from Sean's team.
                 </p>
 
                 <div className="mt-5 grid grid-cols-2 gap-2 text-xs sm:text-sm">
@@ -4019,8 +4088,8 @@ const TintDubaiQuoteFunnel = () => {
                   placement="trust_service_area"
                   onEstimate={handleEstimateCta}
                   onWhatsApp={hideDirectWa ? undefined : requestWhatsApp}
-                  primaryLabel="Book my free pickup"
-                  microcopy="Free Dubai-wide pickup · We return it showroom-clean"
+                  primaryLabel="Book my install slot"
+                  microcopy="DIP 2 studio · ~3 hour turnaround"
                 />
               </div>
 
@@ -4274,7 +4343,7 @@ const TintDubaiQuoteFunnel = () => {
             </li>
             <li className="flex items-start gap-2.5">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
-              <span>Unlock 20% off + free pickup, locked to your setup</span>
+              <span>Unlock 20% off + free sun-strip visor, locked to your setup</span>
             </li>
             <li className="flex items-start gap-2.5">
               <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />

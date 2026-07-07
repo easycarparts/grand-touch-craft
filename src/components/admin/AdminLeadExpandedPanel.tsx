@@ -310,6 +310,11 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
   const selectedCoverage = lead.latestRollup?.coverage || readPayloadString(latestSnapshotPayload, "coverage");
   const selectedWarranty = readPayloadString(latestSnapshotPayload, "warranty_years", "warranty");
   const selectedExtras = readPayloadString(latestSnapshotPayload, "selected_extras");
+  const preferredInstallTiming = readPayloadString(
+    latestSnapshotPayload,
+    "preferred_install_timing_label",
+    "preferred_install_timing",
+  );
   const bonusEligible = latestSnapshotPayload.bonus_eligible === true;
   const pricePosition = readPayloadString(latestSnapshotPayload, "price_position");
   const shopsCount = readPayloadString(latestSnapshotPayload, "shops_count");
@@ -723,6 +728,11 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                             Timing: {formatMetaLeadChoice(deliveryStatus)}
                                           </Badge>
                                         ) : null}
+                                        {preferredInstallTiming ? (
+                                          <Badge variant="outline" className="border-sky-400/20 bg-sky-500/10 text-sky-200">
+                                            Install: {formatMetaLeadChoice(preferredInstallTiming)}
+                                          </Badge>
+                                        ) : null}
                                         {selectedSize ? (
                                           <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-200">
                                             Size: {selectedSize}
@@ -834,7 +844,11 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                         <p>
                                           <span className="text-slate-500">Timing:</span>{" "}
                                           <span className="text-white">
-                                            {deliveryStatus ? formatMetaLeadChoice(deliveryStatus) : "Not captured"}
+                                            {preferredInstallTiming
+                                              ? formatMetaLeadChoice(preferredInstallTiming)
+                                              : deliveryStatus
+                                                ? formatMetaLeadChoice(deliveryStatus)
+                                                : "Not captured"}
                                           </span>
                                         </p>
                                         <p>
