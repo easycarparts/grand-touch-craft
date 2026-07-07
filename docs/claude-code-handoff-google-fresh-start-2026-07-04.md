@@ -104,3 +104,18 @@ The May campaign stays paused, not removed. If Google reports conversions on it 
 - **Blockers checked live:** customer data terms = accepted ✓; **Enhanced conversions for leads = OFF** (API can't set it — owner UI toggle: Goals → Settings → Enhanced conversions for leads). Until ON, phone-only rows are dropped by Google; gclid rows work.
 - **Setup needed once:** add `SUPABASE_SERVICE_ROLE_KEY=` to `.env.supabase` (Supabase dashboard → Project Settings → API). The anon key cannot SELECT leads (RLS).
 - **Owner workflow note:** statuses actually used in the CRM are mostly contacted/won/lost (qualified: 7, quoted: 6 rows ever). The uploader only sees qualified/quoted/won — for the qualified signal to have volume, mark real prospects `qualified` (or `quoted`) instead of leaving them `contacted`. For WhatsApp-first chats, save the lead with source google (or paste the gclid if known) so the uploader includes it.
+
+---
+
+## INCIDENT + FIX — 2026-07-07 ("zero conversions" investigation)
+
+**Owner report:** 43 clicks, zero Google conversions, "no leads." **Actual state: the campaign was performing — the measurement was broken.**
+
+**Findings (Jul 4–7: 43 clicks, ~665 AED):**
+1. **The CRM had 5 real captures** under `ppf_google_price_2026h2` (BMW 520i, Lincoln Aviator, GAC M8, S-Class W222, Innova Hycross; quotes 9–11k AED; 4 of 5 with gclid). ≈11.6 captures/100 clicks at ≈133 AED/capture — beats the <250 target and the ~150 baseline.
+2. **Bug:** all 5 real users left their phone in the **`warranty_bonus_lock`** field (mid-calculator, package step). `handlePhoneCapture` saved the lead to CRM but **never fired the Google `Submit lead form` conversion** — only the post-price soft-capture paths did. The Jul-4 owner live test used the post-price path, so the test looked fine. Proof the tag pipeline itself worked: "WhatsApp before lead form (V2)" (observe-only) and Maps directions showed in All conversions (4 total), while counted conversions stayed 0.
+3. **Fix (commit `31bfbbd`, deployed + preview-verified):** `handlePhoneCapture` now fires `trackGoogleSubmitLeadConversion(targetPrice ?? estimate)` on successful save (same one-per-session guard) and logs `lead_save_failed` on failure (this path previously swallowed failures too). Verified in preview: capture → dataLayer conversion event `AW-17684563059/5R6tCPbqo5kc…` with value fired.
+4. **Search-term junk (week-1 review, applied via `add-negatives-jul-2026-week1.mjs`):** +5 phrase negatives — `easy care`, `oscar legacy`, `menzerna` (competitor/nav clicks), `difference between` (informational), `door ppf` (small-job). **Watch, not negatived:** `ppf coating` (4 clicks/75 AED, historically volume-but-highest-CPA; its variants "ppf coating for car"/"ppf coating cost for car" also clicked and may be behind some captures).
+5. The 4 gclid leads' missed website conversions cannot be backfilled (uploads only work to UPLOAD_CLICKS actions), but their qualified/won outcomes will flow via the offline uploader.
+
+**Expectations reset:** counted conversions should start appearing from Jul 7 evening onward. Judge in the CRM regardless — that was the rule and it held: Google said 0 while the CRM said the funnel beats target.
