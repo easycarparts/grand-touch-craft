@@ -21,7 +21,7 @@ import PpfFullPpfCalculator from "./pages/PpfFullPpfCalculator";
 import PpfFullPpfGuidedCalculator from "./pages/PpfFullPpfGuidedCalculator";
 import PpfFullPpfGuidedCalculatorV2 from "./pages/PpfFullPpfGuidedCalculatorV2";
 import PpfWhatsAppDirect from "./pages/PpfWhatsAppDirect";
-import TintDubaiFunnel from "./pages/TintDubaiFunnel";
+import TintDubaiQuoteFunnel from "./pages/TintDubaiQuoteFunnel";
 import PaintCorrectionTechniques from "./pages/articles/PaintCorrectionTechniques";
 import CustomVinylWraps from "./pages/articles/CustomVinylWraps";
 import PerformanceTuning from "./pages/articles/PerformanceTuning";
@@ -114,8 +114,11 @@ function App() {
             <Route path="/ppf-dubai-price" element={<PpfFullPpfGuidedCalculatorV2 variant="price" />} />
             {/* Free-play price builder (staging for the /ppf-dubai-price swap — not linked from ads yet). */}
             <Route path="/ppf-dubai-price-v2" element={<PpfFullPpfGuidedCalculatorV2 variant="builder" />} />
-            {/* Meta-ads ceramic tint funnel (2026 H2) — Meta pixel only, no Google conversions. */}
-            <Route path="/tint-dubai" element={<TintDubaiFunnel />} />
+            {/* Meta-ads ceramic tint funnel (2026 H2) — Meta pixel only, no Google
+                conversions. Clone of the /ppf-dubai-quote guided funnel with the
+                product swapped to ceramic window tint. (Old TintDubaiFunnel.tsx
+                left on disk, unrouted.) */}
+            <Route path="/tint-dubai" element={<TintDubaiQuoteFunnel />} />
             <Route path="/ppf-tiktok-quote" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote-v2" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote_2" element={<PpfDubaiQuote variant="tiktok" />} />
