@@ -35,6 +35,7 @@ import {
   getLeadIntentPresentation,
   getLeadReceivedAt,
   getLeadVehicleText,
+  resolveLeadVehicleFields,
   getQualityBadgeClass,
   getResponseSlaState,
   getSourceBadgeClass,
@@ -326,7 +327,14 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
     readPayloadNumber(latestSnapshotPayload, "final_price", "service_price", "estimate_value") ??
     lead.latest_quote_estimate;
 
-  const vehicle = getLeadVehicleText(lead);
+  const vehicle = getLeadVehicleText(lead, {
+    rollup: lead.latestRollup,
+    snapshotPayload: latestSnapshotPayload,
+  });
+  const resolvedVehicleYear = resolveLeadVehicleFields(lead, {
+    rollup: lead.latestRollup,
+    snapshotPayload: latestSnapshotPayload,
+  }).vehicle_year;
   const requestedProtection = readImportMetadataValue(lead.import_metadata, "protection_level");
   const calculatorProtection = [selectedCoverage, selectedFinish, selectedPackage]
     .filter(Boolean)
@@ -763,6 +771,10 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                         </Badge>
                                       </div>
                                       <div className="mt-4 grid gap-3 text-sm text-slate-300 sm:grid-cols-2">
+                                        <p>
+                                          <span className="text-slate-500">Year:</span>{" "}
+                                          <span className="text-white">{resolvedVehicleYear || "Not captured"}</span>
+                                        </p>
                                         <p>
                                           <span className="text-slate-500">Vehicle:</span>{" "}
                                           <span className="text-white">{vehicle || "Not captured yet"}</span>

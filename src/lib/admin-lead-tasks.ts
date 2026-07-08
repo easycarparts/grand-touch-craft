@@ -251,13 +251,61 @@ const collapseRepeatedPhrase = (value: string | null | undefined) => {
   return normalized;
 };
 
+export type LeadVehicleResolutionOptions = {
+  rollup?: {
+    vehicle_year?: string | null;
+    vehicle_make?: string | null;
+    vehicle_model?: string | null;
+  } | null;
+  snapshotPayload?: Record<string, unknown> | null;
+};
+
+const readVehiclePayloadValue = (payload: Record<string, unknown> | null | undefined, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return "";
+};
+
+export const resolveLeadVehicleFields = (
+  lead: Pick<LeadRow, "vehicle_label" | "vehicle_year" | "vehicle_make" | "vehicle_model">,
+  options?: LeadVehicleResolutionOptions,
+) => {
+  const payload = options?.snapshotPayload ?? {};
+  const vehicle_year =
+    lead.vehicle_year?.trim() ||
+    options?.rollup?.vehicle_year?.trim() ||
+    readVehiclePayloadValue(payload, "vehicle_year", "car_year") ||
+    "";
+  const vehicle_make =
+    lead.vehicle_make?.trim() || options?.rollup?.vehicle_make?.trim() || "";
+  const vehicle_model =
+    lead.vehicle_model?.trim() ||
+    options?.rollup?.vehicle_model?.trim() ||
+    readVehiclePayloadValue(payload, "vehicle_model") ||
+    "";
+  const vehicle_label = lead.vehicle_label?.trim() || "";
+
+  return { vehicle_year, vehicle_make, vehicle_model, vehicle_label };
+};
+
 export const getLeadVehicleText = (
   lead: Pick<LeadRow, "vehicle_label" | "vehicle_year" | "vehicle_make" | "vehicle_model">,
-) =>
-  collapseRepeatedPhrase(
-    lead.vehicle_label ||
-      [lead.vehicle_year, lead.vehicle_make, lead.vehicle_model].filter(Boolean).join(" "),
-  );
+  options?: LeadVehicleResolutionOptions,
+) => {
+  const fields = resolveLeadVehicleFields(lead, options);
+  let text =
+    fields.vehicle_label ||
+    [fields.vehicle_year, fields.vehicle_make, fields.vehicle_model].filter(Boolean).join(" ");
+
+  if (fields.vehicle_year && fields.vehicle_label && !fields.vehicle_label.includes(fields.vehicle_year)) {
+    text = `${fields.vehicle_year} ${fields.vehicle_label}`;
+  }
+
+  return collapseRepeatedPhrase(text);
+};
 
 export const readImportMetadataValue = (metadata: Record<string, unknown> | null | undefined, key: string) => {
   const value = metadata?.[key];
@@ -749,7 +797,7 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
         title: "Needs first touch",
         summary: truncateText(lead.notes_summary || "New lead waiting for first outreach."),
         packageLabel: getLeadTaskPackageLabel(lead),
-        vehicle: getLeadVehicleText(lead),
+        vehicle: getLeadVehicleText(lead, { rollup: lead.latestRollup }),
         phone: lead.phone,
         timingAt: dueAt ? dueAt.toISOString() : receivedAt,
         timingLabel: dueAt ? "Response due" : "Received",
@@ -778,7 +826,7 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
         title: "First call needed",
         summary: truncateText(lead.notes_summary || "Lead still needs the first customer call."),
         packageLabel: getLeadTaskPackageLabel(lead),
-        vehicle: getLeadVehicleText(lead),
+        vehicle: getLeadVehicleText(lead, { rollup: lead.latestRollup }),
         phone: lead.phone,
         timingAt: dueAt ? dueAt.toISOString() : receivedAt,
         timingLabel: dueAt ? "Call due" : "Received",
@@ -820,7 +868,7 @@ export const buildLeadTasks = (leads: LeadTaskLead[]) => {
         title: `${formatTokenLabel(followup.channel)} follow-up`,
         summary: truncateText(followup.notes || lead.notes_summary || "No follow-up note yet."),
         packageLabel: getLeadTaskPackageLabel(lead),
-        vehicle: getLeadVehicleText(lead),
+        vehicle: getLeadVehicleText(lead, { rollup: lead.latestRollup }),
         phone: lead.phone,
         timingAt: followup.due_at || followup.created_at,
         timingLabel: followup.due_at ? "Due" : "Created",

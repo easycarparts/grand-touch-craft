@@ -5,15 +5,15 @@ import {
   BadgePercent,
   Check,
   ChevronLeft,
+  Eye,
   Gift,
+  Layers3,
   MessageCircle,
+  Plus,
   ShieldCheck,
-  Snowflake,
   Sparkles,
   Star,
-  Sun,
-  Thermometer,
-  Truck,
+  WandSparkles,
   Zap,
 } from "lucide-react";
 
@@ -36,29 +36,47 @@ import { updatePageSEO } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 /**
- * Meta-ads ceramic tint funnel (2026 H2) — GUIDED STEPPER edition.
+ * Meta-ads GYEON ceramic funnel (2026 H2) — GUIDED STEPPER edition.
  *
- * Clone of the proven Meta PPF funnel structure (PpfFullPpfGuidedCalculatorV2,
- * variant="meta"): a step machine (size → car → priority → timing → package →
- * result) with a progress bar, image size cards, qualification questions, a
+ * Full rebuild on the proven tint funnel mechanic (TintDubaiFunnel /
+ * PpfFullPpfGuidedCalculatorV2): a step machine (size → car → paint condition
+ * → timing → package → result) with a progress bar, image size cards, a
  * bonus-lock phone capture on the package step, and a gamified result reveal
  * where the "before discount" anchor slashes down to the final price.
+ *
+ * Ceramic twist: the VALUE-STACK reveal. Ceramic packages bundle up to 10
+ * line items, so the result screen animates each included item in with its
+ * standalone worth ("GYEON glass coating — worth AED 399 — INCLUDED"), then
+ * offers the missing items as simple +AED toggles. No inclusion matrix.
  *
  * Meta pixel only — NO Google Ads conversions fire here. Contact fires on
  * every WhatsApp tap; Lead fires ONCE per session (metaLeadFiredRef guard) on
  * phone-capture success OR a qualified post-price WhatsApp tap.
  */
 
-type TintSize = "Small" | "Medium" | "SUV";
-type TintPackageId = "essential" | "smart" | "nex";
-type TintPriority = "lowest_price" | "coolest_cabin" | "premium_look";
-type TintUrgency = "today" | "this_week" | "just_checking";
-type FlowStep = "size" | "car" | "priority" | "timing" | "package" | "result";
+type VehicleSize = "small" | "medium" | "large" | "xl";
+type PaintCondition = "clean" | "light_swirls" | "heavy_swirls" | "not_sure";
+type CeramicPackageId = "basic" | "correction" | "signature";
+type CeramicTiming = "this_week" | "two_weeks" | "just_checking";
+type FlowStep = "size" | "car" | "condition" | "timing" | "package" | "result";
+type StackItemId =
+  | "wash"
+  | "polish"
+  | "correction_single"
+  | "correction_multi"
+  | "ceramic"
+  | "interior_clean"
+  | "engine_bay"
+  | "glass"
+  | "wheel_face"
+  | "interior"
+  | "trim"
+  | "wheels_off";
+type AddOnId = "glass" | "wheel_face" | "interior" | "trim" | "wheels_off";
 
 const WHATSAPP_NUMBER = "971567191045";
-const WINDSHIELD_ADDON_PRICE = 499;
 
-const flowSteps: FlowStep[] = ["size", "car", "priority", "timing", "package", "result"];
+const flowSteps: FlowStep[] = ["size", "car", "condition", "timing", "package", "result"];
 
 const buildWhatsAppUrl = (message: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
@@ -84,180 +102,293 @@ const isLikelyRealPhone = (value: string) => {
   return digits.length >= 10 && digits.length <= 15 && local.length >= 7;
 };
 
-/** "Before discount" anchor — ~25% above the real price, rounded to nearest 10
- * so the slash-to-final-price reveal reads as a clean online offer. The real
- * price is always what Sean honors and what every event value uses. */
-const anchorFor = (price: number) => Math.round(price / 0.8 / 10) * 10;
-
 const sizeOptions: Array<{
-  value: TintSize;
+  value: VehicleSize;
   label: string;
   example: string;
   image: string;
 }> = [
   {
-    value: "Small",
+    value: "small",
     label: "Hatchback / Small",
-    example: "Golf / A45 / Yaris",
+    example: "Golf / A45 / Mini",
     image: "/calculator-a45-gloss.jpg",
   },
   {
-    value: "Medium",
+    value: "medium",
     label: "Sedan",
     example: "Camry / 5 Series / E-Class",
     image: "/calculator-e63s-gloss.jpg",
   },
   {
-    value: "SUV",
+    value: "large",
     label: "SUV / 4x4",
-    example: "Patrol / Defender / Cayenne",
+    example: "Patrol / Cayenne / X5",
     image: "/calculator-patrol-gloss.jpg",
+  },
+  {
+    value: "xl",
+    label: "XL / Luxury",
+    example: "G-Wagon / S-Class / Bentley",
+    image: "/calculator-gt3-gloss.jpg",
   },
 ];
 
-const tintPackages: Array<{
-  id: TintPackageId;
+/** Every line item in the ceramic stack with its standalone worth — this is
+ * what the gamified result reveal animates in, one row at a time. */
+const stackItems: Record<StackItemId, { label: string; worth: Record<VehicleSize, number> }> = {
+  wash: {
+    label: "Exterior wash + decontamination + clay bar",
+    worth: { small: 349, medium: 399, large: 449, xl: 499 },
+  },
+  polish: {
+    label: "Light machine polish",
+    worth: { small: 449, medium: 499, large: 549, xl: 599 },
+  },
+  correction_single: {
+    label: "Single-stage enhancement correction",
+    worth: { small: 1099, medium: 1199, large: 1399, xl: 1599 },
+  },
+  correction_multi: {
+    label: "Full multi-stage paint correction",
+    worth: { small: 1799, medium: 1999, large: 2199, xl: 2499 },
+  },
+  ceramic: {
+    label: "GYEON exterior ceramic coating",
+    worth: { small: 1499, medium: 1699, large: 1899, xl: 2199 },
+  },
+  interior_clean: {
+    label: "Light interior detail",
+    worth: { small: 199, medium: 249, large: 299, xl: 349 },
+  },
+  engine_bay: {
+    label: "Engine bay refresh",
+    worth: { small: 199, medium: 249, large: 299, xl: 349 },
+  },
+  glass: {
+    label: "GYEON glass coating",
+    worth: { small: 299, medium: 399, large: 499, xl: 599 },
+  },
+  wheel_face: {
+    label: "Wheel-face ceramic",
+    worth: { small: 399, medium: 499, large: 599, xl: 699 },
+  },
+  interior: {
+    label: "GYEON interior ceramic",
+    worth: { small: 599, medium: 699, large: 899, xl: 1099 },
+  },
+  trim: {
+    label: "Trim + plastic ceramic detail",
+    worth: { small: 399, medium: 499, large: 599, xl: 699 },
+  },
+  wheels_off: {
+    label: "Wheels-off ceramic (barrels coated)",
+    worth: { small: 999, medium: 1199, large: 1399, xl: 1599 },
+  },
+};
+
+const addOnIds: AddOnId[] = ["glass", "wheel_face", "interior", "trim", "wheels_off"];
+
+const ceramicPackages: Array<{
+  id: CeramicPackageId;
   name: string;
+  shortName: string;
   tagline: string;
-  prices: Record<TintSize, number>;
   points: string[];
+  prices: Record<VehicleSize, { was: number; offer: number }>;
+  /** What the price pays for — correction + coating core. */
+  paidStack: StackItemId[];
+  /** Thrown in free on the online build — the anchor stack. */
+  freeStack: StackItemId[];
   badge?: string;
 }> = [
   {
-    id: "essential",
-    name: "Action Essential",
-    tagline: "Budget pick",
-    prices: { Small: 649, Medium: 799, SUV: 999 },
-    points: ["Good heat rejection", "99% UV block", "Basic warranty"],
+    id: "basic",
+    name: "GYEON Basic Ceramic",
+    shortName: "Basic",
+    tagline: "Clean paint pick",
+    points: ["GYEON exterior ceramic", "Light polish + interior detail", "Free engine bay refresh"],
+    prices: {
+      small: { was: 2099, offer: 1499 },
+      medium: { was: 2299, offer: 1699 },
+      large: { was: 2599, offer: 1899 },
+      xl: { was: 2999, offer: 2199 },
+    },
+    paidStack: ["wash", "polish", "ceramic", "interior_clean"],
+    freeStack: ["engine_bay"],
   },
   {
-    id: "smart",
-    name: "STEK Smart Ceramic",
-    tagline: "Best balance",
-    prices: { Small: 1299, Medium: 1499, SUV: 1699 },
-    points: ["Ceramic heat rejection", "Crystal night clarity", "Strong STEK warranty"],
+    id: "correction",
+    name: "GYEON Showroom Ceramic",
+    shortName: "Showroom",
+    tagline: "Better than the day you bought it",
+    points: [
+      "Full multi-stage paint correction",
+      "GYEON exterior ceramic",
+      "Interior + glass + wheel ceramic FREE",
+    ],
+    prices: {
+      small: { was: 3199, offer: 2199 },
+      medium: { was: 3599, offer: 2499 },
+      large: { was: 4299, offer: 2999 },
+      xl: { was: 4999, offer: 3499 },
+    },
+    paidStack: ["wash", "correction_multi", "ceramic", "interior_clean"],
+    freeStack: ["interior", "glass", "wheel_face", "engine_bay"],
     badge: "POPULAR",
   },
   {
-    id: "nex",
-    name: "STEK Nex Premium",
+    id: "signature",
+    name: "GYEON Signature Ceramic",
+    shortName: "Signature",
     tagline: "Maximum everything",
-    prices: { Small: 2199, Medium: 2399, SUV: 2799 },
-    points: ["Maximum IR heat rejection", "Best night clarity", "Premium STEK warranty"],
+    points: [
+      "Full multi-stage paint correction",
+      "Everything in Showroom",
+      "Trim + wheels-off ceramic FREE",
+    ],
+    prices: {
+      small: { was: 4999, offer: 3499 },
+      medium: { was: 5599, offer: 3899 },
+      large: { was: 6499, offer: 4499 },
+      xl: { was: 7499, offer: 5199 },
+    },
+    paidStack: ["wash", "correction_multi", "ceramic", "interior_clean"],
+    freeStack: ["interior", "glass", "wheel_face", "trim", "wheels_off", "engine_bay"],
   },
 ];
 
-const priorityOptions: Array<{
-  value: TintPriority;
+const conditionOptions: Array<{
+  value: PaintCondition;
   label: string;
   helper: string;
-  icon: typeof Sun;
-  recommends: TintPackageId;
+  icon: typeof Sparkles;
+  recommends: CeramicPackageId;
 }> = [
   {
-    value: "lowest_price",
-    label: "Lowest price",
-    helper: "Solid tint, tightest spend",
-    icon: BadgePercent,
-    recommends: "essential",
-  },
-  {
-    value: "coolest_cabin",
-    label: "Coolest cabin",
-    helper: "Ceramic heat rejection you feel day one",
-    icon: Snowflake,
-    recommends: "smart",
-  },
-  {
-    value: "premium_look",
-    label: "Premium brand look",
-    helper: "Top-tier film, best clarity & warranty",
+    value: "clean",
+    label: "New or very clean",
+    helper: "Paint already glossy — Basic may be enough",
     icon: Sparkles,
-    recommends: "nex",
+    recommends: "basic",
+  },
+  {
+    value: "light_swirls",
+    label: "Light swirls / wash marks",
+    helper: "The classic Dubai car-wash finish — most cars",
+    icon: WandSparkles,
+    recommends: "correction",
+  },
+  {
+    value: "heavy_swirls",
+    label: "Heavy swirls or dull paint",
+    helper: "Needs proper correction before coating",
+    icon: Layers3,
+    recommends: "correction",
+  },
+  {
+    value: "not_sure",
+    label: "Not sure — inspect it",
+    helper: "Sean checks the paint and confirms the level",
+    icon: Eye,
+    recommends: "correction",
   },
 ];
 
-const urgencyOptions: Array<{ value: TintUrgency; label: string; helper: string }> = [
-  { value: "today", label: "Today", helper: "We'll try to fit you in" },
-  { value: "this_week", label: "This week", helper: "Slots usually available" },
-  { value: "just_checking", label: "Just checking prices", helper: "No pressure — price stays valid" },
+const timingOptions: Array<{ value: CeramicTiming; label: string; helper: string }> = [
+  { value: "this_week", label: "This week", helper: "One ceramic bay per day — we'll find a slot" },
+  { value: "two_weeks", label: "Next 2 weeks", helper: "Plenty of bay days available" },
+  { value: "just_checking", label: "Just checking prices", helper: "No pressure — offer stays valid" },
 ];
 
 const lockedBonuses = [
-  { icon: Sparkles, text: "Free sun-strip visor upgrade" },
-  { icon: Truck, text: "Free pickup & drop-off across Dubai" },
-  { icon: BadgeCheck, text: "Price locked for 14 days" },
+  { icon: Sparkles, text: "Free bonus coatings locked to your build" },
+  { icon: BadgeCheck, text: "Online offer price locked for 14 days" },
+  { icon: ShieldCheck, text: "Priority pick of bay days — one car per day" },
 ];
 
-/** Top offer ticker — mirrors the PPF funnel's marquee bar. */
-const topOffers: Array<{ icon: typeof Truck; text: string }> = [
+/** Top offer ticker — mirrors the tint funnel's marquee bar. */
+const topOffers: Array<{ icon: typeof Gift; text: string }> = [
   { icon: BadgePercent, text: "Online offer: before-discount price slashed on your build" },
-  { icon: Sparkles, text: "Free sun-strip visor upgrade" },
-  { icon: Truck, text: "Free pickup & drop-off across Dubai" },
-  { icon: ShieldCheck, text: "STEK-authorised studio — traceable warranty" },
-  { icon: Zap, text: "Installed in ~3 hours" },
+  { icon: Sparkles, text: "Up to AED 2,400 of bonus coatings free on your build" },
+  { icon: ShieldCheck, text: "GYEON products throughout" },
+  { icon: Zap, text: "One ceramic bay per day — never rushed" },
+  { icon: Star, text: "Final correction level confirmed after paint inspection" },
 ];
 
-/**
- * Spec sheet — plausible STEK Smart/Nex series figures for comparison. The
- * exact per-shade numbers vary by VLT; manufacturer spec sheets are shown at
- * the studio (stated in the UI).
- */
-const specRows: Array<{ feature: string; values: [string, string, string] }> = [
-  { feature: "IR heat rejection", values: ["Up to 62%", "Up to 86%", "Up to 97%"] },
-  { feature: "Total solar energy rejected (TSER)", values: ["~42%", "~52%", "~63%"] },
-  { feature: "UV protection", values: ["99%", "99%", "99%"] },
-  { feature: "Night clarity", values: ["Standard", "Crystal", "Best-in-class"] },
-  { feature: "Warranty", values: ["Basic", "STEK-backed", "Premium STEK"] },
-  { feature: "Best for", values: ["Budget", "Daily driving", "Luxury & family"] },
+/** Compare table — the deep-dive for researchers, below the guided flow. */
+const compareRows: Array<{ feature: string; values: [string, string, string] }> = [
+  { feature: "Wash + decontamination + clay", values: ["✓", "✓", "✓"] },
+  { feature: "Paint correction", values: ["Light polish", "Multi-stage", "Full paint correction"] },
+  { feature: "GYEON exterior ceramic", values: ["✓", "✓", "✓"] },
+  { feature: "Light interior detail", values: ["✓", "✓", "✓"] },
+  { feature: "Engine bay refresh", values: ["FREE", "FREE", "FREE"] },
+  { feature: "GYEON interior ceramic", values: ["Add-on", "FREE", "FREE"] },
+  { feature: "GYEON glass coating", values: ["Add-on", "FREE", "FREE"] },
+  { feature: "Wheel-face ceramic", values: ["Add-on", "FREE", "FREE"] },
+  { feature: "Trim + plastic ceramic", values: ["Add-on", "Add-on", "FREE"] },
+  { feature: "Wheels-off ceramic", values: ["Add-on", "Add-on", "FREE"] },
+  { feature: "Online offer from", values: ["AED 1,499", "AED 2,199", "AED 3,499"] },
 ];
 
 const whyGrandTouch = [
-  { icon: ShieldCheck, text: "STEK-authorised installer — film registered, warranty traceable" },
+  { icon: ShieldCheck, text: "GYEON product system throughout — no mystery bottles" },
   { icon: Star, text: "4.9 on Google (77 reviews)" },
-  { icon: Truck, text: "Free pickup & drop-off across Dubai" },
-  { icon: Zap, text: "Installed in ~3 hours — same-week slots" },
+  { icon: Zap, text: "One ceramic bay per day — your car is never rushed" },
+  { icon: Eye, text: "Paint inspected before anything is confirmed" },
 ];
 
-const tintFaqs: Array<{ question: string; answer: string }> = [
+const ceramicFaqs: Array<{ question: string; answer: string }> = [
   {
-    question: "Is dark tint legal in Dubai? What shades can I choose?",
+    question: "Do I really need paint correction before ceramic?",
     answer:
-      "Yes — UAE regulations allow up to 50% tint on side and rear windows (the front windshield can only take a sun-strip at the top). We stock legal shades in every series and advise you on the darkest legal option for your emirate before anything goes on the glass, so you never fail a test or get flagged at registration.",
+      "If the paint has swirls, the coating locks them in — ceramic adds gloss and protection, it doesn't erase defects. That's why the coating alone (Basic) is only right for new or very clean paint. For the classic Dubai car-wash swirls, correction first is what makes the finish look better than showroom. Sean inspects the paint before confirming the final correction level, so you never pay for more correction than the car needs.",
   },
   {
-    question: "Does a darker tint keep the car cooler?",
+    question: "How long does the job take?",
     answer:
-      "No — darkness (VLT) and heat rejection are two different specs. A light ceramic film can reject far more infrared heat than a dark dyed film. What actually cools the cabin is IR rejection and TSER, which is why we show you the manufacturer spec sheet instead of just a shade card.",
+      "We run one ceramic bay per day — your car is the only ceramic job in that bay. Basic is usually done same day; correction packages typically need 1–2 days depending on the paint. Drop-off is usually 9–11 AM and Sean confirms the exact timing when he sees the car.",
   },
   {
-    question: "How long does the installation take?",
+    question: "How long does GYEON ceramic last in Dubai?",
     answer:
-      "Around 3 hours for a full car, done in a dust-controlled bay. If you'd rather not wait, free pickup and drop-off across Dubai is included — we collect the car, tint it, and bring it back the same day.",
+      "Years, not months — but the honest answer is it depends on the coating line and how the car is washed afterwards. Dubai sun, sand and tunnel washes are brutal on cheap coatings. We use the GYEON system end to end and hand you the aftercare rules, so the durability the product is rated for is what you actually get.",
   },
   {
-    question: "What warranty do I get?",
+    question: "What does ceramic actually do?",
     answer:
-      "STEK films come with a registered manufacturer warranty against bubbling, peeling, fading, and colour change. Because we're a STEK-authorised studio the warranty is traceable to the actual film batch on your car — we hand you the registration, not just a verbal promise.",
+      "It bonds a hard, slick, chemical-resistant layer to the paint: deeper gloss, water beads off, sand and dust don't stick as easily, and bird droppings or water spots don't etch the paint the way they etch bare clear coat. It also makes every wash faster and safer — dirt releases instead of grinding in.",
   },
   {
-    question: "Will tint affect my phone signal, Salik, or GPS?",
+    question: "Ceramic or PPF — which should I get?",
     answer:
-      "Not with the films we install. Ceramic films are non-metallic, so mobile signal, GPS, keyless entry, and Salik toll tags all work exactly as before. It's the old metallised films that caused interference — we don't install those.",
+      "Different jobs. PPF is a physical film that stops stone chips and scratches; ceramic is a chemical layer for gloss, easy washing and UV/chemical protection — it will not stop a stone chip. Many clients do PPF on the front end and ceramic over the rest. If you're weighing it up, mention it on WhatsApp and Sean will give you a straight recommendation for your car.",
   },
 ];
 
-const TintDubaiFunnel = () => {
+const CeramicDubaiFunnel = () => {
   const [step, setStep] = useState<FlowStep>("size");
-  const [size, setSize] = useState<TintSize | null>(null);
+  const [size, setSize] = useState<VehicleSize | null>(null);
   const [vehicle, setVehicle] = useState("");
   const [carYear, setCarYear] = useState<number | null>(null);
-  const [priority, setPriority] = useState<TintPriority | null>(null);
-  const [urgency, setUrgency] = useState<TintUrgency | null>(null);
-  const [packageId, setPackageId] = useState<TintPackageId | null>(null);
-  const [windshield, setWindshield] = useState(false);
+  const [condition, setCondition] = useState<PaintCondition | null>(null);
+  const [timing, setTiming] = useState<CeramicTiming | null>(null);
+  const [packageId, setPackageId] = useState<CeramicPackageId | null>(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<Record<AddOnId, boolean>>({
+    glass: false,
+    wheel_face: false,
+    interior: false,
+    trim: false,
+    wheels_off: false,
+  });
   const [phone, setPhone] = useState("");
+  const [leadName, setLeadName] = useState("");
   const [phoneCapturedAt, setPhoneCapturedAt] = useState<string | null>(null);
+  // Locked without a name → keep a name field visible in the locked state.
+  const [capturedWithoutName, setCapturedWithoutName] = useState(false);
+  // Dedupe key (phone|name): typing a name after locking re-sends the snapshot
+  // once with the name attached, instead of never sending it.
+  const capturedKeyRef = useRef<string | null>(null);
   // Gamified reveal: the big number counts down from the anchor to the final price.
   const [animatedPrice, setAnimatedPrice] = useState<number | null>(null);
   const [revealPlayed, setRevealPlayed] = useState(false);
@@ -270,8 +401,8 @@ const TintDubaiFunnel = () => {
   const funnelContext = useMemo(
     () =>
       createFunnelTrackingContext({
-        funnelName: "tint_meta_2026h2",
-        landingPageVariant: "tint_meta_2026h2",
+        funnelName: "ceramic_gyeon_offer_builder_2026h2",
+        landingPageVariant: "ceramic_gyeon_guided_v2",
         defaultSourcePlatform: "meta",
       }),
     [],
@@ -316,66 +447,102 @@ const TintDubaiFunnel = () => {
   );
 
   const selectedSize = sizeOptions.find((option) => option.value === size) ?? null;
-  const selectedPackage = tintPackages.find((pkg) => pkg.id === packageId) ?? null;
-  const selectedPriority = priorityOptions.find((option) => option.value === priority) ?? null;
-  const recommendedPackageId = selectedPriority?.recommends ?? "smart";
+  const selectedPackage = ceramicPackages.find((pkg) => pkg.id === packageId) ?? null;
+  const selectedCondition = conditionOptions.find((option) => option.value === condition) ?? null;
+  const recommendedPackageId = selectedCondition?.recommends ?? "correction";
 
-  const basePrice = selectedPackage && size ? selectedPackage.prices[size] : null;
-  const totalPrice = basePrice !== null ? basePrice + (windshield ? WINDSHIELD_ADDON_PRICE : 0) : null;
-  const anchorPrice = totalPrice !== null ? anchorFor(totalPrice) : null;
+  const includedSet = useMemo(
+    () =>
+      new Set<StackItemId>([
+        ...(selectedPackage?.paidStack ?? []),
+        ...(selectedPackage?.freeStack ?? []),
+      ]),
+    [selectedPackage],
+  );
+  const availableAddOns = addOnIds.filter((id) => !includedSet.has(id));
+  const activeAddOns = availableAddOns.filter((id) => selectedAddOns[id]);
+
+  const basePrice = selectedPackage && size ? selectedPackage.prices[size].offer : null;
+  const baseWas = selectedPackage && size ? selectedPackage.prices[size].was : null;
+  const addOnTotal = size
+    ? activeAddOns.reduce((sum, id) => sum + stackItems[id].worth[size], 0)
+    : 0;
+  const totalPrice = basePrice !== null ? basePrice + addOnTotal : null;
+  const anchorPrice = baseWas !== null ? baseWas + addOnTotal : null;
   const discountSavings =
     anchorPrice !== null && totalPrice !== null ? anchorPrice - totalPrice : null;
+  /** Sum of every line item's standalone worth — the "total stack value". */
+  const stackWorth =
+    selectedPackage && size
+      ? [...selectedPackage.paidStack, ...selectedPackage.freeStack, ...activeAddOns].reduce(
+          (sum, id) => sum + stackItems[id].worth[size],
+          0,
+        )
+      : null;
+  /** Worth of the free bonus stack — the anchor the price never has to carry. */
+  const freeWorth =
+    selectedPackage && size
+      ? selectedPackage.freeStack.reduce((sum, id) => sum + stackItems[id].worth[size], 0)
+      : null;
   const isComplete = Boolean(size && packageId && totalPrice !== null);
-  // The Meta Lead diet: only visitors who finished the calculator (saw their
+  // The Meta Lead diet: only visitors who finished the builder (saw their
   // price) count as qualified — drive-by taps train Meta on tyre-kickers.
-  const tintLeadQualified = isComplete && totalPrice !== null;
+  const ceramicLeadQualified = isComplete && totalPrice !== null;
 
   const buildPayload = useCallback(
     () => ({
       vehicle_size: size ?? undefined,
       vehicle_model: vehicle.trim() || undefined,
+      vehicle_year: carYear != null ? String(carYear) : undefined,
       car_year: carYear ?? undefined,
-      tint_priority: priority ?? undefined,
-      install_urgency: urgency ?? undefined,
+      paint_condition: condition ?? undefined,
+      install_urgency: timing ?? undefined,
       package_id: packageId ?? undefined,
       package_name: selectedPackage?.name,
       recommended_package: recommendedPackageId,
-      windshield_addon: windshield,
+      selected_addons: activeAddOns,
+      stack_value: stackWorth ?? undefined,
+      free_bonus_value: freeWorth ?? undefined,
       list_price: anchorPrice ?? undefined,
       discount_savings: discountSavings ?? undefined,
       estimate_value: totalPrice ?? undefined,
       final_price: totalPrice ?? undefined,
       service_price: totalPrice ?? undefined,
+      service_type: "gyeon_ceramic",
     }),
     [
+      activeAddOns,
       anchorPrice,
       carYear,
+      condition,
       discountSavings,
+      freeWorth,
       packageId,
-      priority,
       recommendedPackageId,
       selectedPackage,
       size,
+      stackWorth,
+      timing,
       totalPrice,
-      urgency,
       vehicle,
-      windshield,
     ],
   );
 
   useEffect(() => {
-    updatePageSEO("tint-dubai", {
-      title: "Ceramic Window Tint Dubai | Installed in 3 Hours | Grand Touch",
+    updatePageSEO("ceramic-dubai", {
+      title: "GYEON Ceramic Coating Dubai | From AED 1,499 | Grand Touch",
       description:
-        "Ceramic window tint in Dubai by a STEK-authorised studio — heat rejection you feel on day one, legal shades, traceable warranty, from AED 1,199. Installed in ~3 hours.",
+        "Build your GYEON ceramic coating price in 60 seconds — car size, paint condition, package, price. Correction + ceramic from a one-bay-per-day Dubai studio.",
       keywords:
-        "window tint dubai, ceramic tint dubai, car tinting dubai, STEK tint dubai, heat rejection tint, tint price dubai",
-      ogTitle: "Ceramic Window Tint Dubai — Installed in 3 Hours",
+        "GYEON ceramic coating Dubai, ceramic coating Dubai price, car ceramic coating Dubai, paint correction Dubai, GYEON detailing Dubai",
+      ogTitle: "GYEON Ceramic Coating Dubai — Build Your Price in 60 Seconds",
       ogDescription:
-        "STEK-authorised ceramic tint from AED 1,199. Legal shades, traceable warranty, free pickup across Dubai.",
+        "GYEON ceramic from AED 1,499. Paint correction, interior, glass and wheel ceramic stacked into one online offer.",
+      url: "https://www.grandtouchauto.ae/ceramic-dubai",
+      image: "/service-ceramic.jpg",
     });
 
-    trackEvent("lp_view", { calculator_type: "tint_meta_guided" });
+    trackEvent("lp_view", { calculator_type: "ceramic_gyeon_guided" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -392,11 +559,11 @@ const TintDubaiFunnel = () => {
   };
 
   const scrollToCalculator = (placement: string) => {
-    trackEvent("tint_builder_cta_click", { cta_location: placement, step_name: step });
+    trackEvent("ceramic_builder_cta_click", { cta_location: placement, step_name: step });
     flowPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const selectSize = (nextSize: TintSize) => {
+  const selectSize = (nextSize: VehicleSize) => {
     setSize(nextSize);
     trackEvent("guided_step_completed", {
       step_name: "size",
@@ -406,34 +573,48 @@ const TintDubaiFunnel = () => {
     goToStep("car", "size_selected");
   };
 
-  const selectPriority = (nextPriority: TintPriority) => {
-    setPriority(nextPriority);
+  const selectCondition = (nextCondition: PaintCondition) => {
+    setCondition(nextCondition);
     const recommends =
-      priorityOptions.find((option) => option.value === nextPriority)?.recommends ?? "smart";
+      conditionOptions.find((option) => option.value === nextCondition)?.recommends ??
+      "correction";
     // Pre-select the recommended tier so the package step opens on the match.
     setPackageId(recommends);
     trackEvent("guided_step_completed", {
-      step_name: "priority",
+      step_name: "condition",
       ...buildPayload(),
-      tint_priority: nextPriority,
+      paint_condition: nextCondition,
       recommended_package: recommends,
     });
-    goToStep("timing", "priority_selected");
+    goToStep("timing", "condition_selected");
   };
 
-  const selectUrgency = (nextUrgency: TintUrgency) => {
-    setUrgency(nextUrgency);
+  const selectTiming = (nextTiming: CeramicTiming) => {
+    setTiming(nextTiming);
     trackEvent("guided_step_completed", {
       step_name: "timing",
       ...buildPayload(),
-      install_urgency: nextUrgency,
+      install_urgency: nextTiming,
     });
-    goToStep("package", "urgency_selected");
+    goToStep("package", "timing_selected");
   };
 
-  const selectPackage = (nextPackageId: TintPackageId) => {
+  const selectPackage = (nextPackageId: CeramicPackageId) => {
     setPackageId(nextPackageId);
-    const pkg = tintPackages.find((item) => item.id === nextPackageId);
+    // Reset add-on picks that the new package already includes.
+    const nextPackage = ceramicPackages.find((pkg) => pkg.id === nextPackageId);
+    const nextStack = new Set([
+      ...(nextPackage?.paidStack ?? []),
+      ...(nextPackage?.freeStack ?? []),
+    ]);
+    setSelectedAddOns((current) => {
+      const next = { ...current };
+      addOnIds.forEach((id) => {
+        if (nextStack.has(id)) next[id] = false;
+      });
+      return next;
+    });
+    const pkg = ceramicPackages.find((item) => item.id === nextPackageId);
     trackEvent("guided_step_completed", {
       step_name: "package",
       ...buildPayload(),
@@ -442,38 +623,69 @@ const TintDubaiFunnel = () => {
     });
   };
 
-  /** Bonus-lock phone capture on the package step — the proven PPF capture
+  const toggleAddOn = (id: AddOnId) => {
+    const next = !selectedAddOns[id];
+    setSelectedAddOns((current) => ({ ...current, [id]: next }));
+    // Price already revealed — snap the big number to the new total, no re-run.
+    if (priceRafRef.current) {
+      cancelAnimationFrame(priceRafRef.current);
+      priceRafRef.current = null;
+    }
+    setAnimatedPrice(null);
+    trackEvent("ceramic_addon_toggled", { addon_id: id, selected: next, ...buildPayload() });
+  };
+
+  /** Bonus-lock phone capture on the package step — the proven capture
    * mechanic. Saves the lead snapshot and fires the once-per-session Meta Lead. */
   const handlePhoneCapture = useCallback(async () => {
     const cleaned = phone.trim();
+    const trimmedName = leadName.trim();
     if (!isLikelyRealPhone(cleaned)) return;
-    if (phoneCapturedAt === cleaned) return;
+    const captureKey = `${cleaned}|${trimmedName}`;
+    if (capturedKeyRef.current === captureKey) return;
 
+    capturedKeyRef.current = captureKey;
     setPhoneCapturedAt(cleaned);
+    setCapturedWithoutName(!trimmedName);
     trackEvent("guided_phone_captured", {
-      step_name: "package",
-      capture_location: "tint_bonus_lock",
+      step_name: step,
+      capture_location: "ceramic_bonus_lock",
+      has_name: Boolean(trimmedName),
       ...buildPayload(),
+    });
+    trackEvent("save_quote_submitted", {
+      form_type: "ceramic_bonus_lock",
+      capture_location: "ceramic_bonus_lock",
+      ...buildPayload(),
+      has_phone: true,
+      has_name: Boolean(trimmedName),
     });
 
     const result = await captureLeadSnapshot({
-      snapshotType: "contact",
+      snapshotType: "submit",
       context: funnelContext,
-      fullName: "",
+      fullName: trimmedName,
       phone: cleaned,
       vehicleModel: vehicle.trim(),
+      vehicleYear: carYear != null ? String(carYear) : undefined,
       payload: {
         ...buildPayload(),
-        service_name: "Tint Meta 2026H2 - Bonus Lock Phone",
+        service_name: "Ceramic GYEON 2026H2 - Bonus Lock Phone",
       },
     });
 
     if (result.ok) {
+      trackEvent("lead_form_submitted", {
+        form_type: "ceramic_bonus_lock",
+        capture_location: "ceramic_bonus_lock",
+        ...buildPayload(),
+      });
+
       if (!metaLeadFiredRef.current) {
         metaLeadFiredRef.current = true;
         trackMetaStandardEvent("Lead", {
-          content_name: "Tint Dubai Guided Funnel",
-          content_category: "Tint",
+          content_name: "Ceramic Dubai Guided Funnel",
+          content_category: "Ceramic",
           value: totalPrice ?? undefined,
           currency: "AED",
         });
@@ -482,7 +694,7 @@ const TintDubaiFunnel = () => {
       trackEvent(
         "lead_save_failed",
         {
-          capture_location: "tint_bonus_lock",
+          capture_location: "ceramic_bonus_lock",
           reason: ("reason" in result ? result.reason : null) ?? "unknown",
           ...buildPayload(),
         },
@@ -491,9 +703,11 @@ const TintDubaiFunnel = () => {
     }
   }, [
     buildPayload,
+    carYear,
     funnelContext,
+    leadName,
     phone,
-    phoneCapturedAt,
+    step,
     totalPrice,
     trackEvent,
     trackMetaStandardEvent,
@@ -505,6 +719,17 @@ const TintDubaiFunnel = () => {
     trackEvent("price_viewed", buildPayload());
     trackEvent("guided_price_revealed", buildPayload());
     goToStep("result", "reveal_price");
+  };
+
+  /** Fired on pointerDOWN, not click: tapping this button while the phone
+   * input is focused triggers the blur capture, which swaps the input for the
+   * "locked" confirmation and shifts the button mid-tap — the browser then
+   * drops the click (press and release land on different elements). Acting on
+   * pointerdown beats the blur; onClick stays as the keyboard fallback. */
+  const triggerReveal = () => {
+    if (step === "result" || !isComplete) return;
+    if (isLikelyRealPhone(phone)) void handlePhoneCapture();
+    revealPrice();
   };
 
   // Discount slash: count from the anchor down to the final price (~1.1s easeOut).
@@ -558,51 +783,64 @@ const TintDubaiFunnel = () => {
   const whatsAppMessage = useMemo(() => {
     if (!isComplete || !selectedPackage || !size || totalPrice === null) {
       const lines = [
-        "Hi Sean, I came from the tint page and want a window tint quote.",
+        "Hi Sean, I came from the ceramic page and want a GYEON ceramic quote.",
+        leadName.trim() ? `My name is ${leadName.trim()}.` : "",
         vehicle.trim() ? `Car: ${vehicle.trim()}${carYear ? ` (${carYear})` : ""}.` : "",
-        "Can you confirm the best option and earliest slot?",
+        "Can you confirm the right package and earliest bay day?",
       ].filter(Boolean);
       return lines.join(" ");
     }
 
-    const urgencyLabel =
-      urgency === "today" ? "today" : urgency === "this_week" ? "this week" : null;
+    const timingLabel =
+      timing === "this_week" ? "this week" : timing === "two_weeks" ? "in the next 2 weeks" : null;
     const lines = [
-      "Hi Sean, I built a tint quote on the Grand Touch page.",
+      "Hi Sean, I built a GYEON ceramic offer on the Grand Touch page.",
+      leadName.trim() ? `My name is ${leadName.trim()}.` : "",
       vehicle.trim() ? `Car: ${vehicle.trim()}${carYear ? ` (${carYear})` : ""}.` : "",
-      `Setup: ${selectedPackage.name} on ${size}${windshield ? " + windshield film" : ""}.`,
+      `Setup: ${selectedPackage.name} on ${selectedSize?.label ?? size}${
+        activeAddOns.length
+          ? ` + ${activeAddOns.map((id) => stackItems[id].label).join(" + ")}`
+          : ""
+      }.`,
+      selectedCondition ? `Paint: ${selectedCondition.label}.` : "",
       anchorPrice !== null ? `Was ${formatAED(anchorPrice)}.` : "",
-      `My locked-in price: ${formatAED(totalPrice)} (online offer applied, excl. VAT).`,
-      urgencyLabel ? `I'd like it done ${urgencyLabel}.` : "",
-      "Can you confirm my slot and the bonuses?",
+      `My locked-in price: ${formatAED(totalPrice)} (online offer applied, + VAT).`,
+      freeWorth
+        ? `Includes my free bonus coatings (worth ${formatAED(freeWorth)}).`
+        : "",
+      timingLabel ? `I'd like it done ${timingLabel}.` : "",
+      "Can you confirm after paint inspection and lock my bay day?",
     ].filter(Boolean);
     return lines.join(" ");
   }, [
+    activeAddOns,
     anchorPrice,
     carYear,
+    freeWorth,
     isComplete,
+    leadName,
+    selectedCondition,
     selectedPackage,
+    selectedSize,
     size,
+    timing,
     totalPrice,
-    urgency,
     vehicle,
-    windshield,
   ]);
 
   const handleWhatsApp = (placement: string) => {
     const metaPayload = {
-      content_name: "Tint Dubai Guided Funnel",
-      content_category: "Tint",
+      content_name: "Ceramic Dubai Guided Funnel",
+      content_category: "Ceramic",
       button_location: placement,
       value: totalPrice ?? undefined,
       currency: "AED",
     };
     // Contact = every tap (Events Manager visibility). Lead = QUALIFIED taps
-    // only (calculator complete) — mirrors the Meta PPF V2 logic so drive-by
-    // taps never fire phantom Leads. Shares the one-per-session guard with the
-    // phone capture above.
+    // only (builder complete) — mirrors the tint funnel so drive-by taps never
+    // fire phantom Leads. Shares the one-per-session guard with phone capture.
     trackMetaStandardEvent("Contact", metaPayload);
-    if (tintLeadQualified && !metaLeadFiredRef.current) {
+    if (ceramicLeadQualified && !metaLeadFiredRef.current) {
       metaLeadFiredRef.current = true;
       trackMetaStandardEvent("Lead", metaPayload);
     }
@@ -612,10 +850,50 @@ const TintDubaiFunnel = () => {
       { emitToTagManagers: false },
     );
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
+
+    const cleanedPhone = phone.trim();
+    if (ceramicLeadQualified && isLikelyRealPhone(cleanedPhone) && phoneCapturedAt !== cleanedPhone) {
+      setPhoneCapturedAt(cleanedPhone);
+      capturedKeyRef.current = `${cleanedPhone}|${leadName.trim()}`;
+      void captureLeadSnapshot({
+        snapshotType: "submit",
+        context: funnelContext,
+        fullName: leadName.trim(),
+        phone: cleanedPhone,
+        vehicleModel: vehicle.trim(),
+        vehicleYear: carYear != null ? String(carYear) : undefined,
+        payload: {
+          ...buildPayload(),
+          capture_location: placement,
+          service_name: "Ceramic GYEON 2026H2 - Qualified WhatsApp",
+        },
+      }).then((result) => {
+        if (result.ok) {
+          trackEvent("lead_form_submitted", {
+            form_type: "ceramic_qualified_whatsapp",
+            capture_location: placement,
+            ...buildPayload(),
+          });
+          return;
+        }
+
+        if (!result.ok) {
+          trackEvent(
+            "lead_save_failed",
+            {
+              capture_location: placement,
+              reason: ("reason" in result ? result.reason : null) ?? "unknown",
+              ...buildPayload(),
+            },
+            { emitToTagManagers: false },
+          );
+        }
+      });
+    }
   };
 
   /** Pre-price behaviour (Meta lead-form style): no direct WhatsApp escape
-   * until the visitor has a price — CTAs route into the calculator instead. */
+   * until the visitor has a price — CTAs route into the builder instead. */
   const handlePrimaryCta = (placement: string) => {
     if (isComplete && step === "result") {
       handleWhatsApp(placement);
@@ -654,8 +932,8 @@ const TintDubaiFunnel = () => {
         onClick={() => handlePrimaryCta("top_offer_bar")}
         aria-label={
           isComplete && step === "result"
-            ? "Open WhatsApp with your tint build"
-            : "Start your tint quote"
+            ? "Open WhatsApp with your ceramic build"
+            : "Start your ceramic quote"
         }
         className="group sticky top-0 z-40 flex w-full items-center gap-2 overflow-hidden border-b border-[#f7b52b]/25 bg-[#0b0b0b]/95 px-2.5 py-1.5 text-[11px] backdrop-blur transition hover:bg-[#0f0f0f]/95 sm:gap-3 sm:px-4 sm:py-2 sm:text-[13px]"
       >
@@ -707,14 +985,14 @@ const TintDubaiFunnel = () => {
         {/* ── Compact meta-style hero ─────────────────────────────────── */}
         <header className="rounded-2xl border border-[#f7b52b]/30 bg-[linear-gradient(180deg,rgba(247,181,43,0.12),rgba(8,8,8,0.42))] px-4 py-4 sm:px-5 sm:py-5">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#f7b52b] sm:text-xs">
-            Ceramic Tint Offer — Dubai
+            GYEON Ceramic Offer — Dubai
           </p>
           <h1 className="mt-1.5 text-[1.65rem] font-black leading-[1.05] tracking-tight sm:text-4xl">
-            Build your tint price in 60 seconds.
+            Build your ceramic price in 60 seconds.
           </h1>
           <p className="mt-2 max-w-xl text-xs leading-5 text-slate-300 sm:text-sm sm:leading-6">
-            Tap your car size below, answer three quick questions, then watch the before-discount
-            price get slashed on your build. Installed in ~3 hours, legal shades, STEK warranty.
+            Tap your car size, tell us how the paint looks, then watch the before-discount price
+            get slashed on your build — with every included item and what it's worth stacked up.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-slate-200">
             <span className="flex items-center gap-1 rounded-full border border-white/10 bg-black/35 px-2 py-1">
@@ -722,7 +1000,7 @@ const TintDubaiFunnel = () => {
               Google 4.9
             </span>
             <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1">
-              STEK authorised
+              GYEON products
             </span>
             <span className="rounded-full border border-[#f7b52b]/25 bg-[#f7b52b]/10 px-2 py-1 text-[#f7b52b]">
               Online offer inside
@@ -730,7 +1008,7 @@ const TintDubaiFunnel = () => {
           </div>
         </header>
 
-        {/* ── Guided calculator panel ─────────────────────────────────── */}
+        {/* ── Guided builder panel ────────────────────────────────────── */}
         <section
           ref={flowPanelRef}
           className="mt-5 scroll-mt-14 rounded-[24px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(8,8,8,0.6))] p-4 sm:mt-7 sm:p-6"
@@ -762,7 +1040,7 @@ const TintDubaiFunnel = () => {
               <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-3xl">
                 Which one looks like yours?
               </h2>
-              <div className="mt-3 grid gap-2 sm:mt-5 sm:grid-cols-3 sm:gap-3">
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3">
                 {sizeOptions.map((option) => {
                   const isSelected = size === option.value;
                   return (
@@ -771,29 +1049,27 @@ const TintDubaiFunnel = () => {
                       type="button"
                       onClick={() => selectSize(option.value)}
                       className={cn(
-                        "group relative overflow-hidden rounded-[22px] border text-left transition duration-200 hover:-translate-y-0.5 hover:border-[#f7b52b]/55",
-                        isSelected
-                          ? "border-[#f7b52b] ring-1 ring-[#f7b52b]/40"
-                          : "border-white/10",
+                        "group relative overflow-hidden rounded-[18px] border text-left transition duration-200 hover:-translate-y-0.5 hover:border-[#f7b52b]/55 sm:rounded-[22px]",
+                        isSelected ? "border-[#f7b52b] ring-1 ring-[#f7b52b]/40" : "border-white/10",
                       )}
                     >
-                      <div className="relative aspect-[16/9] w-full overflow-hidden bg-black sm:aspect-[4/3]">
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-black">
                         <img
                           src={option.image}
                           alt={`${option.label} car example`}
                           loading="lazy"
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                         />
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3">
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-3">
                           <p
                             className={cn(
-                              "text-base font-black leading-tight",
+                              "text-sm font-black leading-tight sm:text-base",
                               isSelected ? "text-[#f7b52b]" : "text-white",
                             )}
                           >
                             {option.label}
                           </p>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70">
+                          <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/70 sm:text-[10px]">
                             {option.example}
                           </p>
                         </div>
@@ -881,7 +1157,7 @@ const TintDubaiFunnel = () => {
                 disabled={!vehicle.trim() || !carYear}
                 onClick={() => {
                   trackEvent("guided_step_completed", { step_name: "car", ...buildPayload() });
-                  goToStep("priority", "car_continue");
+                  goToStep("condition", "car_continue");
                 }}
                 className="mt-5 h-12 w-full gap-2 bg-[#f7b52b] font-black text-black hover:bg-[#ffc94f] disabled:bg-white/10 disabled:text-white/45"
               >
@@ -891,39 +1167,41 @@ const TintDubaiFunnel = () => {
             </div>
           ) : null}
 
-          {/* Step 3 — What matters most (routes the recommended package) */}
-          {step === "priority" ? (
+          {/* Step 3 — Paint condition (routes the recommended package) */}
+          {step === "condition" ? (
             <div>
               {stepBack("car", "Back to your car")}
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
-                3. Quick question
+                3. Paint check
               </p>
-              <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-3xl">What matters most?</h2>
+              <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-3xl">
+                How does the paint look in the sun?
+              </h2>
               <p className="mt-2 text-sm text-slate-400">
-                We'll match the right film series to your answer.
+                Ceramic locks in whatever's underneath — this picks the right correction level.
               </p>
               <div className="mt-3 grid gap-2 sm:mt-4">
-                {priorityOptions.map((option) => {
+                {conditionOptions.map((option) => {
                   const Icon = option.icon;
                   return (
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => selectPriority(option.value)}
-                      className={chipClass(priority === option.value)}
+                      onClick={() => selectCondition(option.value)}
+                      className={chipClass(condition === option.value)}
                     >
                       <span className="flex items-center gap-3">
                         <Icon
                           className={cn(
                             "h-5 w-5 shrink-0",
-                            priority === option.value ? "text-[#f7b52b]" : "text-slate-400",
+                            condition === option.value ? "text-[#f7b52b]" : "text-slate-400",
                           )}
                         />
                         <span className="min-w-0">
                           <span
                             className={cn(
                               "block text-sm font-black sm:text-base",
-                              priority === option.value ? "text-[#f7b52b]" : "text-white",
+                              condition === option.value ? "text-[#f7b52b]" : "text-white",
                             )}
                           >
                             {option.label}
@@ -943,7 +1221,7 @@ const TintDubaiFunnel = () => {
           {/* Step 4 — When do you want it done (urgency qualifier) */}
           {step === "timing" ? (
             <div>
-              {stepBack("priority", "Back")}
+              {stepBack("condition", "Back")}
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
                 4. Timing
               </p>
@@ -951,20 +1229,20 @@ const TintDubaiFunnel = () => {
                 When do you want it done?
               </h2>
               <p className="mt-2 text-sm text-slate-400">
-                Install takes ~3 hours. Free pickup means you don't even need to come in.
+                One ceramic bay per day — your car gets the whole bay, never rushed.
               </p>
               <div className="mt-3 grid gap-2 sm:mt-4">
-                {urgencyOptions.map((option) => (
+                {timingOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => selectUrgency(option.value)}
-                    className={chipClass(urgency === option.value)}
+                    onClick={() => selectTiming(option.value)}
+                    className={chipClass(timing === option.value)}
                   >
                     <span
                       className={cn(
                         "block text-sm font-black sm:text-base",
-                        urgency === option.value ? "text-[#f7b52b]" : "text-white",
+                        timing === option.value ? "text-[#f7b52b]" : "text-white",
                       )}
                     >
                       {option.label}
@@ -978,22 +1256,35 @@ const TintDubaiFunnel = () => {
             </div>
           ) : null}
 
-          {/* Step 5 — Package (struck anchors) + bonus-lock phone capture */}
+          {/* Step 5 — Package (struck anchors + stack preview) + bonus lock */}
           {step === "package" && size ? (
             <div>
               {stepBack("timing", "Back to timing")}
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b] sm:text-xs">
-                5. Your tint package
+                5. Your GYEON package
               </p>
               <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-3xl">
-                Pick your film — the online offer applies next.
+                Pick your package — online offer already applied.
               </h2>
+              {selectedCondition ? (
+                <p className="mt-2 text-sm text-slate-400">
+                  Based on "{selectedCondition.label.toLowerCase()}", we've matched you to{" "}
+                  <span className="font-bold text-[#f7b52b]">
+                    {ceramicPackages.find((pkg) => pkg.id === recommendedPackageId)?.shortName}
+                  </span>
+                  .
+                </p>
+              ) : null}
 
               <div className="mt-3 grid gap-2 sm:mt-5 sm:gap-3">
-                {tintPackages.map((pkg) => {
+                {ceramicPackages.map((pkg) => {
                   const isSelected = packageId === pkg.id;
                   const isRecommended = pkg.id === recommendedPackageId;
-                  const anchor = anchorFor(pkg.prices[size]);
+                  const price = pkg.prices[size];
+                  const pkgFreeWorth = pkg.freeStack.reduce(
+                    (sum, id) => sum + stackItems[id].worth[size],
+                    0,
+                  );
                   return (
                     <button
                       key={pkg.id}
@@ -1033,16 +1324,28 @@ const TintDubaiFunnel = () => {
                         <span className="mt-1 block text-[11px] font-semibold text-slate-400 sm:text-xs">
                           {pkg.points.join(" · ")}
                         </span>
+                        <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-[#25D366]/25 bg-[#25D366]/[0.08] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#25D366]">
+                          <Gift className="h-3 w-3" />
+                          {formatAED(pkgFreeWorth)} of bonuses FREE
+                        </span>
                       </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-sm font-bold text-white/45 line-through sm:text-base">
-                          {formatAED(anchor)}
+                      <span className="shrink-0 whitespace-nowrap text-right">
+                        <span className="block text-xs font-bold text-white/40 line-through sm:text-sm">
+                          {formatAED(price.was)}
                         </span>
-                        <span className="mt-0.5 block text-[9px] font-black uppercase tracking-[0.14em] text-[#f7b52b]">
-                          Before discount
+                        <span
+                          className={cn(
+                            "mt-0.5 block text-lg font-black leading-none sm:text-xl",
+                            isSelected ? "text-[#f7b52b]" : "text-white",
+                          )}
+                        >
+                          {formatAED(price.offer)}
                         </span>
-                        <span className="mt-0.5 block text-[10px] font-semibold text-slate-500">
-                          Offer price next →
+                        <span className="mt-0.5 block text-[9px] font-semibold text-slate-500">
+                          + VAT
+                        </span>
+                        <span className="mt-1 inline-block rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#25D366]">
+                          Save {formatAED(price.was - price.offer)}
                         </span>
                       </span>
                     </button>
@@ -1050,50 +1353,14 @@ const TintDubaiFunnel = () => {
                 })}
               </div>
 
-              {/* Windshield add-on */}
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !windshield;
-                  setWindshield(next);
-                  trackEvent("tint_windshield_toggled", { selected: next, ...buildPayload() });
-                }}
-                className={cn(
-                  "mt-2 flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-3 text-left transition sm:mt-3",
-                  windshield
-                    ? "border-[#f7b52b] bg-[#f7b52b]/15"
-                    : "border-white/15 bg-white/[0.04] hover:border-[#f7b52b]/50",
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <Sun className={cn("h-4 w-4", windshield ? "text-[#f7b52b]" : "text-slate-400")} />
-                  <span
-                    className={cn(
-                      "text-sm font-black",
-                      windshield ? "text-[#f7b52b]" : "text-white",
-                    )}
-                  >
-                    Add front windshield film
-                  </span>
-                </span>
-                <span
-                  className={cn(
-                    "shrink-0 text-sm font-black",
-                    windshield ? "text-[#f7b52b]" : "text-slate-200",
-                  )}
-                >
-                  +{formatAED(WINDSHIELD_ADDON_PRICE)}
-                </span>
-              </button>
-
-              {/* Bonus-lock phone capture — the proven PPF capture mechanic. */}
+              {/* Bonus-lock phone capture — the proven capture mechanic. */}
               {packageId ? (
                 <div className="mt-3 rounded-2xl border border-[#f7b52b]/35 bg-[#f7b52b]/[0.05] p-3 sm:mt-4 sm:p-4">
                   <div className="flex items-start gap-2.5 sm:gap-3">
                     <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b] sm:h-5 sm:w-5" />
                     <div className="min-w-0 flex-1">
                       <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#f7b52b] sm:text-sm sm:tracking-[0.14em]">
-                        Lock your slot + bonuses
+                        Lock your bay day + bonuses
                       </p>
                       <ul className="mt-1.5 space-y-1">
                         {lockedBonuses.map((bonus) => (
@@ -1109,24 +1376,47 @@ const TintDubaiFunnel = () => {
                     </div>
                   </div>
                   {phoneCapturedAt ? (
-                    <p className="mt-2.5 flex items-center gap-2 rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-3 py-2.5 text-xs font-bold text-[#25D366]">
-                      <BadgeCheck className="h-4 w-4 shrink-0" />
-                      Slot & bonuses locked — reveal your offer price below.
-                    </p>
+                    <>
+                      <p className="mt-2.5 flex items-center gap-2 rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-3 py-2.5 text-xs font-bold text-[#25D366]">
+                        <BadgeCheck className="h-4 w-4 shrink-0" />
+                        Bay day & bonuses locked
+                        {leadName.trim() && !capturedWithoutName ? ` for ${leadName.trim()}` : ""} —
+                        reveal your offer price below.
+                      </p>
+                      {capturedWithoutName ? (
+                        <Input
+                          value={leadName}
+                          onChange={(event) => setLeadName(event.target.value)}
+                          onBlur={() => void handlePhoneCapture()}
+                          placeholder="Your name — so Sean knows who's booking"
+                          aria-label="Your name for the booking"
+                          className="mt-2 h-11 border-[#f7b52b]/30 bg-white/[0.04] text-white placeholder:text-slate-500 focus-visible:border-[#f7b52b]/70 focus-visible:ring-[#f7b52b]/30"
+                        />
+                      ) : null}
+                    </>
                   ) : (
                     <>
                       <div className="mt-2.5 sm:mt-3">
-                        <PhoneInputWithCountry
-                          value={phone}
-                          onChange={setPhone}
-                          onBlur={() => void handlePhoneCapture()}
-                          placeholder="50 123 4567"
-                          className="border-[#f7b52b]/30 bg-white/[0.04]"
-                          ariaLabel="Phone to lock slot and bonuses"
+                        <Input
+                          value={leadName}
+                          onChange={(event) => setLeadName(event.target.value)}
+                          placeholder="Your name"
+                          aria-label="Your name to lock bay day and bonuses"
+                          className="h-11 border-[#f7b52b]/30 bg-white/[0.04] text-white placeholder:text-slate-500 focus-visible:border-[#f7b52b]/70 focus-visible:ring-[#f7b52b]/30"
                         />
+                        <div className="mt-2">
+                          <PhoneInputWithCountry
+                            value={phone}
+                            onChange={setPhone}
+                            onBlur={() => void handlePhoneCapture()}
+                            placeholder="50 123 4567"
+                            className="border-[#f7b52b]/30 bg-white/[0.04]"
+                            ariaLabel="Phone to lock bay day and bonuses"
+                          />
+                        </div>
                       </div>
                       <p className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:mt-2 sm:text-[10px]">
-                        Optional · WhatsApp number only · No spam
+                        Optional · Name + WhatsApp number · No spam
                       </p>
                     </>
                   )}
@@ -1137,19 +1427,22 @@ const TintDubaiFunnel = () => {
                 type="button"
                 size="lg"
                 disabled={!isComplete}
-                onClick={() => {
-                  if (isLikelyRealPhone(phone)) void handlePhoneCapture();
-                  revealPrice();
+                onPointerDown={(event) => {
+                  if (event.pointerType === "mouse" && event.button !== 0) return;
+                  triggerReveal();
                 }}
+                onClick={triggerReveal}
                 className="mt-3 h-12 w-full animate-pulse gap-2 bg-[#25D366] font-black text-white shadow-[0_18px_48px_rgba(37,211,102,0.32)] hover:bg-[#20bf5d] disabled:animate-none disabled:bg-white/10 disabled:text-white/45 sm:mt-4"
               >
-                {isLikelyRealPhone(phone) ? "Reveal my offer price + lock bonuses" : "Reveal my offer price"}
+                {isLikelyRealPhone(phone)
+                  ? "Show my full offer + lock bonuses"
+                  : "Show my full offer"}
                 <Sparkles className="h-4 w-4" />
               </Button>
             </div>
           ) : null}
 
-          {/* Step 6 — Result: gamified discount slash + bonus stack + WhatsApp */}
+          {/* Step 6 — Result: discount slash + value-stack reveal + WhatsApp */}
           {step === "result" &&
           isComplete &&
           selectedPackage &&
@@ -1164,8 +1457,8 @@ const TintDubaiFunnel = () => {
                   {[
                     selectedSize?.label,
                     vehicle.trim() || null,
-                    selectedPackage.name,
-                    windshield ? "+ Windshield" : null,
+                    selectedPackage.shortName,
+                    selectedCondition?.label ?? null,
                   ]
                     .filter(Boolean)
                     .map((chip) => (
@@ -1203,28 +1496,138 @@ const TintDubaiFunnel = () => {
                   {formatAED(animatedPrice ?? totalPrice)}
                 </p>
                 <p className="mt-1 text-[11px] font-semibold text-slate-300 sm:text-xs">
-                  {discountSavings !== null ? `You save ${formatAED(discountSavings)} · ` : ""}
-                  Installed in ~3 hours · Legal shades · excl. VAT
+                  {discountSavings !== null ? `You save ${formatAED(discountSavings)} · ` : ""}+
+                  VAT · Final correction level confirmed after paint inspection
                 </p>
 
-                {/* Bonus stack */}
+                {/* Value-stack reveal — what the price pays for */}
                 <div className="mt-3.5 rounded-xl border border-white/10 bg-black/30 p-3 sm:mt-4">
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f7b52b]">
-                    Locked onto this build
+                    What you're paying for
                   </p>
                   <ul className="mt-2 space-y-1.5">
-                    {lockedBonuses.map((bonus, index) => (
-                      <li
-                        key={bonus.text}
-                        className="flex items-center gap-2 text-xs font-semibold text-slate-200 animate-guided-reveal-row motion-reduce:animate-none sm:text-sm"
-                        style={{ animationDelay: `${0.25 + index * 0.2}s` }}
-                      >
-                        <Check className="h-4 w-4 shrink-0 text-[#25D366]" />
-                        {bonus.text}
-                      </li>
-                    ))}
+                    {[...selectedPackage.paidStack, ...activeAddOns].map((id, index) => {
+                      const item = stackItems[id];
+                      const isAddOn = activeAddOns.includes(id as AddOnId);
+                      return (
+                        <li
+                          key={id}
+                          className="flex items-start justify-between gap-2 animate-guided-reveal-row motion-reduce:animate-none"
+                          style={{ animationDelay: `${0.2 + index * 0.12}s` }}
+                        >
+                          <span className="flex min-w-0 items-start gap-2 text-xs font-semibold leading-snug text-slate-200 sm:text-sm">
+                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#25D366]" />
+                            <span>{item.label}</span>
+                          </span>
+                          <span className="shrink-0 whitespace-nowrap text-right">
+                            {isAddOn ? (
+                              <span className="text-[10px] font-black text-[#f7b52b] sm:text-[11px]">
+                                +{formatAED(item.worth[size])}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-white/40 sm:text-[11px]">
+                                <span className="line-through">{formatAED(item.worth[size])}</span>{" "}
+                                <span className="text-[#25D366] no-underline">incl.</span>
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
+
+                {/* FREE bonus stack — the anchor the price never has to carry */}
+                <div className="mt-2.5 rounded-xl border border-[#25D366]/35 bg-[#25D366]/[0.06] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#25D366]">
+                      <Gift className="h-3.5 w-3.5" />
+                      Free with your online build
+                    </p>
+                    {freeWorth !== null ? (
+                      <p className="text-[10px] font-black text-[#25D366] animate-guided-free-pulse motion-reduce:animate-none">
+                        worth {formatAED(freeWorth)}
+                      </p>
+                    ) : null}
+                  </div>
+                  <ul className="mt-2 space-y-1.5">
+                    {selectedPackage.freeStack.map((id, index) => {
+                      const item = stackItems[id];
+                      return (
+                        <li
+                          key={id}
+                          className="flex items-start justify-between gap-2 animate-guided-reveal-row motion-reduce:animate-none"
+                          style={{
+                            animationDelay: `${0.2 + (selectedPackage.paidStack.length + activeAddOns.length + index) * 0.12}s`,
+                          }}
+                        >
+                          <span className="flex min-w-0 items-start gap-2 text-xs font-semibold leading-snug text-slate-200 sm:text-sm">
+                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#25D366]" />
+                            <span>{item.label}</span>
+                          </span>
+                          <span className="shrink-0 whitespace-nowrap text-right text-[10px] font-bold text-white/40 sm:text-[11px]">
+                            <span className="line-through">{formatAED(item.worth[size])}</span>{" "}
+                            <span className="rounded-full bg-[#25D366]/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#25D366]">
+                              FREE
+                            </span>
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                {/* Add-on upsell — only what's NOT already in the package */}
+                {availableAddOns.length ? (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                      Complete the stack
+                    </p>
+                    <div className="mt-2 grid gap-1.5">
+                      {availableAddOns.map((id) => {
+                        const item = stackItems[id];
+                        const active = selectedAddOns[id];
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => toggleAddOn(id)}
+                            className={cn(
+                              "flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left transition",
+                              active
+                                ? "border-[#f7b52b] bg-[#f7b52b]/15"
+                                : "border-white/12 bg-white/[0.03] hover:border-[#f7b52b]/50",
+                            )}
+                          >
+                            <span className="flex min-w-0 items-center gap-2">
+                              {active ? (
+                                <Check className="h-4 w-4 shrink-0 text-[#f7b52b]" />
+                              ) : (
+                                <Plus className="h-4 w-4 shrink-0 text-slate-500" />
+                              )}
+                              <span
+                                className={cn(
+                                  "truncate text-xs font-bold sm:text-sm",
+                                  active ? "text-[#f7b52b]" : "text-slate-200",
+                                )}
+                              >
+                                {item.label}
+                              </span>
+                            </span>
+                            <span
+                              className={cn(
+                                "shrink-0 whitespace-nowrap text-xs font-black sm:text-sm",
+                                active ? "text-[#f7b52b]" : "text-slate-400",
+                              )}
+                            >
+                              +{formatAED(item.worth[size])}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Late phone capture if the visitor skipped the bonus lock */}
                 {!phoneCapturedAt ? (
@@ -1232,6 +1635,13 @@ const TintDubaiFunnel = () => {
                     <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#f7b52b]">
                       Lock this price for 14 days
                     </p>
+                    <Input
+                      value={leadName}
+                      onChange={(event) => setLeadName(event.target.value)}
+                      placeholder="Your name"
+                      aria-label="Your name to lock this price"
+                      className="mt-2 h-11 border-[#f7b52b]/30 bg-white/[0.04] text-white placeholder:text-slate-500 focus-visible:border-[#f7b52b]/70 focus-visible:ring-[#f7b52b]/30"
+                    />
                     <div className="mt-2">
                       <PhoneInputWithCountry
                         value={phone}
@@ -1256,29 +1666,30 @@ const TintDubaiFunnel = () => {
                 </Button>
                 <p className="mt-2 text-center text-[10px] font-semibold text-slate-500">
                   Opens WhatsApp with your build and offer price pre-written — Sean confirms your
-                  slot same day.
+                  bay day after paint inspection.
                 </p>
               </div>
             </div>
           ) : null}
         </section>
 
-        {/* ── Spec sheet ──────────────────────────────────────────────── */}
+        {/* ── Package compare table ───────────────────────────────────── */}
         <section className="mt-12 sm:mt-16">
           <h2 className="text-xl font-black tracking-tight sm:text-2xl">
-            The spec sheet — not the shade card
+            What's in each package
           </h2>
           <p className="mt-2 max-w-xl text-sm font-semibold text-slate-400">
-            Heat rejection is a measurable spec, not a colour. Here's how the three series compare.
+            Anything marked FREE is a bonus coating included at no charge on the online offer.
+            Anything not included can be added to your build as a one-tap add-on.
           </p>
           <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
             <table className="w-full min-w-[600px] text-left text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.04]">
-                  <th className="px-3 py-2.5 font-black text-white/55">Spec</th>
-                  {tintPackages.map((pkg) => (
+                  <th className="px-3 py-2.5 font-black text-white/55">Included</th>
+                  {ceramicPackages.map((pkg) => (
                     <th key={pkg.id} className="px-3 py-2.5 font-black text-white">
-                      {pkg.name}
+                      {pkg.shortName}
                       {pkg.badge ? (
                         <span className="ml-2 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#25D366]">
                           {pkg.badge}
@@ -1289,11 +1700,23 @@ const TintDubaiFunnel = () => {
                 </tr>
               </thead>
               <tbody>
-                {specRows.map((row) => (
+                {compareRows.map((row) => (
                   <tr key={row.feature} className="border-b border-white/5 last:border-b-0">
                     <td className="px-3 py-2.5 font-bold text-slate-400">{row.feature}</td>
                     {row.values.map((value, index) => (
-                      <td key={index} className="px-3 py-2.5 font-semibold text-slate-200">
+                      <td
+                        key={index}
+                        className={cn(
+                          "px-3 py-2.5 font-semibold",
+                          value === "✓"
+                            ? "text-[#25D366]"
+                            : value === "FREE"
+                              ? "font-black text-[#25D366]"
+                              : value === "Add-on"
+                                ? "text-slate-500"
+                                : "text-slate-200",
+                        )}
+                      >
                         {value}
                       </td>
                     ))}
@@ -1303,39 +1726,38 @@ const TintDubaiFunnel = () => {
             </table>
           </div>
           <p className="mt-2 text-[11px] font-semibold text-slate-500">
-            Figures vary by shade (VLT) — manufacturer spec sheets shown at the studio.
+            All prices + VAT. Final correction level confirmed after paint inspection.
           </p>
         </section>
 
-        {/* ── Darker ≠ cooler education block ─────────────────────────── */}
+        {/* ── Coating-over-swirls education block ─────────────────────── */}
         <section className="mt-12 sm:mt-16">
           <div className="rounded-[24px] border border-[#f7b52b]/25 bg-[radial-gradient(circle_at_15%_0%,rgba(247,181,43,0.12),transparent_45%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(8,8,8,0.6))] p-5 sm:p-7">
             <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#f7b52b]">
-              <Thermometer className="h-4 w-4" />
-              The thing most tint shops won't tell you
+              <WandSparkles className="h-4 w-4" />
+              The thing cheap coaters won't tell you
             </p>
             <h2 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">
-              Darker does not mean cooler.
+              Ceramic locks in whatever's under it.
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              Shade (VLT) only controls how dark the glass looks. What keeps a Dubai cabin cool in
-              August is <span className="font-bold text-white">infrared rejection</span> and{" "}
-              <span className="font-bold text-white">TSER</span> — and a light ceramic film can
-              reject more heat than a dark dyed film. Cheap dark tint looks the part in the car
-              park and cooks you on Sheikh Zayed. That's why we quote by series and spec, and show
-              you the manufacturer spec sheet before anything touches the glass.
+              A coating adds gloss and protection — it doesn't erase swirls. Coat over Dubai
+              car-wash marks and you've sealed them in for years. That's why the paint gets
+              inspected and <span className="font-bold text-white">corrected first</span>, and why
+              the middle package exists: correction plus ceramic is what makes a daily driver look
+              better than it did leaving the showroom.
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <div className="rounded-xl border border-white/10 bg-black/30 px-3.5 py-3">
-                <p className="text-xs font-black text-white">Dark dyed film</p>
+                <p className="text-xs font-black text-white">Coating over swirls</p>
                 <p className="mt-1 text-[11px] font-semibold text-slate-400">
-                  Looks dark, blocks little IR — the heat still soaks through.
+                  Glossy from far away — the scratches glow under every streetlight, sealed in.
                 </p>
               </div>
               <div className="rounded-xl border border-[#25D366]/30 bg-[#25D366]/[0.06] px-3.5 py-3">
-                <p className="text-xs font-black text-[#25D366]">Ceramic film (any shade)</p>
+                <p className="text-xs font-black text-[#25D366]">Correction first, then ceramic</p>
                 <p className="mt-1 text-[11px] font-semibold text-slate-300">
-                  Rejects up to 97% of IR heat — you feel it on the first drive.
+                  Defects removed, then locked under the coating — deep, mirror-flat gloss.
                 </p>
               </div>
             </div>
@@ -1363,7 +1785,7 @@ const TintDubaiFunnel = () => {
               onClick={() => handlePrimaryCta("trust_section")}
               className="h-12 gap-2 bg-[#f7b52b] px-5 text-sm font-black text-black hover:bg-[#ffc94f]"
             >
-              {isComplete && step === "result" ? "WhatsApp my build" : "Build my tint price"}
+              {isComplete && step === "result" ? "WhatsApp my build" : "Build my ceramic price"}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -1372,15 +1794,11 @@ const TintDubaiFunnel = () => {
         {/* ── FAQ ─────────────────────────────────────────────────────── */}
         <section className="mt-12 pb-12 sm:mt-16 sm:pb-20">
           <h2 className="text-xl font-black tracking-tight sm:text-2xl">
-            Tint in Dubai — straight answers
+            Ceramic in Dubai — straight answers
           </h2>
           <Accordion type="single" collapsible className="mt-4">
-            {tintFaqs.map((faq, index) => (
-              <AccordionItem
-                key={faq.question}
-                value={`faq-${index}`}
-                className="border-white/10"
-              >
+            {ceramicFaqs.map((faq, index) => (
+              <AccordionItem key={faq.question} value={`faq-${index}`} className="border-white/10">
                 <AccordionTrigger className="text-left text-sm font-black text-white hover:no-underline sm:text-base">
                   {faq.question}
                 </AccordionTrigger>
@@ -1411,7 +1829,7 @@ const TintDubaiFunnel = () => {
             onClick={() => scrollToCalculator("mobile_sticky")}
             className="h-12 w-full gap-2 bg-[#f7b52b] text-sm font-black text-black hover:bg-[#ffc94f]"
           >
-            Build my tint price (60s)
+            Build my ceramic price (60s)
             <ArrowRight className="h-4 w-4" />
           </Button>
         )}
@@ -1420,4 +1838,4 @@ const TintDubaiFunnel = () => {
   );
 };
 
-export default TintDubaiFunnel;
+export default CeramicDubaiFunnel;

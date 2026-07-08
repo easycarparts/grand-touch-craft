@@ -601,7 +601,7 @@ const AdminLeadTasks = () => {
                         {formatTokenLabel(lead.sourceGroup)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-slate-300">{getLeadVehicleText(lead) || "Not captured"}</TableCell>
+                    <TableCell className="text-slate-300">{getLeadVehicleText(lead, { rollup: lead.latestRollup }) || "Not captured"}</TableCell>
                     <TableCell className="text-slate-300">{formatTimestamp(lead.source_received_at || lead.submitted_at || lead.first_captured_at || lead.created_at)}</TableCell>
                     <TableCell>
                       <Select

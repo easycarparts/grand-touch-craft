@@ -2,7 +2,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 type QueueRow = {
   id: string;
-  alert_type: "new_lead" | "partial_lead" | "followup_created" | "followup_morning_digest";
+  alert_type:
+    | "new_lead"
+    | "partial_lead"
+    | "followup_created"
+    | "followup_morning_digest"
+    | "tint_booking_confirmed"
+    | "ceramic_booking_confirmed";
   lead_id: string | null;
   followup_id: string | null;
   title: string;

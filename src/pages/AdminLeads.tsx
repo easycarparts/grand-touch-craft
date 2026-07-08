@@ -48,7 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { AdminLeadExpandedPanel } from "@/components/admin/AdminLeadExpandedPanel";
-import type { LeadTaskLead } from "@/lib/admin-lead-tasks";
+import { getLeadVehicleText, type LeadTaskLead } from "@/lib/admin-lead-tasks";
 import { getIntentScore } from "@/lib/funnel-intent";
 import { supabase } from "@/lib/supabase";
 
@@ -358,14 +358,6 @@ const collapseRepeatedPhrase = (value: string | null | undefined) => {
 
   return normalized;
 };
-
-const getLeadVehicleText = (
-  lead: Pick<LeadRow, "vehicle_label" | "vehicle_year" | "vehicle_make" | "vehicle_model">,
-) =>
-  collapseRepeatedPhrase(
-    lead.vehicle_label ||
-      [lead.vehicle_year, lead.vehicle_make, lead.vehicle_model].filter(Boolean).join(" "),
-  );
 
 const compactSelectTriggerClass =
   "h-9 border-white/10 bg-black/20 px-3 text-sm text-white";
@@ -2987,7 +2979,7 @@ const AdminLeads = () => {
                 </TableRow>
               ) : filteredLeads.length ? (
                 filteredLeads.map((lead) => {
-                  const vehicle = getLeadVehicleText(lead);
+                  const vehicle = getLeadVehicleText(lead, { rollup: lead.latestRollup });
                   const requestedProtection =
                     readImportMetadataValue(lead.import_metadata, "protection_level") ||
                     null;

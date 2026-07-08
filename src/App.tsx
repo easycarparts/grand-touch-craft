@@ -22,6 +22,7 @@ import PpfFullPpfGuidedCalculator from "./pages/PpfFullPpfGuidedCalculator";
 import PpfFullPpfGuidedCalculatorV2 from "./pages/PpfFullPpfGuidedCalculatorV2";
 import PpfWhatsAppDirect from "./pages/PpfWhatsAppDirect";
 import TintDubaiQuoteFunnel from "./pages/TintDubaiQuoteFunnel";
+import CeramicDubaiFunnel from "./pages/CeramicDubaiFunnel";
 import PaintCorrectionTechniques from "./pages/articles/PaintCorrectionTechniques";
 import CustomVinylWraps from "./pages/articles/CustomVinylWraps";
 import PerformanceTuning from "./pages/articles/PerformanceTuning";
@@ -43,6 +44,8 @@ import PpfTikTokGuidedFunnel from "./pages/PpfTikTokGuidedFunnel";
 import AdminFunnelDashboard from "./pages/AdminFunnelDashboard";
 import AdminGoogleAdsDashboard from "./pages/AdminGoogleAdsDashboard";
 import AdminActionPlan from "./pages/AdminActionPlan";
+import AdminCeramicBookings from "./pages/AdminCeramicBookings";
+import AdminTintBookings from "./pages/AdminTintBookings";
 import AdminLogin from "./pages/AdminLogin";
 import AdminLeads from "./pages/AdminLeads";
 import AdminLeadTasks from "./pages/AdminLeadTasks";
@@ -50,6 +53,8 @@ import AdminCloseRates from "./pages/AdminCloseRates";
 import AdminUsers from "./pages/AdminUsers";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
+import CeramicBookingConfirmation from "./pages/CeramicBookingConfirmation";
+import TintBookingConfirmation from "./pages/TintBookingConfirmation";
 import NotFound from "./pages/NotFound";
 import OctaneB2B from "./pages/OctaneB2B";
 import Partner2B2B from "./pages/Partner2B2B";
@@ -120,6 +125,9 @@ function App() {
                 product swapped to ceramic window tint. (Old TintDubaiFunnel.tsx
                 left on disk, unrouted.) */}
             <Route path="/tint-dubai" element={<TintDubaiQuoteFunnel />} />
+            <Route path="/ceramic-dubai" element={<CeramicDubaiFunnel />} />
+            <Route path="/tint-booking/:token" element={<TintBookingConfirmation />} />
+            <Route path="/ceramic-booking/:token" element={<CeramicBookingConfirmation />} />
             <Route path="/ppf-tiktok-quote" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote-v2" element={<RedirectPreserveSearch to="/ppf-tiktok-quote_2" />} />
             <Route path="/ppf-tiktok-quote_2" element={<PpfDubaiQuote variant="tiktok" />} />
@@ -180,6 +188,22 @@ function App() {
               element={
                 <RequireAdmin>
                   <AdminActionPlan />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/tint-bookings"
+              element={
+                <RequireAdmin>
+                  <AdminTintBookings />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/ceramic-bookings"
+              element={
+                <RequireAdmin>
+                  <AdminCeramicBookings />
                 </RequireAdmin>
               }
             />
