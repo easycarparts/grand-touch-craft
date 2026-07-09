@@ -117,6 +117,11 @@ const WHATSAPP_NUMBER = "971567191045";
 const DISPLAY_PHONE = "+971 56 719 1045";
 const TEL_HREF = "tel:+971567191045";
 const TINT_TIKTOK_PIXEL_ID = "D97JTBBC77U6Q0JCHTLG";
+const TINT_TIKTOK_PIXEL_IDS = [
+  TINT_TIKTOK_PIXEL_ID,
+  "D7EDTI3C77UF89IGHIHG",
+  "D7EFCR3C77UF89IGHL5G",
+];
 const TINT_TIKTOK_CONTENT = {
   content_id: "tint-dubai",
   content_type: "product",
@@ -1550,7 +1555,7 @@ const TintDubaiQuoteFunnel = () => {
     updatePageSEO(variantConfig.seoKey, variantConfig.seo);
 
     trackEvent("lp_view", { calculator_type: variantConfig.calculatorType });
-    initTikTokPixel({ pixelIds: TINT_TIKTOK_PIXEL_ID });
+    initTikTokPixel({ pixelIds: TINT_TIKTOK_PIXEL_IDS });
     trackTikTokEvent(
       "ViewContent",
       {
@@ -1560,7 +1565,7 @@ const TintDubaiQuoteFunnel = () => {
         value: 1199,
         currency: "AED",
       },
-      { pixelIds: TINT_TIKTOK_PIXEL_ID },
+      { pixelIds: TINT_TIKTOK_PIXEL_IDS },
     );
   }, [trackEvent, variantConfig]);
 
@@ -1955,7 +1960,7 @@ const TintDubaiQuoteFunnel = () => {
         value: estimate ?? undefined,
         currency: "AED",
       },
-      { pixelIds: TINT_TIKTOK_PIXEL_ID },
+      { pixelIds: TINT_TIKTOK_PIXEL_IDS },
     );
 
     // NO Google Ads conversions on this page — paid social pixels only.
@@ -2173,7 +2178,7 @@ const TintDubaiQuoteFunnel = () => {
           phoneNumber: phone.trim(),
           externalId: funnelContext.visitorId,
         },
-        { pixelIds: TINT_TIKTOK_PIXEL_ID },
+        { pixelIds: TINT_TIKTOK_PIXEL_IDS },
       );
       trackTikTokSubmitForm(
         {
@@ -2183,7 +2188,7 @@ const TintDubaiQuoteFunnel = () => {
           value: todayPrice ?? targetPrice,
           currency: "AED",
         },
-        { pixelIds: TINT_TIKTOK_PIXEL_ID },
+        { pixelIds: TINT_TIKTOK_PIXEL_IDS },
       );
       trackTikTokEvent(
         "Lead",
@@ -2194,7 +2199,7 @@ const TintDubaiQuoteFunnel = () => {
           value: todayPrice ?? targetPrice,
           currency: "AED",
         },
-        { pixelIds: TINT_TIKTOK_PIXEL_ID },
+        { pixelIds: TINT_TIKTOK_PIXEL_IDS },
       );
 
       // New gamification dataLayer event (value = today's total incl. selected add-ons).
