@@ -69,6 +69,7 @@ import {
   type MetaStandardEvent,
 } from "@/lib/funnel-analytics";
 import { updatePageSEO } from "@/lib/seo";
+import { initTikTokPixel, trackTikTokEvent, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
 
@@ -110,10 +111,10 @@ type TintFunnelConfig = {
 const WHATSAPP_NUMBER = "971567191045";
 const DISPLAY_PHONE = "+971 56 719 1045";
 const TEL_HREF = "tel:+971567191045";
-// NOTE: this funnel runs on META traffic only. There are intentionally NO
-// Google Ads conversion sends on this page — conversions are Meta pixel
-// events: Contact on every WhatsApp tap, Lead once per session (form submit
-// success or qualified WhatsApp tap).
+const TINT_TIKTOK_PIXEL_ID = "D97JTBBC77U6Q0JCHTLG";
+// NOTE: there are intentionally NO Google Ads conversion sends on this page.
+// Paid social conversions are Meta/TikTok only: Contact on WhatsApp taps,
+// Lead/SubmitForm on successful form submit.
 
 // Meta tint funnel identity — exact clone of the /ppf-dubai-quote (dubai_quote)
 // variant behaviour: price SHOWN openly, guided stepper, soft pre-chat popup on
@@ -1538,6 +1539,16 @@ const TintDubaiQuoteFunnel = () => {
     updatePageSEO(variantConfig.seoKey, variantConfig.seo);
 
     trackEvent("lp_view", { calculator_type: variantConfig.calculatorType });
+    initTikTokPixel({ pixelIds: TINT_TIKTOK_PIXEL_ID });
+    trackTikTokEvent(
+      "ViewContent",
+      {
+        content_name: "Tint Dubai Quote Funnel",
+        content_category: "Window Tint",
+        currency: "AED",
+      },
+      { pixelIds: TINT_TIKTOK_PIXEL_ID },
+    );
   }, [trackEvent, variantConfig]);
 
   const trackMetaStandardEvent = useCallback(
@@ -1919,17 +1930,22 @@ const TintDubaiQuoteFunnel = () => {
       value: estimate ?? undefined,
       currency: "AED",
     };
-    // Contact = every tap (Events Manager visibility). Lead = QUALIFIED taps
-    // only (calculator complete) — drive-by taps would fire phantom Leads
-    // (tap ≠ message sent) and train Meta to optimise for tyre-kickers.
-    // Form submit fires Lead separately in handleUnlockDiscount.
+    // Contact = every tap (Events Manager visibility). Lead is reserved for
+    // lead_form_submitted so the tint funnel mirrors the proven PPF path.
     trackMetaStandardEvent("Contact", metaPayload);
-    if (isComplete && estimate !== null && tintLeadQualified && !metaLeadFiredRef.current) {
-      metaLeadFiredRef.current = true;
-      trackMetaStandardEvent("Lead", metaPayload);
-    }
+    trackTikTokEvent(
+      "Contact",
+      {
+        content_name: "Tint Dubai Quote Funnel",
+        content_category: "Window Tint",
+        button_location: placement,
+        value: estimate ?? undefined,
+        currency: "AED",
+      },
+      { pixelIds: TINT_TIKTOK_PIXEL_ID },
+    );
 
-    // NO Google Ads conversions on this page — Meta pixel only (see above).
+    // NO Google Ads conversions on this page — paid social pixels only.
   };
 
   const handleWhatsApp = (placement: string) => {
@@ -2118,10 +2134,36 @@ const TintDubaiQuoteFunnel = () => {
     });
 
     if (result.ok) {
-      trackEvent("lead_form_submitted", {
-        form_type: "guided_discount_unlock",
-        ...buildPayload(),
-      });
+      const shouldFireMetaLead = tintLeadQualified && !metaLeadFiredRef.current;
+      if (shouldFireMetaLead) metaLeadFiredRef.current = true;
+
+      trackEvent(
+        "lead_form_submitted",
+        {
+          form_type: "guided_discount_unlock",
+          ...buildPayload(),
+        },
+        shouldFireMetaLead
+          ? {
+              metaStandardEvent: "Lead",
+              metaPayload: {
+                content_name: "Tint Dubai Quote Funnel",
+                content_category: "Window Tint",
+                value: todayPrice ?? targetPrice,
+                currency: "AED",
+              },
+            }
+          : undefined,
+      );
+      trackTikTokSubmitForm(
+        {
+          content_name: "Tint Dubai Quote Funnel",
+          content_category: "Window Tint",
+          value: todayPrice ?? targetPrice,
+          currency: "AED",
+        },
+        { pixelIds: TINT_TIKTOK_PIXEL_ID },
+      );
 
       // New gamification dataLayer event (value = today's total incl. selected add-ons).
       trackEvent("discount_unlocked", {
@@ -2132,17 +2174,8 @@ const TintDubaiQuoteFunnel = () => {
         discount_savings: discountSavings,
       });
 
-      // Submit-lead PRIMARY conversion — Meta pixel Lead, ONCE per session
-      // (shared metaLeadFiredRef guard with the qualified WhatsApp tap path).
-      if (tintLeadQualified && !metaLeadFiredRef.current) {
-        metaLeadFiredRef.current = true;
-        trackMetaStandardEvent("Lead", {
-          content_name: "Tint Dubai Quote Funnel",
-          content_category: "Window Tint",
-          value: todayPrice ?? targetPrice,
-          currency: "AED",
-        });
-      }
+      // Submit-lead PRIMARY conversion is sent above on lead_form_submitted,
+      // matching the PPF funnel's Meta reporting path.
     }
 
     if (!result.ok) {

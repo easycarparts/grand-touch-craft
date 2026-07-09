@@ -1,5 +1,9 @@
 const DEFAULT_TIKTOK_PIXEL_IDS = ["D7EDTI3C77UF89IGHIHG", "D7EFCR3C77UF89IGHL5G"];
 
+type TikTokPixelOptions = {
+  pixelIds?: string | string[];
+};
+
 type TikTokStub = Array<unknown> & {
   methods?: string[];
   setAndDefer?: (target: TikTokStub, method: string) => void;
@@ -17,17 +21,24 @@ declare global {
     TiktokAnalyticsObject?: string;
     ttq?: TikTokStub;
     __grandTouchTikTokPageTracked?: boolean;
+    __grandTouchTikTokPageTrackedIds?: Record<string, boolean>;
   }
 }
 
-const getPixelIds = () => {
+const normalizePixelIds = (pixelIds?: string | string[]) => {
+  if (!pixelIds) return [];
+  const values = Array.isArray(pixelIds) ? pixelIds : pixelIds.split(",");
+  return values.map((value) => value.trim()).filter(Boolean);
+};
+
+const getPixelIds = (options: TikTokPixelOptions = {}) => {
+  const explicitPixelIds = normalizePixelIds(options.pixelIds);
+  if (explicitPixelIds.length) return explicitPixelIds;
+
   const configured = import.meta.env.VITE_TIKTOK_PIXEL_ID;
   if (!configured) return DEFAULT_TIKTOK_PIXEL_IDS;
 
-  return configured
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
+  return normalizePixelIds(configured);
 };
 
 const ensureTikTokStub = () => {
@@ -98,30 +109,45 @@ const ensureTikTokStub = () => {
   return ttq;
 };
 
-export const initTikTokPixel = () => {
+export const initTikTokPixel = (options: TikTokPixelOptions = {}) => {
   const ttq = ensureTikTokStub();
   if (!ttq) return;
 
-  const pixelIds = getPixelIds();
+  const pixelIds = getPixelIds(options);
   for (const pixelId of pixelIds) {
     if (!ttq._t?.[pixelId]) {
       ttq.load?.(pixelId);
     }
   }
 
-  if (!window.__grandTouchTikTokPageTracked) {
+  window.__grandTouchTikTokPageTrackedIds = window.__grandTouchTikTokPageTrackedIds || {};
+  let sentAnyPageView = false;
+  for (const pixelId of pixelIds) {
+    if (window.__grandTouchTikTokPageTrackedIds[pixelId]) continue;
+    ttq.instance?.(pixelId).page?.();
+    window.__grandTouchTikTokPageTrackedIds[pixelId] = true;
+    sentAnyPageView = true;
+  }
+
+  if (sentAnyPageView) {
+    window.__grandTouchTikTokPageTracked = true;
+  } else if (!window.__grandTouchTikTokPageTracked) {
     for (const pixelId of pixelIds) {
       ttq.instance?.(pixelId).page?.();
+      window.__grandTouchTikTokPageTrackedIds[pixelId] = true;
     }
     window.__grandTouchTikTokPageTracked = true;
   }
 };
 
-export const trackTikTokSubmitForm = (payload: Record<string, unknown>) => {
+export const trackTikTokSubmitForm = (
+  payload: Record<string, unknown>,
+  options: TikTokPixelOptions = {},
+) => {
   const ttq = ensureTikTokStub();
   if (!ttq) return;
 
-  const pixelIds = getPixelIds();
+  const pixelIds = getPixelIds(options);
   for (const pixelId of pixelIds) {
     if (!ttq._t?.[pixelId]) {
       ttq.load?.(pixelId);
@@ -135,11 +161,15 @@ export const trackTikTokSubmitForm = (payload: Record<string, unknown>) => {
   }
 };
 
-export const trackTikTokEvent = (eventName: string, payload: Record<string, unknown> = {}) => {
+export const trackTikTokEvent = (
+  eventName: string,
+  payload: Record<string, unknown> = {},
+  options: TikTokPixelOptions = {},
+) => {
   const ttq = ensureTikTokStub();
   if (!ttq) return;
 
-  const pixelIds = getPixelIds();
+  const pixelIds = getPixelIds(options);
   for (const pixelId of pixelIds) {
     if (!ttq._t?.[pixelId]) {
       ttq.load?.(pixelId);

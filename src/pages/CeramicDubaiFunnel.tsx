@@ -412,13 +412,19 @@ const CeramicDubaiFunnel = () => {
     (
       eventName: string,
       payload: Record<string, unknown> = {},
-      options: { emitToTagManagers?: boolean } = {},
+      options: {
+        emitToTagManagers?: boolean;
+        metaStandardEvent?: MetaStandardEvent;
+        metaPayload?: Record<string, unknown>;
+      } = {},
     ) => {
       trackFunnelEvent({
         eventName,
         context: funnelContext,
         payload,
         emitToTagManagers: options.emitToTagManagers,
+        metaStandardEvent: options.metaStandardEvent,
+        metaPayload: options.metaPayload,
       });
     },
     [funnelContext],
@@ -675,21 +681,28 @@ const CeramicDubaiFunnel = () => {
     });
 
     if (result.ok) {
-      trackEvent("lead_form_submitted", {
-        form_type: "ceramic_bonus_lock",
-        capture_location: "ceramic_bonus_lock",
-        ...buildPayload(),
-      });
+      const shouldFireMetaLead = !metaLeadFiredRef.current;
+      if (shouldFireMetaLead) metaLeadFiredRef.current = true;
 
-      if (!metaLeadFiredRef.current) {
-        metaLeadFiredRef.current = true;
-        trackMetaStandardEvent("Lead", {
-          content_name: "Ceramic Dubai Guided Funnel",
-          content_category: "Ceramic",
-          value: totalPrice ?? undefined,
-          currency: "AED",
-        });
-      }
+      trackEvent(
+        "lead_form_submitted",
+        {
+          form_type: "ceramic_bonus_lock",
+          capture_location: "ceramic_bonus_lock",
+          ...buildPayload(),
+        },
+        shouldFireMetaLead
+          ? {
+              metaStandardEvent: "Lead",
+              metaPayload: {
+                content_name: "Ceramic Dubai Guided Funnel",
+                content_category: "Ceramic",
+                value: totalPrice ?? undefined,
+                currency: "AED",
+              },
+            }
+          : undefined,
+      );
     } else {
       trackEvent(
         "lead_save_failed",
@@ -836,14 +849,9 @@ const CeramicDubaiFunnel = () => {
       value: totalPrice ?? undefined,
       currency: "AED",
     };
-    // Contact = every tap (Events Manager visibility). Lead = QUALIFIED taps
-    // only (builder complete) — mirrors the tint funnel so drive-by taps never
-    // fire phantom Leads. Shares the one-per-session guard with phone capture.
+    // Contact = every tap (Events Manager visibility). Lead is reserved for
+    // lead_form_submitted so ceramic reports through the same path as PPF.
     trackMetaStandardEvent("Contact", metaPayload);
-    if (ceramicLeadQualified && !metaLeadFiredRef.current) {
-      metaLeadFiredRef.current = true;
-      trackMetaStandardEvent("Lead", metaPayload);
-    }
     trackEvent(
       "whatsapp_click",
       { cta_location: placement, ...buildPayload() },
@@ -869,11 +877,28 @@ const CeramicDubaiFunnel = () => {
         },
       }).then((result) => {
         if (result.ok) {
-          trackEvent("lead_form_submitted", {
-            form_type: "ceramic_qualified_whatsapp",
-            capture_location: placement,
-            ...buildPayload(),
-          });
+          const shouldFireMetaLead = !metaLeadFiredRef.current;
+          if (shouldFireMetaLead) metaLeadFiredRef.current = true;
+
+          trackEvent(
+            "lead_form_submitted",
+            {
+              form_type: "ceramic_qualified_whatsapp",
+              capture_location: placement,
+              ...buildPayload(),
+            },
+            shouldFireMetaLead
+              ? {
+                  metaStandardEvent: "Lead",
+                  metaPayload: {
+                    content_name: "Ceramic Dubai Guided Funnel",
+                    content_category: "Ceramic",
+                    value: totalPrice ?? undefined,
+                    currency: "AED",
+                  },
+                }
+              : undefined,
+          );
           return;
         }
 
