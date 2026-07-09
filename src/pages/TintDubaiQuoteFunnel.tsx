@@ -2185,6 +2185,17 @@ const TintDubaiQuoteFunnel = () => {
         },
         { pixelIds: TINT_TIKTOK_PIXEL_ID },
       );
+      trackTikTokEvent(
+        "Lead",
+        {
+          contents: [TINT_TIKTOK_CONTENT],
+          content_name: TINT_TIKTOK_CONTENT.content_name,
+          content_category: TINT_TIKTOK_CONTENT.content_category,
+          value: todayPrice ?? targetPrice,
+          currency: "AED",
+        },
+        { pixelIds: TINT_TIKTOK_PIXEL_ID },
+      );
 
       // New gamification dataLayer event (value = today's total incl. selected add-ons).
       trackEvent("discount_unlocked", {
