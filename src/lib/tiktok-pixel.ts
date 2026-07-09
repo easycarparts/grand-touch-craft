@@ -10,10 +10,17 @@ type TikTokStub = Array<unknown> & {
   instance?: (pixelId: string) => TikTokStub;
   load?: (pixelId: string, options?: Record<string, unknown>) => void;
   page?: (payload?: Record<string, unknown>) => void;
+  identify?: (payload?: Record<string, unknown>) => void;
   track?: (eventName: string, payload?: Record<string, unknown>) => void;
   _i?: Record<string, TikTokStub>;
   _t?: Record<string, number>;
   _o?: Record<string, Record<string, unknown>>;
+};
+
+type TikTokIdentifyInput = {
+  email?: string;
+  phoneNumber?: string;
+  externalId?: string;
 };
 
 declare global {
@@ -158,6 +165,49 @@ export const trackTikTokSubmitForm = (
 
   for (const pixelId of pixelIds) {
     ttq.instance?.(pixelId).track?.("SubmitForm", leadPayload);
+  }
+};
+
+const sha256Hex = async (value: string) => {
+  if (typeof window === "undefined" || !window.crypto?.subtle) return "";
+
+  const encoded = new TextEncoder().encode(value);
+  const digest = await window.crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+const normalizeEmailForTikTok = (value: string) => value.trim().toLowerCase();
+const normalizePhoneForTikTok = (value: string) => value.replace(/\D/g, "");
+
+export const identifyTikTokUser = async (
+  input: TikTokIdentifyInput,
+  options: TikTokPixelOptions = {},
+) => {
+  const ttq = ensureTikTokStub();
+  if (!ttq) return;
+
+  const pixelIds = getPixelIds(options);
+  for (const pixelId of pixelIds) {
+    if (!ttq._t?.[pixelId]) {
+      ttq.load?.(pixelId);
+    }
+  }
+
+  const payload: Record<string, string> = {};
+  const normalizedEmail = input.email ? normalizeEmailForTikTok(input.email) : "";
+  const normalizedPhone = input.phoneNumber ? normalizePhoneForTikTok(input.phoneNumber) : "";
+  const normalizedExternalId = input.externalId?.trim() ?? "";
+
+  if (normalizedEmail) payload.email = await sha256Hex(normalizedEmail);
+  if (normalizedPhone) payload.phone_number = await sha256Hex(normalizedPhone);
+  if (normalizedExternalId) payload.external_id = await sha256Hex(normalizedExternalId);
+
+  if (!Object.keys(payload).length || Object.values(payload).some((value) => !value)) return;
+
+  for (const pixelId of pixelIds) {
+    ttq.instance?.(pixelId).identify?.(payload);
   }
 };
 

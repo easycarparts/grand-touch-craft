@@ -69,7 +69,12 @@ import {
   type MetaStandardEvent,
 } from "@/lib/funnel-analytics";
 import { updatePageSEO } from "@/lib/seo";
-import { initTikTokPixel, trackTikTokEvent, trackTikTokSubmitForm } from "@/lib/tiktok-pixel";
+import {
+  identifyTikTokUser,
+  initTikTokPixel,
+  trackTikTokEvent,
+  trackTikTokSubmitForm,
+} from "@/lib/tiktok-pixel";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
 
@@ -112,6 +117,12 @@ const WHATSAPP_NUMBER = "971567191045";
 const DISPLAY_PHONE = "+971 56 719 1045";
 const TEL_HREF = "tel:+971567191045";
 const TINT_TIKTOK_PIXEL_ID = "D97JTBBC77U6Q0JCHTLG";
+const TINT_TIKTOK_CONTENT = {
+  content_id: "tint-dubai",
+  content_type: "product",
+  content_name: "Tint Dubai Quote Funnel",
+  content_category: "Window Tint",
+};
 // NOTE: there are intentionally NO Google Ads conversion sends on this page.
 // Paid social conversions are Meta/TikTok only: Contact on WhatsApp taps,
 // Lead/SubmitForm on successful form submit.
@@ -1543,8 +1554,10 @@ const TintDubaiQuoteFunnel = () => {
     trackTikTokEvent(
       "ViewContent",
       {
-        content_name: "Tint Dubai Quote Funnel",
-        content_category: "Window Tint",
+        contents: [TINT_TIKTOK_CONTENT],
+        content_name: TINT_TIKTOK_CONTENT.content_name,
+        content_category: TINT_TIKTOK_CONTENT.content_category,
+        value: 0,
         currency: "AED",
       },
       { pixelIds: TINT_TIKTOK_PIXEL_ID },
@@ -1936,8 +1949,8 @@ const TintDubaiQuoteFunnel = () => {
     trackTikTokEvent(
       "Contact",
       {
-        content_name: "Tint Dubai Quote Funnel",
-        content_category: "Window Tint",
+        content_name: TINT_TIKTOK_CONTENT.content_name,
+        content_category: TINT_TIKTOK_CONTENT.content_category,
         button_location: placement,
         value: estimate ?? undefined,
         currency: "AED",
@@ -2155,10 +2168,18 @@ const TintDubaiQuoteFunnel = () => {
             }
           : undefined,
       );
+      await identifyTikTokUser(
+        {
+          phoneNumber: phone.trim(),
+          externalId: funnelContext.visitorId,
+        },
+        { pixelIds: TINT_TIKTOK_PIXEL_ID },
+      );
       trackTikTokSubmitForm(
         {
-          content_name: "Tint Dubai Quote Funnel",
-          content_category: "Window Tint",
+          contents: [TINT_TIKTOK_CONTENT],
+          content_name: TINT_TIKTOK_CONTENT.content_name,
+          content_category: TINT_TIKTOK_CONTENT.content_category,
           value: todayPrice ?? targetPrice,
           currency: "AED",
         },
