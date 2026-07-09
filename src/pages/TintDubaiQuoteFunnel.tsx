@@ -1557,7 +1557,7 @@ const TintDubaiQuoteFunnel = () => {
         contents: [TINT_TIKTOK_CONTENT],
         content_name: TINT_TIKTOK_CONTENT.content_name,
         content_category: TINT_TIKTOK_CONTENT.content_category,
-        value: 0,
+        value: 1199,
         currency: "AED",
       },
       { pixelIds: TINT_TIKTOK_PIXEL_ID },
