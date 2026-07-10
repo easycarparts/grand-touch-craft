@@ -528,17 +528,20 @@ export const trackFunnelEvent = ({
         ...metaPayload,
       });
 
+      // ONLY forward real Meta standard events (Lead/Contact/etc.). Previously
+      // every internal funnel event (page_checkpoint, section_view, guided_step_*)
+      // was mirrored to the pixel as a trackCustom event — at scale this floods
+      // the shared pixel (15k+ page_checkpoint) and Meta's per-domain event
+      // prioritisation demotes the low-volume Lead event below the reporting
+      // cutoff, which is what silently killed "Website Lead" reporting when the
+      // tint/ceramic funnels started driving traffic on the same pixel. The
+      // custom events are still sent to GA/dataLayer/Supabase for our own
+      // dashboards; Meta just no longer sees the noise.
       if (metaStandardEvent) {
         try {
           window.fbq("track", metaStandardEvent, cleanMetaPayload);
         } catch (error) {
           console.warn("Failed to send funnel event to Meta Pixel", error);
-        }
-      } else {
-        try {
-          window.fbq("trackCustom", eventName, cleanMetaPayload);
-        } catch (error) {
-          console.warn("Failed to send custom funnel event to Meta Pixel", error);
         }
       }
     }
