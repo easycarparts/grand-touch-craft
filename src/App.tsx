@@ -1,69 +1,77 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import Index from "./pages/Index";
-import Services from "./pages/Services";
-import Portfolio from "./pages/Portfolio";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Blog from "./pages/Blog";
-import Booking from "./pages/Booking";
-import ThankYou from "./pages/ThankYou";
-import ThankYouPayment from "./pages/ThankYouPayment";
-import CeramicCoatingGuide from "./pages/articles/CeramicCoatingGuide";
-import PPFvsCeramic from "./pages/articles/PPFvsCeramic";
-import PpfCostCalculator from "./pages/PpfCostCalculator";
-import BestPpfStudioDubai from "./pages/BestPpfStudioDubai";
-import PpfFullPpfCalculator from "./pages/PpfFullPpfCalculator";
-import PpfFullPpfGuidedCalculator from "./pages/PpfFullPpfGuidedCalculator";
-import PpfFullPpfGuidedCalculatorV2 from "./pages/PpfFullPpfGuidedCalculatorV2";
-import PpfWhatsAppDirect from "./pages/PpfWhatsAppDirect";
-import TintDubaiQuoteFunnel from "./pages/TintDubaiQuoteFunnel";
-import CeramicDubaiFunnel from "./pages/CeramicDubaiFunnel";
-import PaintCorrectionTechniques from "./pages/articles/PaintCorrectionTechniques";
-import CustomVinylWraps from "./pages/articles/CustomVinylWraps";
-import PerformanceTuning from "./pages/articles/PerformanceTuning";
-import ClassicCarRestoration from "./pages/articles/ClassicCarRestoration";
-import IsPpfWorthItDubai from "./pages/articles/IsPpfWorthItDubai";
-import PpfVsCeramicDubai from "./pages/articles/PpfVsCeramicDubai";
-import PpfDubaiFullFrontVsFullBody from "./pages/articles/PpfDubaiFullFrontVsFullBody";
-import PpfLongevityDubaiHeat from "./pages/articles/PpfLongevityDubaiHeat";
-import PpfWarrantyClaimsDubai from "./pages/articles/PpfWarrantyClaimsDubai";
-import PpfCostDubaiPricingGuide from "./pages/articles/PpfCostDubaiPricingGuide";
-import MatteVsGlossPpfDubai from "./pages/articles/MatteVsGlossPpfDubai";
-import NissanPatrolPpfDubai from "./pages/articles/NissanPatrolPpfDubai";
-import NewCarPpfDubai from "./pages/articles/NewCarPpfDubai";
-import LexusLx600PpfDubai from "./pages/articles/LexusLx600PpfDubai";
-import PpfDubaiQuote from "./pages/PpfDubaiQuote";
-import PpfDubaiQuoteV1 from "./pages/PpfDubaiQuoteV1";
-import PpfTikTokGuidedQuote from "./pages/PpfTikTokGuidedQuote";
-import PpfTikTokGuidedFunnel from "./pages/PpfTikTokGuidedFunnel";
-import AdminFunnelDashboard from "./pages/AdminFunnelDashboard";
-import AdminGoogleAdsDashboard from "./pages/AdminGoogleAdsDashboard";
-import AdminActionPlan from "./pages/AdminActionPlan";
-import AdminCeramicBookings from "./pages/AdminCeramicBookings";
-import AdminTintBookings from "./pages/AdminTintBookings";
-import AdminLogin from "./pages/AdminLogin";
-import AdminLeads from "./pages/AdminLeads";
-import AdminLeadTasks from "./pages/AdminLeadTasks";
-import AdminCloseRates from "./pages/AdminCloseRates";
-import AdminUsers from "./pages/AdminUsers";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsAndConditions from "./pages/TermsAndConditions";
-import CeramicBookingConfirmation from "./pages/CeramicBookingConfirmation";
-import TintBookingConfirmation from "./pages/TintBookingConfirmation";
-import NotFound from "./pages/NotFound";
-import OctaneB2B from "./pages/OctaneB2B";
-import Partner2B2B from "./pages/Partner2B2B";
-import TechnicalResourcesB2B from "./pages/TechnicalResourcesB2B";
 import { RequireAdmin } from "@/components/admin/RequireAdmin";
-import G700Customizer from "./pages/G700Customizer";
-import PpfInvestorProposal from "./pages/PpfInvestorProposal";
-import PpfInvestorProposalV2 from "./pages/PpfInvestorProposalV2";
-import PpfInvestorProposalV3 from "./pages/PpfInvestorProposalV3";
+
+/**
+ * Every page is lazy-loaded so each route ships only its own chunk. Before this
+ * change the whole site was ONE ~3MB bundle (~690KB gzipped) — paid-ad landing
+ * pages (tint/PPF funnels) paid the full parse cost on every click, which is
+ * lethal inside TikTok/Instagram in-app browsers.
+ */
+const Index = lazy(() => import("./pages/Index"));
+const Services = lazy(() => import("./pages/Services"));
+const Portfolio = lazy(() => import("./pages/Portfolio"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Blog = lazy(() => import("./pages/Blog"));
+const Booking = lazy(() => import("./pages/Booking"));
+const ThankYou = lazy(() => import("./pages/ThankYou"));
+const ThankYouPayment = lazy(() => import("./pages/ThankYouPayment"));
+const CeramicCoatingGuide = lazy(() => import("./pages/articles/CeramicCoatingGuide"));
+const PPFvsCeramic = lazy(() => import("./pages/articles/PPFvsCeramic"));
+const PpfCostCalculator = lazy(() => import("./pages/PpfCostCalculator"));
+const BestPpfStudioDubai = lazy(() => import("./pages/BestPpfStudioDubai"));
+const PpfFullPpfCalculator = lazy(() => import("./pages/PpfFullPpfCalculator"));
+const PpfFullPpfGuidedCalculator = lazy(() => import("./pages/PpfFullPpfGuidedCalculator"));
+const PpfFullPpfGuidedCalculatorV2 = lazy(() => import("./pages/PpfFullPpfGuidedCalculatorV2"));
+const PpfWhatsAppDirect = lazy(() => import("./pages/PpfWhatsAppDirect"));
+const TintDubaiQuoteFunnel = lazy(() => import("./pages/TintDubaiQuoteFunnel"));
+const TintDubaiFastFunnel = lazy(() => import("./pages/TintDubaiFastFunnel"));
+const CeramicDubaiFunnel = lazy(() => import("./pages/CeramicDubaiFunnel"));
+const PaintCorrectionTechniques = lazy(() => import("./pages/articles/PaintCorrectionTechniques"));
+const CustomVinylWraps = lazy(() => import("./pages/articles/CustomVinylWraps"));
+const PerformanceTuning = lazy(() => import("./pages/articles/PerformanceTuning"));
+const ClassicCarRestoration = lazy(() => import("./pages/articles/ClassicCarRestoration"));
+const IsPpfWorthItDubai = lazy(() => import("./pages/articles/IsPpfWorthItDubai"));
+const PpfVsCeramicDubai = lazy(() => import("./pages/articles/PpfVsCeramicDubai"));
+const PpfDubaiFullFrontVsFullBody = lazy(() => import("./pages/articles/PpfDubaiFullFrontVsFullBody"));
+const PpfLongevityDubaiHeat = lazy(() => import("./pages/articles/PpfLongevityDubaiHeat"));
+const PpfWarrantyClaimsDubai = lazy(() => import("./pages/articles/PpfWarrantyClaimsDubai"));
+const PpfCostDubaiPricingGuide = lazy(() => import("./pages/articles/PpfCostDubaiPricingGuide"));
+const MatteVsGlossPpfDubai = lazy(() => import("./pages/articles/MatteVsGlossPpfDubai"));
+const NissanPatrolPpfDubai = lazy(() => import("./pages/articles/NissanPatrolPpfDubai"));
+const NewCarPpfDubai = lazy(() => import("./pages/articles/NewCarPpfDubai"));
+const LexusLx600PpfDubai = lazy(() => import("./pages/articles/LexusLx600PpfDubai"));
+const PpfDubaiQuote = lazy(() => import("./pages/PpfDubaiQuote"));
+const PpfDubaiQuoteV1 = lazy(() => import("./pages/PpfDubaiQuoteV1"));
+const PpfTikTokGuidedQuote = lazy(() => import("./pages/PpfTikTokGuidedQuote"));
+const PpfTikTokGuidedFunnel = lazy(() => import("./pages/PpfTikTokGuidedFunnel"));
+const AdminFunnelDashboard = lazy(() => import("./pages/AdminFunnelDashboard"));
+const AdminGoogleAdsDashboard = lazy(() => import("./pages/AdminGoogleAdsDashboard"));
+const AdminActionPlan = lazy(() => import("./pages/AdminActionPlan"));
+const AdminCeramicBookings = lazy(() => import("./pages/AdminCeramicBookings"));
+const AdminTintBookings = lazy(() => import("./pages/AdminTintBookings"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const AdminLeads = lazy(() => import("./pages/AdminLeads"));
+const AdminLeadTasks = lazy(() => import("./pages/AdminLeadTasks"));
+const AdminCloseRates = lazy(() => import("./pages/AdminCloseRates"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
+const CeramicBookingConfirmation = lazy(() => import("./pages/CeramicBookingConfirmation"));
+const TintBookingConfirmation = lazy(() => import("./pages/TintBookingConfirmation"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const OctaneB2B = lazy(() => import("./pages/OctaneB2B"));
+const Partner2B2B = lazy(() => import("./pages/Partner2B2B"));
+const TechnicalResourcesB2B = lazy(() => import("./pages/TechnicalResourcesB2B"));
+const G700Customizer = lazy(() => import("./pages/G700Customizer"));
+const PpfInvestorProposal = lazy(() => import("./pages/PpfInvestorProposal"));
+const PpfInvestorProposalV2 = lazy(() => import("./pages/PpfInvestorProposalV2"));
+const PpfInvestorProposalV3 = lazy(() => import("./pages/PpfInvestorProposalV3"));
 
 const queryClient = new QueryClient();
 
@@ -72,6 +80,13 @@ function RedirectPreserveSearch({ to }: { to: string }) {
   const { search, hash } = useLocation();
   return <Navigate to={{ pathname: to, search, hash }} replace />;
 }
+
+/** Minimal route-transition fallback — matches the funnel pages' dark theme. */
+const RouteFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#070707]">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/15 border-t-[#f7b52b]" />
+  </div>
+);
 
 function App() {
   // Hide SEO content when React app loads
@@ -96,6 +111,7 @@ function App() {
             v7_relativeSplatPath: true
           }}
         >
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/services" element={<Services />} />
@@ -120,11 +136,12 @@ function App() {
             <Route path="/ppf-dubai-price" element={<PpfFullPpfGuidedCalculatorV2 variant="price" />} />
             {/* Free-play price builder (staging for the /ppf-dubai-price swap — not linked from ads yet). */}
             <Route path="/ppf-dubai-price-v2" element={<PpfFullPpfGuidedCalculatorV2 variant="builder" />} />
-            {/* Meta-ads ceramic tint funnel (2026 H2) — Meta pixel only, no Google
-                conversions. Clone of the /ppf-dubai-quote guided funnel with the
-                product swapped to ceramic window tint. (Old TintDubaiFunnel.tsx
-                left on disk, unrouted.) */}
-            <Route path="/tint-dubai" element={<TintDubaiQuoteFunnel />} />
+            {/* FAST tint funnel (Jul 2026): price visible with zero clicks, one-action
+                capture (WhatsApp tap or phone submit). Replaced the guided 3-step
+                funnel after 0 leads from ~360 paid clicks — old version kept on
+                /tint-dubai-full for comparison/rollback. */}
+            <Route path="/tint-dubai" element={<TintDubaiFastFunnel />} />
+            <Route path="/tint-dubai-full" element={<TintDubaiQuoteFunnel />} />
             <Route path="/ceramic-dubai" element={<CeramicDubaiFunnel />} />
             <Route path="/tint-booking/:token" element={<TintBookingConfirmation />} />
             <Route path="/ceramic-booking/:token" element={<CeramicBookingConfirmation />} />
@@ -246,6 +263,7 @@ function App() {
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Ad creative assets (large marketing PNGs, not used by the app — keep out of the repo)
+ad-creatives/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
