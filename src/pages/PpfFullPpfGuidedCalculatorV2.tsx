@@ -2063,10 +2063,11 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     // car step until model+year are answered; (b) any attempt to reach the
     // result passes the price qualifier until it has resolved.
     let nextStep = rawNextStep;
-    if (rawNextStep === "finish" && isMetaVariant && (!vehicle.trim() || !carYear)) {
-      // Size → finish must pass the car step (model + year) first.
-      nextStep = "car";
-    } else if (
+    // 2026-07-11: the forced car step (model+year before finish) is GONE — data
+    // showed it plus the qualifier ladders collapsed submissions to zero after
+    // the 519b347 deploy (54 unlocks/862 landings before → 0/232 after). The
+    // vehicle field stays available on the result step; typing is optional.
+    if (
       rawNextStep === "result" &&
       isMetaVariant &&
       qualifierPassedRef.current === null
@@ -3445,7 +3446,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                 className={chip(false)}
                                 onClick={() => {
                                   setPricePosition("quality_stretch");
-                                  setQualifySub("quality_confirm");
+                                  // 2026-07-11: straight to the result — the
+                                  // quality_confirm sub-step was part of the
+                                  // ladder that zeroed submissions.
+                                  resolveQualifier(true, "quality_stretch");
                                 }}
                               >
                                 More than I thought — but quality matters to me
@@ -3455,7 +3459,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                 className={chip(false)}
                                 onClick={() => {
                                   setPricePosition("spend_less");
-                                  setQualifySub("ladder_count");
+                                  // 2026-07-11: no budget interrogation ladder —
+                                  // mark unqualified for the Meta Lead diet and
+                                  // show the price anyway; the CRM still captures.
+                                  resolveQualifier(false, "spend_less");
                                 }}
                               >
                                 I'm looking to spend less than that
