@@ -488,6 +488,118 @@ const packageOptions: Array<{
 const stepOrder: FlowStep[] = ["size", "finish", "package", "result"];
 
 /**
+ * META VARIANT ONLY — film-line pricing (Signature vs Core).
+ *
+ * Signature = genuine STEK / GYEON (the premium aesthetic film, hero default).
+ * Core = certified value films (PROTECT+ / SUPREME / SUNSTOP / KDX) — serious
+ * protection at a smarter price. Core has NO 12-year tier (Signature only).
+ *
+ * Sizes map: Small / Medium / Sports = base price, SUV = suv price (Core 5-year
+ * is the one exception: only Small gets the lower figure). Every other variant
+ * (google / dubai_quote / v3 / price / builder / tiktok) keeps the shared
+ * STEK-only sheet via getPpfPriceRange — this table must never leak to them.
+ */
+type PpfLine = "signature" | "core";
+
+/** Gloss table (AED). `null` = tier not offered on that line. */
+const META_LINE_GLOSS_AED: Record<
+  PpfLine,
+  Record<PackageYears, { base: number; suv: number } | null>
+> = {
+  signature: {
+    5: { base: 8490, suv: 8990 },
+    10: { base: 9990, suv: 10490 },
+    12: { base: 11990, suv: 12490 },
+  },
+  core: {
+    // 5-year: Small 6990, Medium/Sports/SUV 7490 (suv covers Medium/Sports too
+    // via the size check in metaLinePrice).
+    5: { base: 6990, suv: 7490 },
+    10: { base: 8990, suv: 8990 },
+    12: null, // Core has no 12-year — Signature only.
+  },
+};
+
+/** True when matte costs nothing extra (Signature 5-year includes matte). */
+const isMetaMatteIncluded = (line: PpfLine, years: PackageYears) =>
+  line === "signature" && years === 5;
+
+/**
+ * Meta-variant price for a line/years/size/finish combo. Matte = +500 on
+ * everything EXCEPT Signature 5-year (matte included). Returns null for
+ * combos that don't exist (Core 12-year).
+ */
+const metaLinePrice = (
+  line: PpfLine,
+  years: PackageYears,
+  size: PpfPricingSize,
+  finish: PpfPricingFinish,
+): number | null => {
+  const cell = META_LINE_GLOSS_AED[line][years];
+  if (!cell) return null;
+  // Core 5-year: only Small is the base price; Medium/Sports price like SUV.
+  const usesSuvPrice =
+    size === "SUV" || (line === "core" && years === 5 && size !== "Small");
+  const gloss = usesSuvPrice ? cell.suv : cell.base;
+  const matteSurcharge =
+    finish === "Matte" && !isMetaMatteIncluded(line, years) ? 500 : 0;
+  return gloss + matteSurcharge;
+};
+
+/**
+ * Line selector copy (meta warranty step). Signature first — hero default.
+ * Owner copy 2026-07-11: NO film brand names anywhere in the chooser UI (no
+ * STEK/GYEON/Protect+/Supreme/Sunstop/KDX, no F3/ForceShield/DynoShield) —
+ * lines are sold on outcome, not brand. Brand proof lives in the trust
+ * sections below the calculator, which keep their STEK references.
+ */
+const metaLineOptions: Array<{
+  value: PpfLine;
+  label: string;
+  tag: string;
+  priceTier: number;
+  helper: string;
+}> = [
+  {
+    value: "signature",
+    label: "Signature",
+    tag: "THE PREMIUM CHOICE",
+    priceTier: 3,
+    helper:
+      "Our finest film — deeper gloss, self-healing finish, up to 12-year registered warranty.",
+  },
+  {
+    value: "core",
+    label: "Core",
+    tag: "SMART VALUE",
+    priceTier: 2,
+    helper:
+      "Serious protection at a smarter price — same prep, same installers, registered warranty.",
+  },
+];
+
+/**
+ * Line-aware warranty-card copy for the meta variant (benefit-led, brand-free).
+ * Core 12-year has no price — the card renders disabled with a "Signature
+ * only" tag, so its copy here is the same maximum-cover line as Signature.
+ */
+const metaWarrantyCardCopy: Record<
+  PpfLine,
+  Record<PackageYears, { label: string; value: string }>
+> = {
+  signature: {
+    5: { label: "Essential cover", value: "Matte included" },
+    10: { label: "Most chosen", value: "Best cover-to-price balance" },
+    12: { label: "Maximum cover", value: "Our longest warranty" },
+  },
+  core: {
+    5: { label: "Essential cover", value: "Registered warranty" },
+    10: { label: "Most chosen", value: "Long cover, smart price" },
+    12: { label: "Maximum cover", value: "Our longest warranty" },
+  },
+};
+
+/**
  * Top-bar bonuses — claimable extras only, kept distinct from the standard
  * "free add-ons" stack shown in the Dialog. These are the things a user
  * unlocks by completing the funnel: discount, free tint, free pickup,
@@ -1500,6 +1612,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const [size, setSize] = useState<PpfPricingSize | null>(null);
   const [finish, setFinish] = useState<PpfPricingFinish | null>(null);
   const [warrantyYears, setWarrantyYears] = useState<PackageYears | null>(null);
+  // META only: Signature (STEK/GYEON, hero default) vs Core (certified films).
+  const [line, setLine] = useState<PpfLine>("signature");
   const [vehicle, setVehicle] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -1687,10 +1801,23 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const selectedSize = sizeOptions.find((option) => option.value === size) ?? null;
   const selectedPackage = packageOptions.find((option) => option.years === warrantyYears) ?? null;
   const selectedSeries = warrantyYears ? stekSeriesName(warrantyYears) : null;
-  const estimate =
-    size && finish && warrantyYears
-      ? getPpfPriceRange("STEK", warrantyYears, size, "Full Body", finish).min
-      : null;
+  // Single price source for THIS component: meta prices from the local
+  // Signature/Core table; every other variant stays on the shared STEK-only
+  // sheet (getPpfPriceRange) — behaviour unchanged.
+  const priceFor = useCallback(
+    (
+      forSize: PpfPricingSize | null,
+      forFinish: PpfPricingFinish | null,
+      forYears: PackageYears | null,
+      forLine: PpfLine = line,
+    ): number | null => {
+      if (!forSize || !forFinish || !forYears) return null;
+      if (isMetaVariant) return metaLinePrice(forLine, forYears, forSize, forFinish);
+      return getPpfPriceRange("STEK", forYears, forSize, "Full Body", forFinish).min;
+    },
+    [isMetaVariant, line],
+  );
+  const estimate = priceFor(size, finish, warrantyYears);
   const isComplete = Boolean(size && finish && warrantyYears && estimate !== null);
   const policyBonusEligible = Boolean(size && warrantyYears);
   const phoneCaptured = isLikelyRealPhone(phone);
@@ -1792,6 +1919,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       vehicle_size: size,
       finish,
       warranty_years: warrantyYears,
+      line: isMetaVariant ? line : undefined,
       package_name: selectedPackage?.title,
       estimate_value: estimate,
       final_price: estimate,
@@ -1810,6 +1938,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       carTierOk,
       carYear,
       estimate,
+      isMetaVariant,
+      line,
       pricePosition,
       qualifierPassed,
       quotesBand,
@@ -1832,17 +1962,16 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       nextSize = size,
       nextFinish = finish,
       nextWarrantyYears = warrantyYears,
+      nextLine = line,
     }: {
       nextSize?: PpfPricingSize | null;
       nextFinish?: PpfPricingFinish | null;
       nextWarrantyYears?: PackageYears | null;
+      nextLine?: PpfLine;
     } = {}) => {
       const projectedPackage =
         packageOptions.find((option) => option.years === nextWarrantyYears) ?? null;
-      const projectedEstimate =
-        nextSize && nextFinish && nextWarrantyYears
-          ? getPpfPriceRange("STEK", nextWarrantyYears, nextSize, "Full Body", nextFinish).min
-          : null;
+      const projectedEstimate = priceFor(nextSize, nextFinish, nextWarrantyYears, nextLine);
 
       return {
         ...buildPayload(),
@@ -1850,13 +1979,14 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
         vehicle_size: nextSize,
         finish: nextFinish,
         warranty_years: nextWarrantyYears,
+        line: isMetaVariant ? nextLine : undefined,
         package_name: projectedPackage?.title,
         estimate_value: projectedEstimate,
         final_price: projectedEstimate,
         service_price: projectedEstimate,
       };
     },
-    [buildPayload, finish, size, warrantyYears],
+    [buildPayload, finish, isMetaVariant, line, priceFor, size, warrantyYears],
   );
 
   useEffect(() => {
@@ -2161,10 +2291,33 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   };
 
   const selectPackage = (nextYears: PackageYears) => {
+    // META: Core has no 12-year tier (Signature only) — the card is disabled,
+    // this guard just makes the invariant unconditional.
+    if (isMetaVariant && line === "core" && nextYears === 12) return;
     setWarrantyYears(nextYears);
     const payload = {
       step_name: "package",
       ...buildProjectedPayload({ nextWarrantyYears: nextYears }),
+    };
+    trackEvent("guided_step_completed", payload);
+    trackEvent("calculator_selection_changed", payload);
+  };
+
+  /**
+   * META only: Signature/Core film-line switch on the warranty step. Core has
+   * no 12-year tier, so switching to Core downshifts a 12-year pick to 10.
+   */
+  const selectLine = (nextLine: PpfLine) => {
+    if (!isMetaVariant || nextLine === line) return;
+    let nextYears = warrantyYears;
+    if (nextLine === "core" && warrantyYears === 12) {
+      nextYears = 10;
+      setWarrantyYears(10);
+    }
+    setLine(nextLine);
+    const payload = {
+      step_name: "line",
+      ...buildProjectedPayload({ nextWarrantyYears: nextYears, nextLine }),
     };
     trackEvent("guided_step_completed", payload);
     trackEvent("calculator_selection_changed", payload);
@@ -2199,6 +2352,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
         service_name: variantConfig.phoneCaptureServiceName,
         package_name: selectedPackage?.title,
         warranty_years: warrantyYears,
+        line: isMetaVariant ? line : undefined,
         finish,
         vehicle_size: size,
         bonus_eligible: bonusEligible,
@@ -2228,6 +2382,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     estimate,
     finish,
     funnelContext,
+    isMetaVariant,
+    line,
     name,
     phone,
     phoneCapturedAt,
@@ -2292,7 +2448,16 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       return lines.join(" ");
     }
 
-    const setupParts = [selectedSize.label, finish.toLowerCase(), selectedPackage.title].filter(Boolean);
+    const setupParts = [
+      selectedSize.label,
+      finish.toLowerCase(),
+      selectedPackage.title,
+      isMetaVariant
+        ? line === "signature"
+          ? "Signature line"
+          : "Core line"
+        : null,
+    ].filter(Boolean);
     const lines = [
       isTikTokVariant
         ? "Hi Sean, I checked full PPF on TikTok."
@@ -2315,6 +2480,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     isMetaVariant,
     isTikTokVariant,
     bonusEligible,
+    line,
     premiumBonusLabel,
     selectedExtras,
     selectedPackage,
@@ -2434,9 +2600,16 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   // targetPrice, and flags the 20% online discount. Kept separate from the
   // generic `whatsAppMessage` so the higher-funnel pre-chat path is untouched.
   const buildLockedInWhatsAppMessage = () => {
-    const setupParts = [selectedSize?.label, finish?.toLowerCase(), selectedPackage?.title].filter(
-      Boolean,
-    );
+    const setupParts = [
+      selectedSize?.label,
+      finish?.toLowerCase(),
+      selectedPackage?.title,
+      isMetaVariant
+        ? line === "signature"
+          ? "Signature line"
+          : "Core line"
+        : null,
+    ].filter(Boolean);
     const lines = [
       `Hi Sean, it's ${name.trim() || "a customer"} — I unlocked the 20% online discount on the full PPF calculator.`,
       vehicle.trim() ? `Car: ${vehicle.trim()}.` : "",
@@ -2565,6 +2738,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
         list_price: listPrice,
         discount_savings: discountSavings,
         package_name: selectedPackage.title,
+        line: isMetaVariant ? line : undefined,
         finish,
         vehicle_size: size,
         coverage: "Full Body",
@@ -3381,17 +3555,21 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
                 {step === "qualify" && listPrice !== null && estimate !== null ? (
                   (() => {
-                    const fiveYearReal =
-                      size && finish
-                        ? getPpfPriceRange("STEK", 5, size, "Full Body", finish).min
-                        : null;
+                    // Qualify step only renders on the meta variant, so this
+                    // resolves through the Signature/Core line table.
+                    const fiveYearReal = priceFor(size, finish, 5);
                     const BAND_MAX: Record<BudgetBand, number> = {
                       under_7k: 7000,
                       "7_9k": 9000,
                       "9_12k": 12000,
                       whatever: Number.POSITIVE_INFINITY,
                     };
-                    const setupLabel = [selectedSize?.label, finish, `${warrantyYears}-year`]
+                    const setupLabel = [
+                      selectedSize?.label,
+                      finish,
+                      `${warrantyYears}-year`,
+                      line === "signature" ? "Signature" : "Core",
+                    ]
                       .filter(Boolean)
                       .join(" · ");
                     const resolveQualifier = (passed: boolean, reason: string) => {
@@ -3870,25 +4048,112 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                       How long do you want it to last?
                     </h2>
 
+                    {isMetaVariant ? (
+                      /* META only: Signature/Core line selector — benefit-led,
+                         brand-free copy. Signature is the gold hero default;
+                         Core trades premium finish for a sharper price (no
+                         12-year tier). */
+                      <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3">
+                        {metaLineOptions.map((option) => {
+                          const isSelected = line === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => selectLine(option.value)}
+                              className={cn(
+                                "rounded-2xl border p-3 text-left transition sm:p-4",
+                                isSelected
+                                  ? "border-[#f7b52b] bg-[#f7b52b]/10 ring-1 ring-[#f7b52b]/40 shadow-[0_0_28px_rgba(247,181,43,0.2)]"
+                                  : "border-white/10 bg-white/[0.03] hover:border-[#f7b52b]/45",
+                              )}
+                            >
+                              <p
+                                className={cn(
+                                  "text-base font-black leading-none sm:text-lg",
+                                  isSelected ? "text-[#f7b52b]" : "text-white",
+                                )}
+                              >
+                                {option.label}
+                              </p>
+                              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                                <p
+                                  className={cn(
+                                    "text-[9px] font-black uppercase tracking-[0.1em] sm:text-[10px] sm:tracking-[0.12em]",
+                                    isSelected ? "text-[#f7b52b]/85" : "text-slate-400",
+                                  )}
+                                >
+                                  {option.tag}
+                                </p>
+                                <p
+                                  className="flex items-center gap-px leading-none"
+                                  aria-label={
+                                    option.priceTier === 3 ? "Premium price tier" : "Value price tier"
+                                  }
+                                >
+                                  {Array.from({ length: option.priceTier }, (_, index) => (
+                                    <span
+                                      key={index}
+                                      className={cn(
+                                        "text-base font-black sm:text-lg",
+                                        isSelected ? "text-[#f7b52b]" : "text-white/85",
+                                      )}
+                                    >
+                                      $
+                                    </span>
+                                  ))}
+                                </p>
+                              </div>
+                              <p className="mt-1 text-[11px] leading-snug text-slate-300 sm:text-xs">
+                                {option.helper}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+
                     <div className="mt-3 grid gap-2 sm:mt-5 sm:grid-cols-3 sm:gap-3">
                       {packageOptions.map((option, index) => {
                         const isSelected = warrantyYears === option.years;
-                        const showGlow = !warrantyYears;
+                        // META: Core has no 12-year tier — card stays visible
+                        // but disabled with a "Signature only" tag.
+                        const isLineLocked =
+                          isMetaVariant && line === "core" && option.years === 12;
+                        const showGlow = !warrantyYears && !isLineLocked;
+                        const previewPrice =
+                          isMetaVariant && !isLineLocked && size && finish
+                            ? metaLinePrice(line, option.years, size, finish)
+                            : null;
+                        // META copy: benefit-led, line-aware, brand-name-free
+                        // (owner copy 2026-07-11). Other variants keep their
+                        // original card copy untouched.
+                        const metaCopy = isMetaVariant
+                          ? metaWarrantyCardCopy[line][option.years]
+                          : null;
+                        const cardLabel = metaCopy ? metaCopy.label : option.label;
+                        const cardValue = metaCopy ? metaCopy.value : option.value;
 
                         return (
                           <button
                             key={option.years}
                             type="button"
+                            disabled={isLineLocked}
                             onClick={() => selectPackage(option.years)}
                             className={cn(
                               optionButton,
                               "flex h-full items-center gap-3 px-3 py-2.5 text-left sm:flex-col sm:items-center sm:justify-between sm:gap-0 sm:px-4 sm:py-6 sm:text-center",
-                              isSelected
+                              isSelected && !isLineLocked
                                 ? "border-[#f7b52b] bg-[#f7b52b]/10 ring-1 ring-[#f7b52b]/40"
                                 : "border-white/10",
+                              isLineLocked && "cursor-not-allowed opacity-45 hover:border-white/10",
                             )}
                           >
-                            {option.badge ? (
+                            {isLineLocked ? (
+                              <span className="absolute right-2 top-2 rounded-full border border-white/20 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-slate-300 sm:right-3 sm:top-3 sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
+                                Signature only
+                              </span>
+                            ) : option.badge ? (
                               <span className="absolute right-2 top-2 rounded-full bg-[#f7b52b] px-1.5 py-0.5 text-[8px] font-black tracking-[0.12em] text-black shadow-[0_0_22px_rgba(247,181,43,0.45)] sm:right-3 sm:top-3 sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
                                 {option.badge}
                               </span>
@@ -3897,7 +4162,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                               <span
                                 className={cn(
                                   "text-[2.1rem] font-black leading-none tracking-tight sm:text-[5rem]",
-                                  isSelected ? "text-[#f7b52b]" : "text-white",
+                                  isSelected && !isLineLocked ? "text-[#f7b52b]" : "text-white",
                                 )}
                               >
                                 {option.years}
@@ -3907,10 +4172,15 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                               </span>
                             </div>
                             <div className="min-w-0 flex-1 pr-12 sm:mt-4 sm:flex-none sm:pr-0">
-                              <p className="text-sm font-black leading-tight sm:text-base">{option.label}</p>
+                              <p className="text-sm font-black leading-tight sm:text-base">{cardLabel}</p>
                               <p className="mt-0.5 text-[11px] leading-snug text-slate-400 sm:mt-1 sm:text-xs sm:leading-5">
-                                {option.value}
+                                {cardValue}
                               </p>
+                              {previewPrice !== null ? (
+                                <p className="mt-1 text-sm font-black text-[#f7b52b] sm:mt-1.5 sm:text-base">
+                                  from {formatAED(previewPrice)}
+                                </p>
+                              ) : null}
                             </div>
                             {showGlow ? <GuidedCardGlow delay={index * 1.6} /> : null}
                           </button>
@@ -4000,7 +4270,16 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                       )}
                     >
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                        {[selectedSize?.label, finish, selectedPackage?.title]
+                        {[
+                          selectedSize?.label,
+                          finish,
+                          selectedPackage?.title,
+                          isMetaVariant
+                            ? line === "signature"
+                              ? "Signature line"
+                              : "Core line"
+                            : null,
+                        ]
                           .filter(Boolean)
                           .map((chip) => (
                             <span
@@ -4106,7 +4385,11 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                 {formatAED(targetPrice)}
                               </p>
                               <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45 sm:text-[11px]">
-                                For your {selectedSize?.label} · {finish} · {selectedPackage?.title} setup
+                                For your {selectedSize?.label} · {finish} · {selectedPackage?.title}
+                                {isMetaVariant
+                                  ? ` · ${line === "signature" ? "Signature" : "Core"}`
+                                  : ""}{" "}
+                                setup
                               </p>
                             </div>
 
