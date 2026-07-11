@@ -75,6 +75,17 @@ const FUNNEL_EVENT_STORAGE_KEY = "grand-touch-funnel-events-v1";
 const FUNNEL_VISITOR_ID_STORAGE_KEY = "grand-touch-funnel-visitor-id";
 const FUNNEL_SESSION_ID_STORAGE_KEY = "grand-touch-funnel-session-id";
 const MAX_STORED_EVENTS = 1000;
+const SUPABASE_WRITE_TIMEOUT_MS = 8000;
+const SUPABASE_EVENT_BACKOFF_MS = 60_000;
+
+const PASSIVE_SUPABASE_EVENT_NAMES = new Set([
+  "page_checkpoint",
+  "section_engagement",
+  "result_screen_engagement",
+  "section_view",
+]);
+
+let supabaseEventWritesPausedUntil = 0;
 
 declare global {
   interface Window {
@@ -103,6 +114,32 @@ const normalizeHash = (value: string) => value.replace(/^#/, "").trim();
 
 const sanitizePayload = (payload: Record<string, unknown> = {}) =>
   Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+
+const shouldPersistEventToSupabase = (record: FunnelEventRecord) => {
+  if (PASSIVE_SUPABASE_EVENT_NAMES.has(record.event_name)) {
+    return false;
+  }
+
+  return Date.now() >= supabaseEventWritesPausedUntil;
+};
+
+const withSupabaseWriteTimeout = async <T,>(
+  operation: PromiseLike<T>,
+  label: string,
+): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${SUPABASE_WRITE_TIMEOUT_MS}ms`));
+    }, SUPABASE_WRITE_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([Promise.resolve(operation), timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
 
 const normalizeFunnelName = ({
   funnelName,
@@ -310,25 +347,34 @@ const persistStoredFunnelEvents = (records: FunnelEventRecord[]) => {
 const persistFunnelEventToSupabase = async (record: FunnelEventRecord) => {
   if (!supabase) return;
 
-  const { error } = await supabase.from("lead_events").insert({
-    external_event_id: record.id,
-    session_id: record.session_id,
-    visitor_id: record.visitor_id,
-    event_name: record.event_name,
-    funnel_name: record.funnel_name,
-    landing_page_variant: record.landing_page_variant,
-    source_platform: record.source_platform,
-    pathname: record.pathname,
-    attribution: record.attribution,
-    payload: record.payload,
-    occurred_at: record.timestamp,
-  });
+  try {
+    const { error } = await withSupabaseWriteTimeout(
+      supabase.from("lead_events").insert({
+        external_event_id: record.id,
+        session_id: record.session_id,
+        visitor_id: record.visitor_id,
+        event_name: record.event_name,
+        funnel_name: record.funnel_name,
+        landing_page_variant: record.landing_page_variant,
+        source_platform: record.source_platform,
+        pathname: record.pathname,
+        attribution: record.attribution,
+        payload: record.payload,
+        occurred_at: record.timestamp,
+      }),
+      "lead_events insert",
+    );
 
-  if (error) {
-    if (error.code === "23505") {
-      return;
+    if (error) {
+      if (error.code === "23505") {
+        return;
+      }
+      console.warn("Failed to persist funnel event to Supabase", error);
     }
-    console.warn("Failed to persist funnel event to Supabase", error);
+  } catch (caught) {
+    supabaseEventWritesPausedUntil = Date.now() + SUPABASE_EVENT_BACKOFF_MS;
+    const message = caught instanceof Error ? caught.message : String(caught);
+    console.warn("Failed to persist funnel event to Supabase", message);
   }
 };
 
@@ -395,26 +441,29 @@ export const captureLeadSnapshot = async ({
   try {
     const scopedIdentity = getLeadScopedIdentity(context, phone);
 
-    const { error } = await supabase.from("lead_contact_snapshots").insert({
-      session_id: scopedIdentity.sessionId,
-      visitor_id: scopedIdentity.visitorId,
-      snapshot_type: snapshotType,
-      full_name: fullName || null,
-      phone: phone || null,
-      vehicle_make: vehicleMake || null,
-      vehicle_model: vehicleModel || null,
-      vehicle_year: vehicleYear || null,
-      source_platform: context.sourcePlatform,
-      landing_page_variant: context.landingPageVariant,
-      funnel_name: context.funnelName,
-      attribution: context.attribution,
-      payload: sanitizePayload({
-        entry_section: context.entrySection,
-        hash: context.hash,
-        ...payload,
+    const { error } = await withSupabaseWriteTimeout(
+      supabase.from("lead_contact_snapshots").insert({
+        session_id: scopedIdentity.sessionId,
+        visitor_id: scopedIdentity.visitorId,
+        snapshot_type: snapshotType,
+        full_name: fullName || null,
+        phone: phone || null,
+        vehicle_make: vehicleMake || null,
+        vehicle_model: vehicleModel || null,
+        vehicle_year: vehicleYear || null,
+        source_platform: context.sourcePlatform,
+        landing_page_variant: context.landingPageVariant,
+        funnel_name: context.funnelName,
+        attribution: context.attribution,
+        payload: sanitizePayload({
+          entry_section: context.entrySection,
+          hash: context.hash,
+          ...payload,
+        }),
+        captured_at: capturedAt,
       }),
-      captured_at: capturedAt,
-    });
+      "lead_contact_snapshots insert",
+    );
 
     if (error) {
       console.warn(
@@ -547,7 +596,9 @@ export const trackFunnelEvent = ({
     }
   }
 
-  void persistFunnelEventToSupabase(record);
+  if (shouldPersistEventToSupabase(record)) {
+    void persistFunnelEventToSupabase(record);
+  }
 
   return record;
 };
