@@ -493,41 +493,52 @@ const stepOrder: FlowStep[] = ["size", "finish", "package", "result"];
  * Signature = genuine STEK / GYEON (the premium aesthetic film, hero default).
  * Core = certified value films (PROTECT+ / SUPREME / SUNSTOP / KDX) — serious
  * protection at a smarter price. Core has NO 12-year tier (Signature only).
+ * Signature has NO 5-year tier (Core only).
  *
- * Sizes map: Small / Medium / Sports = base price, SUV = suv price (Core 5-year
- * is the one exception: only Small gets the lower figure). Every other variant
- * (google / dubai_quote / v3 / price / builder / tiktok) keeps the shared
- * STEK-only sheet via getPpfPriceRange — this table must never leak to them.
+ * Sizes map: Small / Medium / Sports = base price, SUV = suv price. Every
+ * other variant (google / dubai_quote / v3 / price / builder / tiktok) keeps
+ * the shared STEK-only sheet via getPpfPriceRange — this table must never
+ * leak to them.
  */
 type PpfLine = "signature" | "core";
 
-/** Gloss table (AED). `null` = tier not offered on that line. */
-const META_LINE_GLOSS_AED: Record<
+/**
+ * Full price table (AED), owner update 2026-07-11 (v2 + matte correction).
+ * `base` covers Small/Medium/Sports; `suv` covers SUV. `null` = tier not
+ * offered. Matte-included combos are encoded directly (matte === gloss):
+ *   - Core 5-year: matte included, all sizes.
+ *   - Signature 10-year: matte included EXCEPT SUV (+500).
+ *   - Matte surcharge exists ONLY on: Core 10yr (+500), Signature 10yr SUV
+ *     (+500), Signature 12yr (+500).
+ * Signature 5-year and Core 12-year are intentionally absent (null).
+ */
+type MetaPriceCell = {
+  gloss: { base: number; suv: number };
+  matte: { base: number; suv: number };
+};
+const META_LINE_PRICES_AED: Record<
   PpfLine,
-  Record<PackageYears, { base: number; suv: number } | null>
+  Record<PackageYears, MetaPriceCell | null>
 > = {
   signature: {
-    5: { base: 8490, suv: 8990 },
-    10: { base: 9990, suv: 10490 },
-    12: { base: 11990, suv: 12490 },
+    5: null, // Signature has no 5-year — Core only.
+    10: { gloss: { base: 9990, suv: 9990 }, matte: { base: 9990, suv: 10490 } },
+    12: { gloss: { base: 11990, suv: 12490 }, matte: { base: 12490, suv: 12990 } },
   },
   core: {
-    // 5-year: Small 6990, Medium/Sports/SUV 7490 (suv covers Medium/Sports too
-    // via the size check in metaLinePrice).
-    5: { base: 6990, suv: 7490 },
-    10: { base: 8990, suv: 8990 },
+    5: { gloss: { base: 6990, suv: 6990 }, matte: { base: 6990, suv: 6990 } },
+    10: { gloss: { base: 8490, suv: 8490 }, matte: { base: 8990, suv: 8990 } },
     12: null, // Core has no 12-year — Signature only.
   },
 };
 
-/** True when matte costs nothing extra (Signature 5-year includes matte). */
-const isMetaMatteIncluded = (line: PpfLine, years: PackageYears) =>
-  line === "signature" && years === 5;
+/** True when a line/warranty combo exists in the meta price table. */
+const metaWarrantyAvailable = (line: PpfLine, years: PackageYears) =>
+  META_LINE_PRICES_AED[line][years] !== null;
 
 /**
- * Meta-variant price for a line/years/size/finish combo. Matte = +500 on
- * everything EXCEPT Signature 5-year (matte included). Returns null for
- * combos that don't exist (Core 12-year).
+ * Meta-variant price for a line/years/size/finish combo. Returns null for
+ * combos that don't exist (Core 12-year, Signature 5-year).
  */
 const metaLinePrice = (
   line: PpfLine,
@@ -535,15 +546,10 @@ const metaLinePrice = (
   size: PpfPricingSize,
   finish: PpfPricingFinish,
 ): number | null => {
-  const cell = META_LINE_GLOSS_AED[line][years];
+  const cell = META_LINE_PRICES_AED[line][years];
   if (!cell) return null;
-  // Core 5-year: only Small is the base price; Medium/Sports price like SUV.
-  const usesSuvPrice =
-    size === "SUV" || (line === "core" && years === 5 && size !== "Small");
-  const gloss = usesSuvPrice ? cell.suv : cell.base;
-  const matteSurcharge =
-    finish === "Matte" && !isMetaMatteIncluded(line, years) ? 500 : 0;
-  return gloss + matteSurcharge;
+  const byFinish = finish === "Matte" ? cell.matte : cell.gloss;
+  return size === "SUV" ? byFinish.suv : byFinish.base;
 };
 
 /**
@@ -565,23 +571,21 @@ const metaLineOptions: Array<{
     label: "Signature",
     tag: "THE PREMIUM CHOICE",
     priceTier: 3,
-    helper:
-      "Our finest film — deeper gloss, self-healing finish, up to 12-year registered warranty.",
+    helper: "Deeper gloss, self-healing, up to 12-year warranty.",
   },
   {
     value: "core",
     label: "Core",
     tag: "SMART VALUE",
     priceTier: 2,
-    helper:
-      "Serious protection at a smarter price — same prep, same installers, registered warranty.",
+    helper: "Same prep & installers — registered warranty, lower price.",
   },
 ];
 
 /**
  * Line-aware warranty-card copy for the meta variant (benefit-led, brand-free).
- * Core 12-year has no price — the card renders disabled with a "Signature
- * only" tag, so its copy here is the same maximum-cover line as Signature.
+ * Locked tiers (Signature 5, Core 12) still carry copy for type completeness
+ * but render disabled with a line-only tag.
  */
 const metaWarrantyCardCopy: Record<
   PpfLine,
@@ -1586,6 +1590,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   // name requirement, and make WhatsApp a direct 1-tap (no pre-chat popup).
   const isGated = variant === "v3" || variant === "meta";
   const isMetaVariant = variant === "meta";
+  // Meta keeps lead-form gating (CRM, pixel, canUnlock) but shows the open V2
+  // price hero on the result step — same visual as Google/dubai_quote. V3 alone
+  // keeps the fully boxed pre-unlock layout.
+  const useV2ResultPriceHero = !isGated || isMetaVariant;
   // PRICE variant (Google fresh start): price shown openly, no popup, phone-only
   // soft capture, and only QUALIFIED (post-price) WhatsApp taps count. The
   // builder variant inherits all of this — it only swaps the calculator UI.
@@ -1600,6 +1608,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   // Qualification layer (between package and result on meta).
   const [qualifySub, setQualifySub] = useState<QualifySubStep>("position");
   const [pricePosition, setPricePosition] = useState<PricePosition | null>(null);
+  const [qualifierReason, setQualifierReason] = useState<string | null>(null);
   const [shopsCount, setShopsCount] = useState<string | null>(null);
   const [quotesBand, setQuotesBand] = useState<string | null>(null);
   const [budgetBand, setBudgetBand] = useState<BudgetBand | null>(null);
@@ -1608,6 +1617,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const [carTierOk, setCarTierOk] = useState(true);
   const [qualifierPassed, setQualifierPassed] = useState<boolean | null>(null);
   const qualifierPassedRef = useRef<boolean | null>(null);
+  // META spend-less salesman: one Signature→Core downshift per session, then
+  // unqualified pass-through if they still want less on Core.
+  const [spendLessHintShown, setSpendLessHintShown] = useState(false);
+  const spendLessDownshiftFiredRef = useRef(false);
   const carTierOkRef = useRef(true);
   const [size, setSize] = useState<PpfPricingSize | null>(null);
   const [finish, setFinish] = useState<PpfPricingFinish | null>(null);
@@ -1911,6 +1924,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       car_year: carYear ?? undefined,
       car_tier_ok: carYear ? carTierOk : undefined,
       price_position: pricePosition ?? undefined,
+      qualifier_reason: qualifierReason ?? undefined,
       shops_count: shopsCount ?? undefined,
       competitor_quotes: quotesBand ?? undefined,
       target_budget: budgetBand ?? undefined,
@@ -1942,6 +1956,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       line,
       pricePosition,
       qualifierPassed,
+      qualifierReason,
       quotesBand,
       shopsCount,
       finish,
@@ -2291,9 +2306,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   };
 
   const selectPackage = (nextYears: PackageYears) => {
-    // META: Core has no 12-year tier (Signature only) — the card is disabled,
-    // this guard just makes the invariant unconditional.
-    if (isMetaVariant && line === "core" && nextYears === 12) return;
+    // META: line-locked tiers — Core 12 (Signature only), Signature 5 (Core only).
+    if (isMetaVariant && !metaWarrantyAvailable(line, nextYears)) return;
     setWarrantyYears(nextYears);
     const payload = {
       step_name: "package",
@@ -2305,12 +2319,19 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
   /**
    * META only: Signature/Core film-line switch on the warranty step. Core has
-   * no 12-year tier, so switching to Core downshifts a 12-year pick to 10.
+   * no 12-year tier; Signature has no 5-year tier — invalid picks downshift.
    */
   const selectLine = (nextLine: PpfLine) => {
     if (!isMetaVariant || nextLine === line) return;
+    if (nextLine === "signature") {
+      setSpendLessHintShown(false);
+    }
     let nextYears = warrantyYears;
     if (nextLine === "core" && warrantyYears === 12) {
+      nextYears = 10;
+      setWarrantyYears(10);
+    }
+    if (nextLine === "signature" && warrantyYears === 5) {
       nextYears = 10;
       setWarrantyYears(10);
     }
@@ -2325,6 +2346,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
 
   const revealSetup = () => {
     if (!isComplete) return;
+    setSpendLessHintShown(false);
     trackEvent("price_viewed", buildPayload());
     trackEvent("guided_price_revealed", buildPayload());
     goToStep("result", "reveal_setup");
@@ -3572,13 +3594,21 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                     ]
                       .filter(Boolean)
                       .join(" · ");
-                    const resolveQualifier = (passed: boolean, reason: string) => {
+                    const resolveQualifier = (
+                      passed: boolean,
+                      reason: string,
+                      position?: PricePosition,
+                    ) => {
+                      if (position) setPricePosition(position);
+                      setQualifierReason(reason);
                       qualifierPassedRef.current = passed;
                       setQualifierPassed(passed);
                       trackEvent("guided_price_qualifier_resolved", {
                         qualifier_passed: passed,
                         qualifier_reason: reason,
                         ...buildPayload(),
+                        ...(position ? { price_position: position } : {}),
+                        ppf_qualified: passed,
                       });
                       goToStep("result", reason);
                     };
@@ -3613,8 +3643,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                 type="button"
                                 className={chip(false)}
                                 onClick={() => {
-                                  setPricePosition("expected");
-                                  resolveQualifier(true, "price_expected");
+                                  resolveQualifier(true, "price_expected", "expected");
                                 }}
                               >
                                 That's about what I expected
@@ -3623,11 +3652,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                 type="button"
                                 className={chip(false)}
                                 onClick={() => {
-                                  setPricePosition("quality_stretch");
-                                  // 2026-07-11: straight to the result — the
-                                  // quality_confirm sub-step was part of the
-                                  // ladder that zeroed submissions.
-                                  resolveQualifier(true, "quality_stretch");
+                                  resolveQualifier(true, "quality_stretch", "quality_stretch");
                                 }}
                               >
                                 More than I thought — but quality matters to me
@@ -3637,10 +3662,42 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                 className={chip(false)}
                                 onClick={() => {
                                   setPricePosition("spend_less");
-                                  // 2026-07-11: no budget interrogation ladder —
-                                  // mark unqualified for the Meta Lead diet and
-                                  // show the price anyway; the CRM still captures.
-                                  resolveQualifier(false, "spend_less");
+                                  // 2026-07-11 (v2): "spend less" on Signature
+                                  // is a DOWNSHIFT, not a disqualification —
+                                  // send them back to the warranty step with
+                                  // the Core line pre-selected and a nudge.
+                                  // Once only (ref guard): a second spend-less
+                                  // — or spend-less already on Core — resolves
+                                  // unqualified and shows the price anyway;
+                                  // the CRM still captures either way.
+                                  if (
+                                    line !== "core" &&
+                                    !spendLessDownshiftFiredRef.current
+                                  ) {
+                                    spendLessDownshiftFiredRef.current = true;
+                                    setLine("core");
+                                    let nextYears = warrantyYears;
+                                    if (warrantyYears === 12) {
+                                      // Core has no 12-year tier.
+                                      nextYears = 10;
+                                      setWarrantyYears(10);
+                                    }
+                                    setSpendLessHintShown(true);
+                                    setQualifySub("position");
+                                    trackEvent(
+                                      "guided_spend_less_downshift",
+                                      buildProjectedPayload({
+                                        nextWarrantyYears: nextYears,
+                                        nextLine: "core",
+                                      }),
+                                    );
+                                    goToStep("package", "spend_less_downshift");
+                                    pulseCalculator();
+                                    return;
+                                  }
+                                  // Already on Core (lowest line) — show price but
+                                  // mark unqualified so Meta Lead never fires.
+                                  resolveQualifier(false, "spend_less_core", "spend_less");
                                 }}
                               >
                                 I'm looking to spend less than that
@@ -4048,45 +4105,62 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                       How long do you want it to last?
                     </h2>
 
+                    {isMetaVariant && spendLessHintShown ? (
+                      <div className="mt-3 rounded-2xl border border-[#25D366]/45 bg-[#25D366]/10 p-3 sm:mt-4 sm:p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#25D366] sm:text-[11px]">
+                          Smart Value suggestion
+                        </p>
+                        <p className="mt-1 text-sm font-bold leading-snug text-white sm:text-base">
+                          Try our Smart Value line — same prep, same installers, friendlier price.
+                        </p>
+                      </div>
+                    ) : null}
+
                     {isMetaVariant ? (
                       /* META only: Signature/Core line selector — benefit-led,
                          brand-free copy. Signature is the gold hero default;
                          Core trades premium finish for a sharper price (no
                          12-year tier). */
-                      <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3">
+                      <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-2.5">
                         {metaLineOptions.map((option) => {
                           const isSelected = line === option.value;
+                          const isSpendLessNudge =
+                            spendLessHintShown && option.value === "core";
+                          const accentClass = isSelected
+                            ? isSpendLessNudge
+                              ? "text-[#25D366]"
+                              : "text-[#f7b52b]"
+                            : "text-white";
+                          const accentMutedClass = isSelected
+                            ? isSpendLessNudge
+                              ? "text-[#25D366]/85"
+                              : "text-[#f7b52b]/85"
+                            : "text-slate-400";
                           return (
                             <button
                               key={option.value}
                               type="button"
                               onClick={() => selectLine(option.value)}
                               className={cn(
-                                "rounded-2xl border p-3 text-left transition sm:p-4",
+                                "rounded-xl border px-2.5 py-2 text-left transition sm:rounded-2xl sm:px-3 sm:py-2.5",
                                 isSelected
-                                  ? "border-[#f7b52b] bg-[#f7b52b]/10 ring-1 ring-[#f7b52b]/40 shadow-[0_0_28px_rgba(247,181,43,0.2)]"
+                                  ? isSpendLessNudge
+                                    ? "border-[#25D366] bg-[#25D366]/10 ring-2 ring-[#25D366]/45 shadow-[0_0_28px_rgba(37,211,102,0.22)]"
+                                    : "border-[#f7b52b] bg-[#f7b52b]/10 ring-1 ring-[#f7b52b]/40 shadow-[0_0_28px_rgba(247,181,43,0.2)]"
                                   : "border-white/10 bg-white/[0.03] hover:border-[#f7b52b]/45",
                               )}
                             >
-                              <p
-                                className={cn(
-                                  "text-base font-black leading-none sm:text-lg",
-                                  isSelected ? "text-[#f7b52b]" : "text-white",
-                                )}
-                              >
-                                {option.label}
-                              </p>
-                              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                              <div className="flex items-center justify-between gap-2">
                                 <p
                                   className={cn(
-                                    "text-[9px] font-black uppercase tracking-[0.1em] sm:text-[10px] sm:tracking-[0.12em]",
-                                    isSelected ? "text-[#f7b52b]/85" : "text-slate-400",
+                                    "text-sm font-black leading-none sm:text-base",
+                                    accentClass,
                                   )}
                                 >
-                                  {option.tag}
+                                  {option.label}
                                 </p>
                                 <p
-                                  className="flex items-center gap-px leading-none"
+                                  className="flex shrink-0 items-center gap-px leading-none"
                                   aria-label={
                                     option.priceTier === 3 ? "Premium price tier" : "Value price tier"
                                   }
@@ -4095,8 +4169,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                     <span
                                       key={index}
                                       className={cn(
-                                        "text-base font-black sm:text-lg",
-                                        isSelected ? "text-[#f7b52b]" : "text-white/85",
+                                        "text-sm font-black sm:text-base",
+                                        isSelected ? accentClass : "text-white/85",
                                       )}
                                     >
                                       $
@@ -4104,7 +4178,15 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                   ))}
                                 </p>
                               </div>
-                              <p className="mt-1 text-[11px] leading-snug text-slate-300 sm:text-xs">
+                              <p
+                                className={cn(
+                                  "mt-1 text-[8px] font-black uppercase tracking-[0.1em] sm:text-[9px] sm:tracking-[0.12em]",
+                                  accentMutedClass,
+                                )}
+                              >
+                                {option.tag}
+                              </p>
+                              <p className="mt-0.5 text-[10px] leading-snug text-slate-400 sm:text-[11px] sm:leading-4">
                                 {option.helper}
                               </p>
                             </button>
@@ -4116,10 +4198,15 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                     <div className="mt-3 grid gap-2 sm:mt-5 sm:grid-cols-3 sm:gap-3">
                       {packageOptions.map((option, index) => {
                         const isSelected = warrantyYears === option.years;
-                        // META: Core has no 12-year tier — card stays visible
-                        // but disabled with a "Signature only" tag.
-                        const isLineLocked =
-                          isMetaVariant && line === "core" && option.years === 12;
+                        // META: line-locked tiers stay visible but disabled —
+                        // Core 12 = "Signature only", Signature 5 = "Core only".
+                        const lineLockLabel =
+                          isMetaVariant && line === "core" && option.years === 12
+                            ? "Signature only"
+                            : isMetaVariant && line === "signature" && option.years === 5
+                              ? "Core only"
+                              : null;
+                        const isLineLocked = lineLockLabel !== null;
                         const showGlow = !warrantyYears && !isLineLocked;
                         const previewPrice =
                           isMetaVariant && !isLineLocked && size && finish
@@ -4151,7 +4238,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                           >
                             {isLineLocked ? (
                               <span className="absolute right-2 top-2 rounded-full border border-white/20 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-slate-300 sm:right-3 sm:top-3 sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
-                                Signature only
+                                {lineLockLabel}
                               </span>
                             ) : option.badge ? (
                               <span className="absolute right-2 top-2 rounded-full bg-[#f7b52b] px-1.5 py-0.5 text-[8px] font-black tracking-[0.12em] text-black shadow-[0_0_22px_rgba(247,181,43,0.45)] sm:right-3 sm:top-3 sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
@@ -4200,10 +4287,11 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                           <BadgeCheck className="h-4 w-4 shrink-0 text-[#f7b52b] sm:mt-0.5 sm:h-5 sm:w-5" />
                           <div className="min-w-0 flex-1">
                             <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#f7b52b] sm:text-base sm:tracking-[0.14em]">
-                              Save your number — unlock 20% off next
+                              20% off already applied — lock this price
                             </p>
-                            <p className="mt-0.5 hidden text-xs leading-5 text-slate-300 sm:block">
-                              Add your number now, then claim your 20% online discount on the next step.
+                            <p className="mt-0.5 text-[10px] leading-snug text-slate-300 sm:text-xs sm:leading-5">
+                              The prices above already include your online discount. Save your
+                              number now to hold this rate before it changes.
                             </p>
                           </div>
                         </div>
@@ -4242,7 +4330,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                       onClick={revealSetup}
                       className="mt-3 h-11 w-full animate-pulse bg-[#25D366] font-black text-white shadow-[0_18px_48px_rgba(37,211,102,0.32)] hover:bg-[#20bf5d] disabled:animate-none disabled:bg-white/10 disabled:text-white/45 sm:mt-4 sm:h-12"
                     >
-                      {phone.trim().length >= 7 ? "Reveal My Setup + Lock Bonus" : "Reveal My Setup"}
+                      {phone.trim().length >= 7 ? "Reveal My Setup + Lock Price" : "Reveal My Setup"}
                       <Sparkles className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
@@ -4345,9 +4433,51 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                         </>
                       ) : targetPrice !== null && listPrice !== null ? (
                         /* ---------- PRE-UNLOCK ---------- */
-                        isGated ? (
-                          /* Gated funnels: show the real discounted price up front,
-                             then use the form to lock it in and hand off to Sean. */
+                        useV2ResultPriceHero ? (
+                          /* V2 / Meta: full price strikes out, discounted price is the hero */
+                          <>
+                            <p className="mt-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/40 sm:mt-3.5 sm:text-[10px]">
+                              Full setup price
+                            </p>
+                            <div className="relative mt-0.5 inline-block">
+                              <span className="text-2xl font-black leading-none tracking-tight text-white/45 sm:text-3xl">
+                                {formatAED(listPrice)}
+                              </span>
+                              <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#f7b52b] shadow-[0_0_10px_rgba(247,181,43,0.7)] animate-guided-strike motion-reduce:animate-none"
+                                style={{ animationDelay: "0.4s" }}
+                              />
+                            </div>
+                            <p
+                              className="mt-2.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/55 animate-guided-anchor-up motion-reduce:animate-none sm:text-[10px]"
+                              style={{ animationDelay: "0.75s" }}
+                            >
+                              Your price today
+                            </p>
+                            <p
+                              className="mt-0.5 text-[2.6rem] font-black leading-none tracking-tight text-white animate-guided-price-in motion-reduce:animate-none sm:mt-1 sm:text-[4rem]"
+                              style={{ animationDelay: "0.7s" }}
+                            >
+                              {formatAED(targetPrice)}
+                            </p>
+                            {discountSavings !== null ? (
+                              <div
+                                className="mt-2 animate-fade-up motion-reduce:animate-none"
+                                style={{ animationDelay: "0.95s", animationFillMode: "both" }}
+                              >
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#25D366] ring-1 ring-[#25D366]/45 sm:text-xs">
+                                  <BadgePercent className="h-3.5 w-3.5" />
+                                  Save {formatAED(discountSavings)} · 20% off
+                                </span>
+                              </div>
+                            ) : null}
+                            <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
+                              Excludes VAT · Sean confirms final price
+                            </p>
+                          </>
+                        ) : (
+                          /* V3 gated: boxed pre-unlock layout (price visible, form to lock) */
                           <>
                             <div className="mt-3 flex items-center gap-2 sm:mt-3.5">
                               <Sparkles className="h-5 w-5 shrink-0 text-[#f7b52b]" />
@@ -4385,11 +4515,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                 {formatAED(targetPrice)}
                               </p>
                               <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45 sm:text-[11px]">
-                                For your {selectedSize?.label} · {finish} · {selectedPackage?.title}
-                                {isMetaVariant
-                                  ? ` · ${line === "signature" ? "Signature" : "Core"}`
-                                  : ""}{" "}
-                                setup
+                                For your {selectedSize?.label} · {finish} · {selectedPackage?.title} setup
                               </p>
                             </div>
 
@@ -4436,49 +4562,6 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                               Add your number to hold this price and get Sean's final confirmation
                             </p>
                           </>
-                        ) : (
-                          /* V2: full price strikes out, discounted price is the hero */
-                          <>
-                            <p className="mt-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/40 sm:mt-3.5 sm:text-[10px]">
-                              Full setup price
-                            </p>
-                            <div className="relative mt-0.5 inline-block">
-                              <span className="text-2xl font-black leading-none tracking-tight text-white/45 sm:text-3xl">
-                                {formatAED(listPrice)}
-                              </span>
-                              <span
-                                aria-hidden="true"
-                                className="pointer-events-none absolute left-0 top-1/2 h-[3px] w-full origin-left -translate-y-1/2 rounded-full bg-[#f7b52b] shadow-[0_0_10px_rgba(247,181,43,0.7)] animate-guided-strike motion-reduce:animate-none"
-                                style={{ animationDelay: "0.4s" }}
-                              />
-                            </div>
-                            <p
-                              className="mt-2.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/55 animate-guided-anchor-up motion-reduce:animate-none sm:text-[10px]"
-                              style={{ animationDelay: "0.75s" }}
-                            >
-                              Your price today
-                            </p>
-                            <p
-                              className="mt-0.5 text-[2.6rem] font-black leading-none tracking-tight text-white animate-guided-price-in motion-reduce:animate-none sm:mt-1 sm:text-[4rem]"
-                              style={{ animationDelay: "0.7s" }}
-                            >
-                              {formatAED(targetPrice)}
-                            </p>
-                            {discountSavings !== null ? (
-                              <div
-                                className="mt-2 animate-fade-up motion-reduce:animate-none"
-                                style={{ animationDelay: "0.95s", animationFillMode: "both" }}
-                              >
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#25D366] ring-1 ring-[#25D366]/45 sm:text-xs">
-                                  <BadgePercent className="h-3.5 w-3.5" />
-                                  Save {formatAED(discountSavings)} · 20% off
-                                </span>
-                              </div>
-                            ) : null}
-                            <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
-                              Excludes VAT · Sean confirms final price
-                            </p>
-                          </>
                         )
                       ) : (
                         <p className="mt-3 text-[2.6rem] font-black leading-none tracking-tight text-white sm:mt-3.5 sm:text-[4rem]">
@@ -4486,8 +4569,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                         </p>
                       )}
 
-                      {/* VALUE STACK — V2 always; V3 reveals the itemized extras on unlock */}
-                      {(!isGated || discountUnlocked) ? (
+                      {/* VALUE STACK — V2 + Meta pre-unlock; V3 reveals on unlock */}
+                      {(useV2ResultPriceHero || discountUnlocked) ? (
                       <div
                         className={cn(
                           "mt-3 rounded-xl border p-2.5 transition-colors duration-500 sm:mt-3.5 sm:p-3",
