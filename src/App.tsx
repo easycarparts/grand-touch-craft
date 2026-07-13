@@ -73,6 +73,7 @@ const G700Customizer = lazy(() => import("./pages/G700Customizer"));
 const PpfInvestorProposal = lazy(() => import("./pages/PpfInvestorProposal"));
 const PpfInvestorProposalV2 = lazy(() => import("./pages/PpfInvestorProposalV2"));
 const PpfInvestorProposalV3 = lazy(() => import("./pages/PpfInvestorProposalV3"));
+const WrapcoTakeoverProposal = lazy(() => import("./pages/WrapcoTakeoverProposal"));
 
 const queryClient = new QueryClient();
 
@@ -263,6 +264,8 @@ function App() {
             <Route path="/private/ppf-investor-proposal" element={<PpfInvestorProposal />} />
             <Route path="/private/ppf-investor-proposal-v2" element={<PpfInvestorProposalV2 />} />
             <Route path="/private/ppf-investor-proposal-v3" element={<PpfInvestorProposalV3 />} />
+            {/* Wrapco manager-takeover & earn-in proposal (Jul 2026) — password gated, noindex. */}
+            <Route path="/private/wrapco-proposal" element={<WrapcoTakeoverProposal />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
