@@ -48,8 +48,9 @@ import { cn } from "@/lib/utils";
 
 type TintTier = "action" | "smart" | "nex";
 type TintSize = "Small" | "Medium" | "Sports" | "SUV";
+type TintSection = "calculator" | "quick_answers";
 
-const WHATSAPP_NUMBER = "971567191045";
+const WHATSAPP_NUMBER = "971547655639";
 const TINT_TIKTOK_PIXEL_IDS = [
   "D97JTBBC77U6Q0JCHTLG",
   "D7EDTI3C77UF89IGHIHG",
@@ -82,17 +83,49 @@ const sizeOptions: Array<{ value: TintSize; label: string; example: string }> = 
 const tierOptions: Array<{
   value: TintTier;
   name: string;
+  shortName: string;
+  tech: string;
   spec: string;
+  feltHeat: string;
+  heatProof: string;
+  tser: string;
+  bestFor: string;
   badge?: string;
 }> = [
-  { value: "action", name: "STEK Action", spec: "Carbon film · UV 99%" },
+  {
+    value: "action",
+    name: "STEK Action",
+    shortName: "Action",
+    tech: "Nano-carbon",
+    spec: "Good cooling for daily driving",
+    feltHeat: "46%",
+    heatProof: "50% total solar energy rejected",
+    tser: "TSER 50%",
+    bestFor: "Clean legal tint, lowest price",
+  },
   {
     value: "smart",
     name: "STEK Smart Ceramic",
-    spec: "Ceramic heat rejection · UV 99%",
+    shortName: "Smart",
+    tech: "Nano-ceramic",
+    spec: "Much cooler cabin in Dubai sun",
+    feltHeat: "79%",
+    heatProof: "56% total solar energy rejected",
+    tser: "TSER 56%",
+    bestFor: "Best balance: cooling, clarity, price",
     badge: "MOST CHOSEN",
   },
-  { value: "nex", name: "STEK Nex Premium", spec: "Max IR rejection · UV 99%" },
+  {
+    value: "nex",
+    name: "STEK Nex Premium",
+    shortName: "Nex",
+    tech: "Premium nano-ceramic",
+    spec: "Maximum heat-blocking upgrade",
+    feltHeat: "95%",
+    heatProof: "61% total solar energy rejected",
+    tser: "TSER 61%",
+    bestFor: "For premium cars and maximum comfort",
+  },
 ];
 
 const includedPerks = [
@@ -115,7 +148,7 @@ const fastFaqs: Array<{ question: string; answer: string }> = [
   {
     question: "Does darker tint mean a cooler cabin?",
     answer:
-      "No — heat rejection comes from the ceramic layers, not the darkness. A light STEK ceramic film rejects more heat than a cheap dark dyed film. That's why the tier changes the price, not the shade.",
+      "No - darkness is mostly the look. The film tier is what blocks heat: Action is the value option, Smart blocks much more daily heat, and Nex is the strongest option for maximum cooling.",
   },
   {
     question: "How long does it take?",
@@ -140,6 +173,42 @@ const formatAED = (value: number) => `AED ${value.toLocaleString("en-AE")}`;
 const buildWhatsAppUrl = (message: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
+const getScrollPercent = () => {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  const scrollable = Math.max(
+    document.documentElement.scrollHeight - window.innerHeight,
+    1,
+  );
+  return Math.min(100, Math.max(0, Math.round((window.scrollY / scrollable) * 100)));
+};
+
+const getTintIntentScore = ({
+  eventName,
+  elapsedMs,
+  maxScrollPercent,
+  hasSelectedSize,
+  hasSelectedTier,
+}: {
+  eventName: string;
+  elapsedMs: number;
+  maxScrollPercent: number;
+  hasSelectedSize: boolean;
+  hasSelectedTier: boolean;
+}) => {
+  let score = 8;
+  if (elapsedMs >= 5_000) score += 8;
+  if (elapsedMs >= 15_000) score += 10;
+  if (elapsedMs >= 30_000) score += 8;
+  if (maxScrollPercent >= 20) score += 8;
+  if (maxScrollPercent >= 50) score += 8;
+  if (hasSelectedSize) score += 14;
+  if (hasSelectedTier) score += 14;
+  if (eventName === "price_viewed" || eventName === "guided_result_viewed") score += 14;
+  if (eventName === "whatsapp_click") score += 34;
+  if (eventName === "lead_form_submitted") score += 38;
+  return Math.min(100, score);
+};
+
 const TintDubaiFastFunnel = () => {
   // Sedan + Smart preselected: a price is on screen before the first tap.
   const [size, setSize] = useState<TintSize>("Medium");
@@ -149,6 +218,12 @@ const TintDubaiFastFunnel = () => {
     "idle" | "saving" | "saved" | "invalid" | "error"
   >("idle");
   const metaLeadFiredRef = useRef(false);
+  const startedAtRef = useRef(Date.now());
+  const maxScrollPercentRef = useRef(0);
+  const selectedSizeRef = useRef(false);
+  const selectedTierRef = useRef(false);
+  const priceViewedSignatureRef = useRef("");
+  const viewedSectionsRef = useRef<Set<TintSection>>(new Set());
 
   const funnelContext = useMemo(
     () =>
@@ -171,6 +246,10 @@ const TintDubaiFastFunnel = () => {
       vehicle_size: size,
       package_id: tier,
       package_name: selectedTier.name,
+      package_tech: selectedTier.tech,
+      heat_rejection_claim: selectedTier.spec,
+      heat_proof_claim: selectedTier.heatProof,
+      tser_claim: selectedTier.tser,
       list_price: anchor,
       discount_savings: savings,
       estimate_value: price,
@@ -182,7 +261,26 @@ const TintDubaiFastFunnel = () => {
 
   const trackEvent = useCallback(
     (eventName: string, payload: Record<string, unknown> = {}) => {
-      trackFunnelEvent({ eventName, context: funnelContext, payload });
+      const elapsedMs = Math.max(0, Date.now() - startedAtRef.current);
+      const currentScrollPercent = getScrollPercent();
+      maxScrollPercentRef.current = Math.max(maxScrollPercentRef.current, currentScrollPercent);
+      trackFunnelEvent({
+        eventName,
+        context: funnelContext,
+        payload: {
+          ...payload,
+          elapsed_ms: elapsedMs,
+          current_scroll_percent: currentScrollPercent,
+          max_scroll_percent: maxScrollPercentRef.current,
+          intent_score: getTintIntentScore({
+            eventName,
+            elapsedMs,
+            maxScrollPercent: maxScrollPercentRef.current,
+            hasSelectedSize: selectedSizeRef.current,
+            hasSelectedTier: selectedTierRef.current,
+          }),
+        },
+      });
     },
     [funnelContext],
   );
@@ -232,6 +330,73 @@ const TintDubaiFastFunnel = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const signature = `${size}|${tier}|${price}`;
+    if (priceViewedSignatureRef.current === signature) return;
+    priceViewedSignatureRef.current = signature;
+    const payload = buildPayload();
+    trackEvent("price_viewed", {
+      ...payload,
+      price_visible_without_gate: true,
+      result_state: "instant_price",
+    });
+    trackEvent("guided_result_viewed", {
+      ...payload,
+      result_state: "instant_price",
+    });
+  }, [buildPayload, price, size, tier, trackEvent]);
+
+  useEffect(() => {
+    const markSectionViewed = (sectionName: TintSection) => {
+      if (viewedSectionsRef.current.has(sectionName)) return;
+      viewedSectionsRef.current.add(sectionName);
+      trackEvent("section_view", { section_name: sectionName, ...buildPayload() });
+    };
+
+    const checkpoint = (reason: string) => {
+      trackEvent("page_checkpoint", {
+        checkpoint_reason: reason,
+        active_section: viewedSectionsRef.current.has("quick_answers")
+          ? "quick_answers"
+          : "calculator",
+        ...buildPayload(),
+      });
+    };
+
+    const handleScroll = () => {
+      maxScrollPercentRef.current = Math.max(maxScrollPercentRef.current, getScrollPercent());
+      const faqSection = document.querySelector<HTMLElement>("[data-funnel-section='quick_answers']");
+      if (!faqSection) return;
+      const rect = faqSection.getBoundingClientRect();
+      if (rect.top < window.innerHeight * 0.75 && rect.bottom > 0) {
+        markSectionViewed("quick_answers");
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") checkpoint("visibility_hidden");
+    };
+
+    markSectionViewed("calculator");
+    handleScroll();
+
+    const timers = [
+      window.setTimeout(() => checkpoint("5s_engaged"), 5_000),
+      window.setTimeout(() => checkpoint("15s_engaged"), 15_000),
+      window.setTimeout(() => checkpoint("30s_engaged"), 30_000),
+      window.setTimeout(() => checkpoint("60s_engaged"), 60_000),
+    ];
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [buildPayload, trackEvent]);
+
   const fireLeadOnce = useCallback(
     (payload: Record<string, unknown>) => {
       if (metaLeadFiredRef.current) return;
@@ -255,7 +420,7 @@ const TintDubaiFastFunnel = () => {
   const whatsAppMessage = useMemo(
     () =>
       [
-        "Hi Sean, I want the tint offer from the tint page.",
+        "Hi, I want the tint offer from the tint page.",
         `Setup: ${selectedTier.name} on ${selectedSize.label}.`,
         `My price: ${formatAED(price)} (20% online offer applied, excl. VAT).`,
         "Can you confirm my slot and the free sun-strip?",
@@ -284,7 +449,13 @@ const TintDubaiFastFunnel = () => {
       { pixelIds: TINT_TIKTOK_PIXEL_IDS },
     );
     fireLeadOnce(metaPayload);
-    trackEvent("whatsapp_click", { cta_location: placement, ...buildPayload() });
+    const eventPayload = {
+      cta_location: placement,
+      message_type: "selected_tint_price",
+      ...buildPayload(),
+    };
+    trackEvent("whatsapp_click", eventPayload);
+    trackEvent("selected_price_whatsapp_click", eventPayload);
     window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
   };
 
@@ -355,13 +526,34 @@ const TintDubaiFastFunnel = () => {
   };
 
   const selectSize = (next: TintSize) => {
+    selectedSizeRef.current = true;
     setSize(next);
     trackEvent("guided_step_completed", { step_name: "size", vehicle_size: next });
+    trackEvent("calculator_selection_changed", { step_name: "size", vehicle_size: next });
   };
 
   const selectTier = (next: TintTier) => {
+    selectedTierRef.current = true;
     setTier(next);
-    trackEvent("guided_step_completed", { step_name: "package", package_id: next });
+    const nextTier = tierOptions.find((option) => option.value === next);
+    trackEvent("guided_step_completed", {
+      step_name: "package",
+      package_id: next,
+      package_name: nextTier?.name,
+      package_tech: nextTier?.tech,
+      heat_rejection_claim: nextTier?.spec,
+      heat_proof_claim: nextTier?.heatProof,
+      tser_claim: nextTier?.tser,
+    });
+    trackEvent("calculator_selection_changed", {
+      step_name: "package",
+      package_id: next,
+      package_name: nextTier?.name,
+      package_tech: nextTier?.tech,
+      heat_rejection_claim: nextTier?.spec,
+      heat_proof_claim: nextTier?.heatProof,
+      tser_claim: nextTier?.tser,
+    });
   };
 
   return (
@@ -387,7 +579,7 @@ const TintDubaiFastFunnel = () => {
         </h1>
         <p className="mt-2 text-xs leading-5 text-slate-400 sm:text-sm">
           Tap your car size — the price updates instantly. Legal shades, STEK warranty
-          registered, installed in ~3 hours.
+          registered, clear heat-blocking stats, installed in ~3 hours.
         </p>
 
         {/* ── Size chips ───────────────────────────────────────────────── */}
@@ -431,13 +623,13 @@ const TintDubaiFastFunnel = () => {
                 type="button"
                 onClick={() => selectTier(option.value)}
                 className={cn(
-                  "flex w-full items-center justify-between gap-3 rounded-2xl border px-3.5 py-3 text-left transition",
+                  "grid w-full grid-cols-[1fr_auto] gap-3 rounded-2xl border px-3.5 py-3 text-left transition",
                   isSelected
                     ? "border-[#f7b52b] bg-[#f7b52b]/10 ring-1 ring-[#f7b52b]/40"
                     : "border-white/12 bg-white/[0.035] hover:border-[#f7b52b]/55",
                 )}
               >
-                <span className="min-w-0">
+                <span className="min-w-0 self-center">
                   <span className="flex flex-wrap items-center gap-2">
                     <span
                       className={cn(
@@ -453,11 +645,29 @@ const TintDubaiFastFunnel = () => {
                       </span>
                     ) : null}
                   </span>
-                  <span className="mt-0.5 block text-[11px] font-semibold text-slate-400">
+                  <span className="mt-0.5 block text-[11px] font-semibold text-slate-300">
                     {option.spec}
                   </span>
+                  {isSelected ? (
+                    <>
+                      <span className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="rounded-full border border-[#25D366]/25 bg-[#25D366]/10 px-2 py-0.5 text-[10px] font-black text-[#25D366]">
+                          Blocks {option.feltHeat} heat rays
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-black text-white">
+                          99% UV
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-black text-white">
+                          Legal shades
+                        </span>
+                      </span>
+                      <span className="mt-1.5 block text-[10px] font-semibold leading-4 text-slate-500">
+                        {option.bestFor}
+                      </span>
+                    </>
+                  ) : null}
                 </span>
-                <span className="shrink-0 text-right">
+                <span className="shrink-0 self-center text-right">
                   <span className="block text-[11px] font-bold text-white/40 line-through">
                     {formatAED(tierAnchor)}
                   </span>
@@ -495,6 +705,26 @@ const TintDubaiFastFunnel = () => {
           </div>
 
           <ul className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
+            <li className="grid grid-cols-3 gap-1.5 pb-1.5">
+              <span className="rounded-xl border border-[#25D366]/25 bg-[#25D366]/10 px-2 py-2 text-center">
+                <span className="block text-[9px] font-black uppercase tracking-[0.08em] text-[#25D366]/80">
+                  Heat rays
+                </span>
+                <span className="text-sm font-black text-white">{selectedTier.feltHeat}</span>
+              </span>
+              <span className="rounded-xl border border-white/10 bg-white/[0.04] px-2 py-2 text-center">
+                <span className="block text-[9px] font-black uppercase tracking-[0.08em] text-slate-500">
+                  UV rays
+                </span>
+                <span className="text-sm font-black text-white">99%</span>
+              </span>
+              <span className="rounded-xl border border-white/10 bg-white/[0.04] px-2 py-2 text-center">
+                <span className="block text-[9px] font-black uppercase tracking-[0.08em] text-slate-500">
+                  Legal
+                </span>
+                <span className="text-sm font-black text-white">UAE</span>
+              </span>
+            </li>
             {includedPerks.map((perk) => (
               <li
                 key={perk.text}
@@ -513,10 +743,10 @@ const TintDubaiFastFunnel = () => {
             className="mt-4 h-13 w-full gap-2 bg-[#25D366] py-3.5 text-base font-black text-white shadow-[0_18px_48px_rgba(37,211,102,0.3)] hover:bg-[#20bf5d]"
           >
             <MessageCircle className="h-5 w-5" />
-            WhatsApp Sean — {formatAED(price)}
+            WhatsApp us — {formatAED(price)}
           </Button>
           <p className="mt-1.5 text-center text-[10px] font-semibold text-slate-500">
-            Opens WhatsApp with this exact build pre-written · Sean replies fast
+            Opens WhatsApp with this exact build pre-written · we reply fast
           </p>
 
           <div className="mt-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
@@ -528,7 +758,7 @@ const TintDubaiFastFunnel = () => {
           {phoneStatus === "saved" ? (
             <p className="mt-3 flex items-center gap-2 rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-3 py-2.5 text-xs font-bold text-[#25D366]">
               <BadgeCheck className="h-4 w-4 shrink-0" />
-              Done — Sean will WhatsApp you this price shortly.
+              Done — we'll WhatsApp you this price shortly.
             </p>
           ) : (
             <form onSubmit={handlePhoneSubmit} className="mt-3">
@@ -574,7 +804,7 @@ const TintDubaiFastFunnel = () => {
         </div>
 
         {/* ── Compact FAQ ──────────────────────────────────────────────── */}
-        <section className="mt-8 pb-8">
+        <section className="mt-8 pb-8" data-funnel-section="quick_answers">
           <h2 className="text-lg font-black tracking-tight sm:text-xl">
             Quick answers
           </h2>
@@ -605,7 +835,7 @@ const TintDubaiFastFunnel = () => {
           className="h-12 w-full gap-2 bg-[#25D366] text-sm font-black text-white hover:bg-[#20bf5d]"
         >
           <MessageCircle className="h-4 w-4" />
-          WhatsApp Sean — {formatAED(price)}
+          WhatsApp us — {formatAED(price)}
         </Button>
       </div>
     </div>
