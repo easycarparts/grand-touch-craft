@@ -492,8 +492,8 @@ const stepOrder: FlowStep[] = ["size", "finish", "package", "result"];
  *
  * Signature = genuine STEK / GYEON (the premium aesthetic film, hero default).
  * Core = certified value films (PROTECT+ / SUPREME / SUNSTOP / KDX) — serious
- * protection at a smarter price. Core has NO 12-year tier (Signature only).
- * Signature has NO 5-year tier (Core only).
+ * protection at a smarter price. Core has NO 12-year tier (Signature only);
+ * Signature carries all three tiers.
  *
  * Sizes map: Small / Medium / Sports = base price, SUV = suv price. Every
  * other variant (google / dubai_quote / v3 / price / builder / tiktok) keeps
@@ -503,14 +503,15 @@ const stepOrder: FlowStep[] = ["size", "finish", "package", "result"];
 type PpfLine = "signature" | "core";
 
 /**
- * Full price table (AED), owner update 2026-07-11 (v2 + matte correction).
+ * Full price table (AED), owner update 2026-07-13 (Capture → Reveal → Play).
  * `base` covers Small/Medium/Sports; `suv` covers SUV. `null` = tier not
  * offered. Matte-included combos are encoded directly (matte === gloss):
- *   - Core 5-year: matte included, all sizes.
+ *   - Signature 5-year: matte included, all sizes.
  *   - Signature 10-year: matte included EXCEPT SUV (+500).
+ *   - Core 5-year: matte included, all sizes.
  *   - Matte surcharge exists ONLY on: Core 10yr (+500), Signature 10yr SUV
  *     (+500), Signature 12yr (+500).
- * Signature 5-year and Core 12-year are intentionally absent (null).
+ * Core 12-year is intentionally absent (null).
  */
 type MetaPriceCell = {
   gloss: { base: number; suv: number };
@@ -521,7 +522,7 @@ const META_LINE_PRICES_AED: Record<
   Record<PackageYears, MetaPriceCell | null>
 > = {
   signature: {
-    5: null, // Signature has no 5-year — Core only.
+    5: { gloss: { base: 8490, suv: 8490 }, matte: { base: 8490, suv: 8490 } },
     10: { gloss: { base: 9990, suv: 9990 }, matte: { base: 9990, suv: 10490 } },
     12: { gloss: { base: 11990, suv: 12490 }, matte: { base: 12490, suv: 12990 } },
   },
@@ -538,7 +539,7 @@ const metaWarrantyAvailable = (line: PpfLine, years: PackageYears) =>
 
 /**
  * Meta-variant price for a line/years/size/finish combo. Returns null for
- * combos that don't exist (Core 12-year, Signature 5-year).
+ * combos that don't exist (Core 12-year).
  */
 const metaLinePrice = (
   line: PpfLine,
@@ -553,39 +554,36 @@ const metaLinePrice = (
 };
 
 /**
- * Line selector copy (meta warranty step). Signature first — hero default.
- * Owner copy 2026-07-11: NO film brand names anywhere in the chooser UI (no
- * STEK/GYEON/Protect+/Supreme/Sunstop/KDX, no F3/ForceShield/DynoShield) —
- * lines are sold on outcome, not brand. Brand proof lives in the trust
+ * Line toggle copy for the POST-UNLOCK "Adjust my build" panel (meta only).
+ * 2026-07-13 Capture → Reveal → Play: the line chooser lives AFTER the phone
+ * capture — never on the pre-capture warranty step. Signature first — hero
+ * default. Owner copy rule: NO film brand names anywhere in the chooser UI
+ * (no STEK/GYEON/Protect+/Supreme/Sunstop/KDX, no F3/ForceShield/DynoShield)
+ * — lines are sold on outcome, not brand. Brand proof lives in the trust
  * sections below the calculator, which keep their STEK references.
  */
 const metaLineOptions: Array<{
   value: PpfLine;
   label: string;
-  tag: string;
-  priceTier: number;
   helper: string;
 }> = [
   {
     value: "signature",
     label: "Signature",
-    tag: "THE PREMIUM CHOICE",
-    priceTier: 3,
-    helper: "Deeper gloss, self-healing, up to 12-year warranty.",
+    helper: "The premium choice",
   },
   {
     value: "core",
     label: "Core",
-    tag: "SMART VALUE",
-    priceTier: 2,
-    helper: "Same prep & installers — registered warranty, lower price.",
+    helper: "Smart value · same prep, same installers",
   },
 ];
 
 /**
- * Line-aware warranty-card copy for the meta variant (benefit-led, brand-free).
- * Locked tiers (Signature 5, Core 12) still carry copy for type completeness
- * but render disabled with a line-only tag.
+ * Line-aware warranty-card copy for the meta variant (benefit-led, brand-free,
+ * NO prices — pre-capture the visitor sees benefits only). The one locked tier
+ * (Core 12) still carries copy for type completeness but renders disabled with
+ * a line-only tag.
  */
 const metaWarrantyCardCopy: Record<
   PpfLine,
@@ -597,7 +595,7 @@ const metaWarrantyCardCopy: Record<
     12: { label: "Maximum cover", value: "Our longest warranty" },
   },
   core: {
-    5: { label: "Essential cover", value: "Registered warranty" },
+    5: { label: "Essential cover", value: "Matte included" },
     10: { label: "Most chosen", value: "Long cover, smart price" },
     12: { label: "Maximum cover", value: "Our longest warranty" },
   },
@@ -1858,12 +1856,13 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   // visitor has qualified (calculator complete). Owner data: drive-by Meta
   // WhatsApp chats essentially never close. Google/v3 keeps direct WhatsApp.
   const hideDirectWa = isMetaVariant && !isComplete;
-  // The Meta Lead diet: a Lead only fires for visitors whose car passed the
-  // tier inference AND who resolved the price qualifier as budget-viable.
-  // Everyone else is still captured + tagged in the CRM — Meta just never
-  // trains on them.
-  const ppfLeadQualified =
-    !isMetaVariant || (carTierOk && qualifierPassed === true);
+  // The Meta Lead diet (2026-07-13, Capture → Reveal → Play): qualification
+  // IS the capture. The price-qualifier survey is gone — a visitor qualifies
+  // by leaving a real number (the unlock form, or the bonus-lock field), so
+  // the pixel Lead fires on the successful unlock submit and only ever trains
+  // on captured contacts — never on drive-by taps. The junk-car inference
+  // gate stays wired for the (now unreachable) car step.
+  const ppfLeadQualified = !isMetaVariant || (carTierOk && phoneCaptured);
 
   const trackEvent = useCallback(
     (
@@ -2204,22 +2203,15 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   }, [step, trackEvent]);
 
   const goToStep = (rawNextStep: FlowStep, reason: string) => {
-    // Meta variant central routing: (a) any entry to the calculator passes the
-    // car step until model+year are answered; (b) any attempt to reach the
-    // result passes the price qualifier until it has resolved.
-    let nextStep = rawNextStep;
-    // 2026-07-11: the forced car step (model+year before finish) is GONE — data
-    // showed it plus the qualifier ladders collapsed submissions to zero after
-    // the 519b347 deploy (54 unlocks/862 landings before → 0/232 after). The
-    // vehicle field stays available on the result step; typing is optional.
-    if (
-      rawNextStep === "result" &&
-      isMetaVariant &&
-      qualifierPassedRef.current === null
-    ) {
-      nextStep = "qualify";
-      setQualifySub("position");
-    }
+    // 2026-07-13 Capture → Reveal → Play: the meta price qualifier between
+    // package and result is GONE, restoring the proven cheap-capture order
+    // (size → finish → package → gated result). Qualification is now the
+    // capture itself — see ppfLeadQualified. This follows 2026-07-11, when
+    // the forced car step was dropped for the same reason: the car step plus
+    // the qualifier ladders collapsed submissions to zero after the 519b347
+    // deploy (54 unlocks/862 landings before → 0/232 after). The car and
+    // qualify JSX below is intentionally dead-but-unreachable.
+    const nextStep = rawNextStep;
     setStep(nextStep);
     window.setTimeout(() => {
       flowPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2318,8 +2310,8 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   };
 
   /**
-   * META only: Signature/Core film-line switch on the warranty step. Core has
-   * no 12-year tier; Signature has no 5-year tier — invalid picks downshift.
+   * META only: Signature/Core film-line switch (post-unlock "Adjust my build"
+   * panel). Core has no 12-year tier — that pick falls back to 10.
    */
   const selectLine = (nextLine: PpfLine) => {
     if (!isMetaVariant || nextLine === line) return;
@@ -2328,10 +2320,6 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     }
     let nextYears = warrantyYears;
     if (nextLine === "core" && warrantyYears === 12) {
-      nextYears = 10;
-      setWarrantyYears(10);
-    }
-    if (nextLine === "signature" && warrantyYears === 5) {
       nextYears = 10;
       setWarrantyYears(10);
     }
@@ -2567,6 +2555,9 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   };
 
   const handleWhatsApp = (placement: string) => {
+    // META post-unlock: sync the CRM row to the message-moment build before
+    // handing off (no-op pre-unlock / on other variants — guarded inside).
+    flushAdjustedBuildCaptureForWhatsApp();
     trackWhatsAppContact(placement);
     // Observe-only signal for the dashboard (does not affect bidding).
     trackGooglePreFormWhatsAppConversion(estimate ?? undefined);
@@ -2617,6 +2608,213 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     [],
   );
 
+  // POST-UNLOCK: the big green price renders `animatedPrice`. Build
+  // adjustments run their own count animation (below); every other selection
+  // path that changes the price while unlocked (e.g. "Edit setup" back-nav
+  // changing the size, then revealing again) must not leave a stale number
+  // on screen — snap to the live target unless a count is mid-flight.
+  useEffect(() => {
+    if (!discountUnlocked || targetPrice === null) return;
+    if (priceRafRef.current !== null) return; // an in-flight count owns the value
+    setAnimatedPrice(targetPrice);
+  }, [discountUnlocked, targetPrice]);
+
+  // ── POST-UNLOCK CRM SYNC (meta) ─────────────────────────────────────────
+  // Owner requirement (2026-07-13): "Adjust my build" changes must land on the
+  // CRM LEAD, not just in analytics events. Re-running captureLeadSnapshot
+  // with the SAME phone is safe: the sync_lead_from_snapshot trigger matches
+  // the existing lead by normalized_phone FIRST and UPDATEs it (coalesce-fill
+  // + last_activity_at) — it never inserts a second lead for a known phone,
+  // and enqueue_new_lead_alert dedupes per lead_id so Telegram cannot
+  // re-alert. The lead's latest_quote_estimate is refreshed separately by
+  // sync_lead_from_event from the build_adjusted_post_unlock event's
+  // estimate_value; the snapshot carries the full adjusted payload for the
+  // admin lead panel. Writes are DEBOUNCED (~2.5s) so rapid tapping in the
+  // panel produces one write, cleared on unmount, and FLUSHED on the
+  // WhatsApp tap so the build in the message is always the build in the CRM.
+  const adjustCaptureTimerRef = useRef<number | null>(null);
+  const pendingAdjustCaptureRef = useRef<(() => void) | null>(null);
+  const lastAdjustCaptureSigRef = useRef<string | null>(null);
+  const buildWasAdjustedRef = useRef(false);
+
+  const clearAdjustCaptureTimer = useCallback(() => {
+    if (adjustCaptureTimerRef.current !== null) {
+      window.clearTimeout(adjustCaptureTimerRef.current);
+      adjustCaptureTimerRef.current = null;
+    }
+  }, []);
+
+  // Pending (unflushed) debounced writes are dropped on unmount by design —
+  // the last flushed/completed snapshot already holds a valid build.
+  useEffect(() => () => clearAdjustCaptureTimer(), [clearAdjustCaptureTimer]);
+
+  /**
+   * Writes the given post-unlock build to the CRM as a contact snapshot on
+   * the SAME phone (the DB trigger merges it into the existing lead — no new
+   * lead row, no new Telegram alert). Skips builds identical to the last
+   * synced one so repeat taps / WhatsApp re-sends don't write identical rows.
+   */
+  const captureAdjustedBuildSnapshot = (
+    build: {
+      nextLine: PpfLine;
+      nextYears: PackageYears | null;
+      nextFinish: PpfPricingFinish | null;
+    },
+    trigger: string,
+  ) => {
+    const cleanedPhone = phone.trim();
+    if (!isLikelyRealPhone(cleanedPhone)) return;
+    const sig = `${build.nextLine}|${build.nextYears}|${build.nextFinish}|${size}`;
+    if (sig === lastAdjustCaptureSigRef.current) return;
+
+    const projectedEstimate = priceFor(size, build.nextFinish, build.nextYears, build.nextLine);
+    if (projectedEstimate === null) return;
+    const projectedList = Math.round(projectedEstimate / 0.8 / 10) * 10;
+
+    lastAdjustCaptureSigRef.current = sig;
+    void captureLeadSnapshot({
+      snapshotType: "contact",
+      context: funnelContext,
+      fullName: name.trim(),
+      phone: cleanedPhone,
+      vehicleModel: vehicle.trim(),
+      payload: {
+        ...buildProjectedPayload({
+          nextFinish: build.nextFinish,
+          nextWarrantyYears: build.nextYears,
+          nextLine: build.nextLine,
+        }),
+        service_name: buildWasAdjustedRef.current
+          ? `${variantConfig.bonusClaimServiceName} (adjusted)`
+          : variantConfig.bonusClaimServiceName,
+        service_price: projectedEstimate,
+        final_price: projectedEstimate,
+        list_price: projectedList,
+        discount_savings: projectedList - projectedEstimate,
+        build_adjusted: buildWasAdjustedRef.current,
+        capture_location: trigger,
+      },
+    }).then((result) => {
+      if (!result.ok) {
+        // Allow a retry on the next change/tap and surface the failure.
+        lastAdjustCaptureSigRef.current = null;
+        trackEvent(
+          "lead_save_failed",
+          {
+            capture_location: trigger,
+            reason: ("reason" in result ? result.reason : null) ?? "unknown",
+            ...buildPayload(),
+          },
+          { emitToTagManagers: false },
+        );
+      }
+    });
+  };
+
+  /** Debounce an adjusted-build CRM write (~2.5s after the LAST change). */
+  const queueAdjustedBuildCapture = (build: {
+    nextLine: PpfLine;
+    nextYears: PackageYears | null;
+    nextFinish: PpfPricingFinish | null;
+  }) => {
+    buildWasAdjustedRef.current = true;
+    pendingAdjustCaptureRef.current = () =>
+      captureAdjustedBuildSnapshot(build, "result_adjust_build");
+    clearAdjustCaptureTimer();
+    adjustCaptureTimerRef.current = window.setTimeout(() => {
+      adjustCaptureTimerRef.current = null;
+      const pending = pendingAdjustCaptureRef.current;
+      pendingAdjustCaptureRef.current = null;
+      pending?.();
+    }, 2500);
+  };
+
+  /**
+   * WhatsApp tap, post-unlock: flush any pending debounced write immediately,
+   * and re-capture the message-moment build once regardless (the signature
+   * guard turns repeat taps on an unchanged build into no-ops), so the CRM
+   * row always matches the message Sean receives.
+   */
+  const flushAdjustedBuildCaptureForWhatsApp = () => {
+    if (!isMetaVariant || !discountUnlocked) return;
+    clearAdjustCaptureTimer();
+    const pending = pendingAdjustCaptureRef.current;
+    pendingAdjustCaptureRef.current = null;
+    if (pending) {
+      pending();
+      return;
+    }
+    captureAdjustedBuildSnapshot(
+      { nextLine: line, nextYears: warrantyYears, nextFinish: finish },
+      "result_whatsapp_tap",
+    );
+  };
+
+  /**
+   * META only — post-unlock "Adjust my build" playground (Capture → Reveal →
+   * Play). The capture already happened, so the visitor can flip line /
+   * warranty / finish freely. Every change routes through the existing
+   * selection handlers (selectLine / selectPackage / selectFinish keep firing
+   * guided_step_completed + calculator_selection_changed), then fires ONE
+   * consolidated `build_adjusted_post_unlock` event with the projected build
+   * and re-runs the price count from the previous unlocked price to the new
+   * one so the reveal stays alive. The struck anchor, savings chip, and
+   * WhatsApp message all derive from the same state, so they re-price with it.
+   */
+  const adjustBuildPostUnlock = (
+    change:
+      | { control: "line"; nextLine: PpfLine }
+      | { control: "warranty"; nextYears: PackageYears }
+      | { control: "finish"; nextFinish: PpfPricingFinish },
+  ) => {
+    if (!isMetaVariant || !discountUnlocked) return;
+
+    const previousPrice = priceFor(size, finish, warrantyYears);
+    let nextLine = line;
+    let nextYears = warrantyYears;
+    let nextFinish = finish;
+
+    if (change.control === "line") {
+      if (change.nextLine === line) return;
+      nextLine = change.nextLine;
+      // Core has no 12-year tier — selectLine falls the warranty back to 10.
+      if (nextLine === "core" && warrantyYears === 12) nextYears = 10;
+      selectLine(nextLine);
+    } else if (change.control === "warranty") {
+      if (
+        change.nextYears === warrantyYears ||
+        !metaWarrantyAvailable(line, change.nextYears)
+      ) {
+        return;
+      }
+      nextYears = change.nextYears;
+      selectPackage(nextYears);
+    } else {
+      if (change.nextFinish === finish) return;
+      nextFinish = change.nextFinish;
+      selectFinish(nextFinish);
+    }
+
+    trackEvent("build_adjusted_post_unlock", {
+      ...buildProjectedPayload({
+        nextFinish,
+        nextWarrantyYears: nextYears,
+        nextLine,
+      }),
+      adjusted_control: change.control,
+      previous_price: previousPrice,
+    });
+
+    // Debounced CRM sync — the adjusted build must reach the LEAD row too.
+    queueAdjustedBuildCapture({ nextLine, nextYears, nextFinish });
+
+    const nextPrice = priceFor(size, nextFinish, nextYears, nextLine);
+    if (previousPrice !== null && nextPrice !== null && previousPrice !== nextPrice) {
+      runPriceCountdown(previousPrice, nextPrice);
+    } else if (nextPrice !== null) {
+      setAnimatedPrice(nextPrice);
+    }
+  };
 
   // The locked-in WhatsApp message — uses the captured name and the DISCOUNTED
   // targetPrice, and flags the 20% online discount. Kept separate from the
@@ -2648,6 +2846,9 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const handleSendLockedInPrice = () => {
     // Analytics/admin only. The form submit already captured the lead, so the
     // post-submit WhatsApp handoff must not fire a Google Ads conversion.
+    // The CRM row is re-synced to the message-moment build first (flushes any
+    // pending debounced adjustment write).
+    flushAdjustedBuildCaptureForWhatsApp();
     trackWhatsAppContact("result_unlock_send");
     window.open(buildWhatsAppUrl(buildLockedInWhatsAppMessage()), "_blank", "noopener,noreferrer");
   };
@@ -3000,9 +3201,10 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     });
   };
 
-  const flowSteps: FlowStep[] = isMetaVariant
-    ? ["size", "car", "finish", "package", "qualify", "result"]
-    : stepOrder;
+  // 2026-07-13: meta runs the same lean order as every other variant —
+  // size → finish → package → result. The car and qualify steps survive only
+  // as unreachable JSX (nothing routes to them).
+  const flowSteps: FlowStep[] = stepOrder;
   const activeStepIndex = flowSteps.indexOf(step);
   const progress = Math.round(((activeStepIndex + 1) / flowSteps.length) * 100);
 
@@ -4105,116 +4307,27 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                       How long do you want it to last?
                     </h2>
 
-                    {isMetaVariant && spendLessHintShown ? (
-                      <div className="mt-3 rounded-2xl border border-[#25D366]/45 bg-[#25D366]/10 p-3 sm:mt-4 sm:p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#25D366] sm:text-[11px]">
-                          Smart Value suggestion
-                        </p>
-                        <p className="mt-1 text-sm font-bold leading-snug text-white sm:text-base">
-                          Try our Smart Value line — same prep, same installers, friendlier price.
-                        </p>
-                      </div>
-                    ) : null}
-
-                    {isMetaVariant ? (
-                      /* META only: Signature/Core line selector — benefit-led,
-                         brand-free copy. Signature is the gold hero default;
-                         Core trades premium finish for a sharper price (no
-                         12-year tier). */
-                      <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-2.5">
-                        {metaLineOptions.map((option) => {
-                          const isSelected = line === option.value;
-                          const isSpendLessNudge =
-                            spendLessHintShown && option.value === "core";
-                          const accentClass = isSelected
-                            ? isSpendLessNudge
-                              ? "text-[#25D366]"
-                              : "text-[#f7b52b]"
-                            : "text-white";
-                          const accentMutedClass = isSelected
-                            ? isSpendLessNudge
-                              ? "text-[#25D366]/85"
-                              : "text-[#f7b52b]/85"
-                            : "text-slate-400";
-                          return (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => selectLine(option.value)}
-                              className={cn(
-                                "rounded-xl border px-2.5 py-2 text-left transition sm:rounded-2xl sm:px-3 sm:py-2.5",
-                                isSelected
-                                  ? isSpendLessNudge
-                                    ? "border-[#25D366] bg-[#25D366]/10 ring-2 ring-[#25D366]/45 shadow-[0_0_28px_rgba(37,211,102,0.22)]"
-                                    : "border-[#f7b52b] bg-[#f7b52b]/10 ring-1 ring-[#f7b52b]/40 shadow-[0_0_28px_rgba(247,181,43,0.2)]"
-                                  : "border-white/10 bg-white/[0.03] hover:border-[#f7b52b]/45",
-                              )}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <p
-                                  className={cn(
-                                    "text-sm font-black leading-none sm:text-base",
-                                    accentClass,
-                                  )}
-                                >
-                                  {option.label}
-                                </p>
-                                <p
-                                  className="flex shrink-0 items-center gap-px leading-none"
-                                  aria-label={
-                                    option.priceTier === 3 ? "Premium price tier" : "Value price tier"
-                                  }
-                                >
-                                  {Array.from({ length: option.priceTier }, (_, index) => (
-                                    <span
-                                      key={index}
-                                      className={cn(
-                                        "text-sm font-black sm:text-base",
-                                        isSelected ? accentClass : "text-white/85",
-                                      )}
-                                    >
-                                      $
-                                    </span>
-                                  ))}
-                                </p>
-                              </div>
-                              <p
-                                className={cn(
-                                  "mt-1 text-[8px] font-black uppercase tracking-[0.1em] sm:text-[9px] sm:tracking-[0.12em]",
-                                  accentMutedClass,
-                                )}
-                              >
-                                {option.tag}
-                              </p>
-                              <p className="mt-0.5 text-[10px] leading-snug text-slate-400 sm:text-[11px] sm:leading-4">
-                                {option.helper}
-                              </p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-
+                    {/* 2026-07-13 Capture → Reveal → Play: PRE-CAPTURE shows
+                        zero prices and zero extra decisions. The Signature/Core
+                        line selector and the "from AED X" previews moved to the
+                        post-unlock "Adjust my build" panel on the result step —
+                        this step sells the warranty on benefit copy only
+                        (default line = Signature). */}
                     <div className="mt-3 grid gap-2 sm:mt-5 sm:grid-cols-3 sm:gap-3">
                       {packageOptions.map((option, index) => {
                         const isSelected = warrantyYears === option.years;
                         // META: line-locked tiers stay visible but disabled —
-                        // Core 12 = "Signature only", Signature 5 = "Core only".
+                        // Core 12 = "Signature only" (only reachable after a
+                        // post-unlock switch to Core, then "Edit setup").
                         const lineLockLabel =
-                          isMetaVariant && line === "core" && option.years === 12
+                          isMetaVariant && !metaWarrantyAvailable(line, option.years)
                             ? "Signature only"
-                            : isMetaVariant && line === "signature" && option.years === 5
-                              ? "Core only"
-                              : null;
+                            : null;
                         const isLineLocked = lineLockLabel !== null;
                         const showGlow = !warrantyYears && !isLineLocked;
-                        const previewPrice =
-                          isMetaVariant && !isLineLocked && size && finish
-                            ? metaLinePrice(line, option.years, size, finish)
-                            : null;
-                        // META copy: benefit-led, line-aware, brand-name-free
-                        // (owner copy 2026-07-11). Other variants keep their
-                        // original card copy untouched.
+                        // META copy: benefit-led, line-aware, brand-name-free,
+                        // and PRICE-FREE (no numbers before unlock). Other
+                        // variants keep their original card copy untouched.
                         const metaCopy = isMetaVariant
                           ? metaWarrantyCardCopy[line][option.years]
                           : null;
@@ -4263,11 +4376,6 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                               <p className="mt-0.5 text-[11px] leading-snug text-slate-400 sm:mt-1 sm:text-xs sm:leading-5">
                                 {cardValue}
                               </p>
-                              {previewPrice !== null ? (
-                                <p className="mt-1 text-sm font-black text-[#f7b52b] sm:mt-1.5 sm:text-base">
-                                  from {formatAED(previewPrice)}
-                                </p>
-                              ) : null}
                             </div>
                             {showGlow ? <GuidedCardGlow delay={index * 1.6} /> : null}
                           </button>
@@ -4428,6 +4536,133 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
                                 <Sparkles className="h-4 w-4" />
                                 You unlocked {formatAED((discountSavings ?? 0) + valueStackTotal)} of value
                               </span>
+                            </div>
+                          ) : null}
+
+                          {isMetaVariant ? (
+                            /* ── POST-UNLOCK PLAYGROUND: "Adjust my build" ──
+                               Capture → Reveal → Play, step 3. The number is
+                               already revealed, so the visitor can now flip
+                               line / warranty / finish freely and watch the
+                               price, struck anchor, and savings re-price live
+                               (adjustBuildPostUnlock re-runs the count). */
+                            <div className="mt-3.5 rounded-xl border border-[#f7b52b]/25 bg-black/30 p-3 sm:p-3.5">
+                              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                <p className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#f7b52b] sm:text-[11px]">
+                                  <Wrench className="h-3.5 w-3.5" />
+                                  Adjust my build
+                                </p>
+                                <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-[10px]">
+                                  Price updates live
+                                </span>
+                              </div>
+
+                              {/* Film line — brand-free copy, Signature first */}
+                              <div className="mt-2.5 grid grid-cols-2 gap-2">
+                                {metaLineOptions.map((option) => {
+                                  const isSelectedLine = line === option.value;
+                                  return (
+                                    <button
+                                      key={option.value}
+                                      type="button"
+                                      onClick={() =>
+                                        adjustBuildPostUnlock({
+                                          control: "line",
+                                          nextLine: option.value,
+                                        })
+                                      }
+                                      className={cn(
+                                        "rounded-xl border px-2.5 py-2 text-left transition sm:px-3 sm:py-2.5",
+                                        isSelectedLine
+                                          ? "border-[#f7b52b] bg-[#f7b52b]/10 ring-1 ring-[#f7b52b]/40"
+                                          : "border-white/10 bg-white/[0.03] hover:border-[#f7b52b]/45",
+                                      )}
+                                    >
+                                      <p
+                                        className={cn(
+                                          "text-sm font-black leading-none sm:text-base",
+                                          isSelectedLine ? "text-[#f7b52b]" : "text-white",
+                                        )}
+                                      >
+                                        {option.label}
+                                      </p>
+                                      <p className="mt-1 text-[10px] leading-snug text-slate-400 sm:text-[11px]">
+                                        {option.helper}
+                                      </p>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Warranty — Core has no 12-year (falls back to 10 on switch) */}
+                              <div className="mt-2 grid grid-cols-3 gap-2">
+                                {packageOptions.map((option) => {
+                                  const isAvailable = metaWarrantyAvailable(line, option.years);
+                                  const isSelectedYears = warrantyYears === option.years;
+                                  return (
+                                    <button
+                                      key={option.years}
+                                      type="button"
+                                      disabled={!isAvailable}
+                                      onClick={() =>
+                                        adjustBuildPostUnlock({
+                                          control: "warranty",
+                                          nextYears: option.years,
+                                        })
+                                      }
+                                      className={cn(
+                                        "rounded-xl border px-2 py-2 text-center transition",
+                                        isSelectedYears && isAvailable
+                                          ? "border-[#f7b52b] bg-[#f7b52b]/10 ring-1 ring-[#f7b52b]/40"
+                                          : "border-white/10 bg-white/[0.03] hover:border-[#f7b52b]/45",
+                                        !isAvailable &&
+                                          "cursor-not-allowed opacity-45 hover:border-white/10",
+                                      )}
+                                    >
+                                      <span
+                                        className={cn(
+                                          "block text-base font-black leading-none sm:text-lg",
+                                          isSelectedYears && isAvailable
+                                            ? "text-[#f7b52b]"
+                                            : "text-white",
+                                        )}
+                                      >
+                                        {option.years}
+                                      </span>
+                                      <span className="mt-0.5 block text-[8px] font-black uppercase tracking-[0.14em] text-slate-400 sm:text-[9px]">
+                                        {isAvailable ? "Year warranty" : "Signature only"}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Finish */}
+                              <div className="mt-2 grid grid-cols-2 gap-2">
+                                {finishOptions.map((option) => {
+                                  const isSelectedFinish = finish === option.value;
+                                  return (
+                                    <button
+                                      key={option.value}
+                                      type="button"
+                                      onClick={() =>
+                                        adjustBuildPostUnlock({
+                                          control: "finish",
+                                          nextFinish: option.value,
+                                        })
+                                      }
+                                      className={cn(
+                                        "rounded-xl border px-2.5 py-2 text-center text-sm font-black transition",
+                                        isSelectedFinish
+                                          ? "border-[#f7b52b] bg-[#f7b52b]/10 text-[#f7b52b] ring-1 ring-[#f7b52b]/40"
+                                          : "border-white/10 bg-white/[0.03] text-white hover:border-[#f7b52b]/45",
+                                      )}
+                                    >
+                                      {option.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           ) : null}
                         </>
