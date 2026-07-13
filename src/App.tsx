@@ -28,6 +28,7 @@ const BestPpfStudioDubai = lazy(() => import("./pages/BestPpfStudioDubai"));
 const PpfFullPpfCalculator = lazy(() => import("./pages/PpfFullPpfCalculator"));
 const PpfFullPpfGuidedCalculator = lazy(() => import("./pages/PpfFullPpfGuidedCalculator"));
 const PpfFullPpfGuidedCalculatorV2 = lazy(() => import("./pages/PpfFullPpfGuidedCalculatorV2"));
+const PpfMetaPriceBuilder = lazy(() => import("./pages/PpfMetaPriceBuilder"));
 const PpfWhatsAppDirect = lazy(() => import("./pages/PpfWhatsAppDirect"));
 const TintDubaiQuoteFunnel = lazy(() => import("./pages/TintDubaiQuoteFunnel"));
 const TintDubaiFastFunnel = lazy(() => import("./pages/TintDubaiFastFunnel"));
@@ -136,6 +137,8 @@ function App() {
             <Route path="/ppf-dubai-price" element={<PpfFullPpfGuidedCalculatorV2 variant="price" />} />
             {/* Free-play price builder (staging for the /ppf-dubai-price swap — not linked from ads yet). */}
             <Route path="/ppf-dubai-price-v2" element={<PpfFullPpfGuidedCalculatorV2 variant="builder" />} />
+            {/* Meta-ads one-screen price builder (Jul 2026): Meta pixel only, two film lines. */}
+            <Route path="/ppf-meta-builder" element={<PpfMetaPriceBuilder />} />
             {/* FAST tint funnel (Jul 2026): price visible with zero clicks, one-action
                 capture (WhatsApp tap or phone submit). Replaced the guided 3-step
                 funnel after 0 leads from ~360 paid clicks — old version kept on
