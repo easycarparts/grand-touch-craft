@@ -1624,7 +1624,15 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
   const [finish, setFinish] = useState<PpfPricingFinish | null>(null);
   const [warrantyYears, setWarrantyYears] = useState<PackageYears | null>(null);
   // META only: Signature (STEK/GYEON, hero default) vs Core (certified films).
-  const [line, setLine] = useState<PpfLine>("signature");
+  // Per-campaign default line via URL (?line=core): price-floor ads promising
+  // "from AED 6,990" must reveal a Core price, not the Signature default —
+  // otherwise the unlock moment reads as bait-and-switch.
+  const [line, setLine] = useState<PpfLine>(() => {
+    if (typeof window === "undefined") return "signature";
+    return new URLSearchParams(window.location.search).get("line") === "core"
+      ? "core"
+      : "signature";
+  });
   const [vehicle, setVehicle] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
