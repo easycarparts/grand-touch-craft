@@ -42,6 +42,10 @@ import { cn } from "@/lib/utils";
  *   - primary: WhatsApp tap (fires Contact always, Lead once per session)
  *   - secondary: phone number submit (saves CRM snapshot, fires Lead/SubmitForm)
  *
+ * Meta Lead reliability: only mark the session Lead as fired after fbq accepts
+ * the call; retry briefly if the pixel is late; delay WhatsApp open so Contact/
+ * Lead can flush before the tab is stolen on mobile.
+ *
  * No name, no car model, no year, no timing, no add-on steps before capture.
  * Meta + TikTok pixels only — NO Google Ads conversions on this page.
  */
@@ -260,7 +264,15 @@ const TintDubaiFastFunnel = () => {
   );
 
   const trackEvent = useCallback(
-    (eventName: string, payload: Record<string, unknown> = {}) => {
+    (
+      eventName: string,
+      payload: Record<string, unknown> = {},
+      options: {
+        metaStandardEvent?: MetaStandardEvent;
+        metaPayload?: Record<string, unknown>;
+        emitToTagManagers?: boolean;
+      } = {},
+    ) => {
       const elapsedMs = Math.max(0, Date.now() - startedAtRef.current);
       const currentScrollPercent = getScrollPercent();
       maxScrollPercentRef.current = Math.max(maxScrollPercentRef.current, currentScrollPercent);
@@ -280,6 +292,9 @@ const TintDubaiFastFunnel = () => {
             hasSelectedTier: selectedTierRef.current,
           }),
         },
+        metaStandardEvent: options.metaStandardEvent,
+        metaPayload: options.metaPayload,
+        emitToTagManagers: options.emitToTagManagers,
       });
     },
     [funnelContext],
@@ -287,7 +302,7 @@ const TintDubaiFastFunnel = () => {
 
   const trackMetaStandardEvent = useCallback(
     (eventName: MetaStandardEvent, payload: Record<string, unknown> = {}) => {
-      if (typeof window === "undefined" || !window.fbq) return;
+      if (typeof window === "undefined" || !window.fbq) return false;
       try {
         window.fbq("track", eventName, {
           funnel_name: funnelContext.funnelName,
@@ -296,8 +311,10 @@ const TintDubaiFastFunnel = () => {
           ...funnelContext.attribution,
           ...payload,
         });
+        return true;
       } catch (error) {
         console.warn("Failed to send Meta standard event", error);
+        return false;
       }
     },
     [funnelContext],
@@ -399,22 +416,40 @@ const TintDubaiFastFunnel = () => {
 
   const fireLeadOnce = useCallback(
     (payload: Record<string, unknown>) => {
-      if (metaLeadFiredRef.current) return;
-      metaLeadFiredRef.current = true;
-      trackMetaStandardEvent("Lead", payload);
-      trackTikTokEvent(
-        "Lead",
-        {
-          contents: [TINT_TIKTOK_CONTENT],
-          content_name: TINT_TIKTOK_CONTENT.content_name,
-          content_category: TINT_TIKTOK_CONTENT.content_category,
-          value: price,
-          currency: "AED",
-        },
-        { pixelIds: TINT_TIKTOK_PIXEL_IDS },
-      );
+      if (metaLeadFiredRef.current) return true;
+
+      const send = () => {
+        if (metaLeadFiredRef.current) return true;
+        // Never mark "fired" until fbq actually accepts the call — otherwise a
+        // late-loading pixel (common in IG/FB in-app browsers) permanently
+        // blocks the Lead for this session while CRM still gets the lead.
+        const sent = trackMetaStandardEvent("Lead", payload);
+        if (!sent) return false;
+        metaLeadFiredRef.current = true;
+        trackTikTokEvent(
+          "Lead",
+          {
+            contents: [TINT_TIKTOK_CONTENT],
+            content_name: TINT_TIKTOK_CONTENT.content_name,
+            content_category: TINT_TIKTOK_CONTENT.content_category,
+            value: price,
+            currency: "AED",
+          },
+          { pixelIds: TINT_TIKTOK_PIXEL_IDS },
+        );
+        return true;
+      };
+
+      if (send()) return true;
+
+      [150, 500, 1200, 2500].forEach((ms) => {
+        window.setTimeout(() => {
+          send();
+        }, ms);
+      });
+      return false;
     },
-    [price, trackMetaStandardEvent, trackTikTokEvent],
+    [price, trackMetaStandardEvent],
   );
 
   const whatsAppMessage = useMemo(
@@ -456,7 +491,12 @@ const TintDubaiFastFunnel = () => {
     };
     trackEvent("whatsapp_click", eventPayload);
     trackEvent("selected_price_whatsapp_click", eventPayload);
-    window.open(buildWhatsAppUrl(whatsAppMessage), "_blank", "noopener,noreferrer");
+    // Brief delay so Contact/Lead can leave the browser before WhatsApp steals
+    // the tab (especially on mobile / in-app browsers).
+    const waUrl = buildWhatsAppUrl(whatsAppMessage);
+    window.setTimeout(() => {
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+    }, 280);
   };
 
   const handlePhoneSubmit = async (event: FormEvent) => {
@@ -499,16 +539,45 @@ const TintDubaiFastFunnel = () => {
     }
 
     setPhoneStatus("saved");
-    trackEvent("lead_form_submitted", {
-      form_type: "fast_phone_capture",
-      ...buildPayload(),
-    });
-    fireLeadOnce({
+    const metaLeadPayload = {
       content_name: TINT_TIKTOK_CONTENT.content_name,
       content_category: "Tint",
       value: price,
       currency: "AED",
-    });
+    };
+    const shouldFireMetaLead = !metaLeadFiredRef.current;
+    if (shouldFireMetaLead) metaLeadFiredRef.current = true;
+    trackEvent(
+      "lead_form_submitted",
+      {
+        form_type: "fast_phone_capture",
+        ...buildPayload(),
+      },
+      shouldFireMetaLead
+        ? {
+            metaStandardEvent: "Lead",
+            metaPayload: metaLeadPayload,
+          }
+        : {},
+    );
+    if (shouldFireMetaLead) {
+      trackTikTokEvent(
+        "Lead",
+        {
+          contents: [TINT_TIKTOK_CONTENT],
+          content_name: TINT_TIKTOK_CONTENT.content_name,
+          content_category: TINT_TIKTOK_CONTENT.content_category,
+          value: price,
+          currency: "AED",
+        },
+        { pixelIds: TINT_TIKTOK_PIXEL_IDS },
+      );
+      // If the pixel stub never loaded, unstick the session guard and retry.
+      if (typeof window !== "undefined" && !window.fbq) {
+        metaLeadFiredRef.current = false;
+        fireLeadOnce(metaLeadPayload);
+      }
+    }
     await identifyTikTokUser(
       { phoneNumber: cleaned, externalId: funnelContext.visitorId },
       { pixelIds: TINT_TIKTOK_PIXEL_IDS },
