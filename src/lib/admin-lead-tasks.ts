@@ -1547,7 +1547,7 @@ export const useLeadTaskBoardData = () => {
       return;
     }
     setNoteDrafts((current) => ({ ...current, [lead.id]: "" }));
-    toast({ title: "Note saved", description: "The internal note is now attached to the lead." });
+    toast({ title: "Note added", description: "Saved as a new note. Previous notes are kept." });
     void loadLeadDesk(true);
   }, [adminProfile?.id, loadLeadDesk, noteDrafts, setSaving, toast]);
 

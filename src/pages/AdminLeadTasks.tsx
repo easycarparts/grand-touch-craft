@@ -325,11 +325,33 @@ const TaskCard = ({
 
           <div className="space-y-4">
             <div>
-              <p className="mb-2 text-xs uppercase tracking-[0.16em] text-slate-500">Internal note</p>
-              <Textarea value={noteDraft} onChange={(event) => onNoteChange(event.target.value)} placeholder="Call outcome, objection, budget note..." className="min-h-[96px] border-white/10 bg-black/20 text-sm text-white placeholder:text-slate-500" />
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Internal notes</p>
+                {lead.notes.length ? (
+                  <p className="text-[11px] text-slate-500">{lead.notes.length} saved</p>
+                ) : null}
+              </div>
+              {lead.notes.length ? (
+                <div className="mb-3 max-h-[140px] space-y-2 overflow-y-auto pr-1">
+                  {lead.notes.slice(0, 5).map((note) => {
+                    const author = adminUsersById.get(note.author_admin_user_id);
+                    return (
+                      <div key={note.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                        <p className="whitespace-pre-wrap text-sm leading-5 text-white">{note.body}</p>
+                        <p className="mt-1.5 text-[11px] text-slate-500">
+                          {author?.full_name || author?.email || "Admin"} · {formatTimestamp(note.created_at)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mb-3 text-xs text-slate-500">Each save adds a new note — nothing is overwritten.</p>
+              )}
+              <Textarea value={noteDraft} onChange={(event) => onNoteChange(event.target.value)} placeholder="Add another note: call outcome, objection, budget..." className="min-h-[96px] border-white/10 bg-black/20 text-sm text-white placeholder:text-slate-500" />
               <div className="mt-3 flex justify-end">
                 <Button type="button" variant="outline" className="h-9 border-white/10 bg-black/20 px-3 text-sm text-white hover:bg-white/10" onClick={onSaveNote} disabled={Boolean(savingKeys[`note:${lead.id}`])}>
-                  Save note
+                  Add note
                 </Button>
               </div>
             </div>

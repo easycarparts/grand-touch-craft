@@ -2075,8 +2075,8 @@ const AdminLeads = () => {
     }));
 
     toast({
-      title: "Note saved",
-      description: "The internal note is now attached to the lead.",
+      title: "Note added",
+      description: "Saved as a new note. Previous notes are kept.",
     });
 
     void loadLeadDesk({ refresh: true });

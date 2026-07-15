@@ -887,23 +887,41 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                     <Card className="border-white/10 bg-black/20 p-4">
                                       <div className="flex items-center justify-between gap-3">
                                         <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
-                                          Latest Internal Note
+                                          Internal Notes
                                         </p>
-                                        {latestNote ? (
+                                        {lead.notes.length ? (
                                           <p className="text-xs text-slate-500">
-                                            {formatTimestamp(latestNote.created_at)}
+                                            {lead.notes.length} total · latest{" "}
+                                            {formatTimestamp(latestNote?.created_at || "")}
                                           </p>
                                         ) : null}
                                       </div>
-                                      {latestNote ? (
-                                        <>
-                                          <p className="mt-4 text-sm leading-6 text-white">{latestNote.body}</p>
-                                          <p className="mt-4 text-xs text-slate-500">
-                                            {adminUsersById.get(latestNote.author_admin_user_id)?.full_name ||
-                                              adminUsersById.get(latestNote.author_admin_user_id)?.email ||
-                                              "Admin"}
-                                          </p>
-                                        </>
+                                      {lead.notes.length ? (
+                                        <div className="mt-4 space-y-3">
+                                          {lead.notes.slice(0, 3).map((note) => {
+                                            const author =
+                                              adminUsersById.get(note.author_admin_user_id) ?? null;
+                                            return (
+                                              <div
+                                                key={note.id}
+                                                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5"
+                                              >
+                                                <p className="whitespace-pre-wrap text-sm leading-6 text-white">
+                                                  {note.body}
+                                                </p>
+                                                <p className="mt-2 text-[11px] text-slate-500">
+                                                  {author?.full_name || author?.email || "Admin"} ·{" "}
+                                                  {formatTimestamp(note.created_at)}
+                                                </p>
+                                              </div>
+                                            );
+                                          })}
+                                          {lead.notes.length > 3 ? (
+                                            <p className="text-xs text-slate-500">
+                                              +{lead.notes.length - 3} older notes in Update CRM / Notes Archive
+                                            </p>
+                                          ) : null}
+                                        </div>
                                       ) : lead.notes_summary ? (
                                         <>
                                           <p className="mt-4 text-sm leading-6 text-white">{lead.notes_summary}</p>
@@ -913,7 +931,7 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                         </>
                                       ) : (
                                         <p className="mt-4 text-sm text-slate-400">
-                                          No internal note saved yet. Add one from Update CRM to keep the next sales step obvious.
+                                          No internal notes yet. Add them from Update CRM — each save keeps the history.
                                         </p>
                                       )}
                                     </Card>
@@ -1334,9 +1352,46 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                       </Card>
 
                                       <Card className="border-white/10 bg-black/20 p-4">
-                                        <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
-                                          Add Internal Note
-                                        </p>
+                                        <div className="flex items-center justify-between gap-3">
+                                          <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                                            Internal Notes
+                                          </p>
+                                          {lead.notes.length ? (
+                                            <p className="text-xs text-slate-500">
+                                              {lead.notes.length} saved
+                                            </p>
+                                          ) : null}
+                                        </div>
+
+                                        {lead.notes.length ? (
+                                          <ScrollArea className="mt-4 h-[180px] pr-3">
+                                            <div className="space-y-2">
+                                              {lead.notes.map((note) => {
+                                                const author =
+                                                  adminUsersById.get(note.author_admin_user_id) ?? null;
+                                                return (
+                                                  <div
+                                                    key={note.id}
+                                                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5"
+                                                  >
+                                                    <p className="whitespace-pre-wrap text-sm leading-6 text-white">
+                                                      {note.body}
+                                                    </p>
+                                                    <p className="mt-2 text-[11px] text-slate-500">
+                                                      {author?.full_name || author?.email || "Admin"} ·{" "}
+                                                      {formatTimestamp(note.created_at)}
+                                                    </p>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </ScrollArea>
+                                        ) : (
+                                          <p className="mt-4 text-sm text-slate-400">
+                                            No notes yet. Each save adds a new note — nothing gets overwritten.
+                                          </p>
+                                        )}
+
                                         <Textarea
                                           value={noteDrafts[lead.id] ?? ""}
                                           onChange={(event) =>
@@ -1345,12 +1400,12 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                               [lead.id]: event.target.value,
                                             }))
                                           }
-                                          placeholder="Call result, objections, vehicle details, budget notes..."
+                                          placeholder="Add another note: call result, objections, vehicle details, budget..."
                                           className={`mt-4 ${compactTextareaClass}`}
                                         />
                                         <div className="mt-3 flex items-center justify-between gap-3">
                                           <p className="text-xs text-slate-500">
-                                            Latest note summary updates the lead row automatically.
+                                            Saves as a new note. Lead row shows the latest summary only.
                                           </p>
                                           <Button
                                             type="button"
@@ -1359,7 +1414,7 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                             onClick={() => void handleAddNote(lead)}
                                             disabled={Boolean(savingKeys[`note:${lead.id}`])}
                                           >
-                                            Save note
+                                            Add note
                                           </Button>
                                         </div>
                                       </Card>
