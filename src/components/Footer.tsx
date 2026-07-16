@@ -1,62 +1,91 @@
-import { MapPin, Phone, Mail, Instagram, Clock } from "lucide-react";
+import { MapPin, Phone, Mail, Instagram, Clock, BadgeCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import footerLogo from "@/assets/logo-footer.svg";
+import { BUSINESS, EASY_AUTO } from "@/lib/business";
 
 const Footer = () => {
-  const googleMapsUrl = "https://maps.app.goo.gl/QYYAMcW8TiEETeHs8";
-
   return (
     <footer className="bg-card border-t border-border/50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="space-y-4">
-            <img 
-              src={footerLogo} 
-              alt="Grand Touch Auto Logo" 
+            <img
+              src={footerLogo}
+              alt="Grand Touch Auto Logo"
               className="h-10 w-auto"
             />
             <p className="text-muted-foreground text-sm leading-relaxed">
-            Dubai's luxury automotive studio for workshop repairs, diagnostics, servicing, paint & bodywork,
-            premium detailing, ceramic coatings, PPF, vinyl wraps, restorations, and performance upgrades.
+              Dubai&apos;s STEK-certified studio for PPF, ceramic coating, window
+              tinting, detailing, paint, and workshop repairs.
             </p>
+            <a
+              href={EASY_AUTO.profile}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-primary-foreground"
+            >
+              <BadgeCheck className="h-4 w-4" />
+              Easy Auto Certified Partner
+            </a>
           </div>
 
           {/* Quick Links */}
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-foreground">Quick Links</h4>
             <ul className="space-y-2">
-              {["Services", "Portfolio", "Contact", "Blog"].map((link) => (
-                <li key={link}>
+              {[
+                { label: "Services", to: "/services" },
+                { label: "Portfolio", to: "/portfolio" },
+                { label: "Blog", to: "/blog" },
+                { label: "Contact", to: "/contact" },
+              ].map((link) => (
+                <li key={link.to}>
                   <Link
-                    to={`/${link.toLowerCase()}`}
+                    to={link.to}
                     className="text-muted-foreground hover:text-primary transition-colors text-sm"
                   >
-                    {link}
+                    {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* PPF Links */}
+          {/* Service pillars */}
           <div className="space-y-4">
-            <h4 className="text-lg font-semibold text-foreground">PPF Services</h4>
+            <h4 className="text-lg font-semibold text-foreground">Services</h4>
             <ul className="space-y-2">
               <li>
                 <Link
-                  to="/best-ppf-studio-dubai"
+                  to="/ppf-dubai"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
-                  Best PPF Studio Dubai
+                  Paint Protection Film
                 </Link>
               </li>
               <li>
                 <Link
-                  to="/ppf-full-ppf-calculator-guided-v2"
+                  to="/ceramic-coating-dubai"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
-                  Guided PPF Calculator
+                  Ceramic Coating
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/window-tinting-dubai"
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                >
+                  Window Tinting
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/car-detailing-dubai"
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                >
+                  Detailing &amp; Polishing
                 </Link>
               </li>
               <li>
@@ -77,45 +106,55 @@ const Footer = () => {
               <li className="flex items-start space-x-3">
                 <MapPin className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
                 <a
-                  href={googleMapsUrl}
+                  href={BUSINESS.mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors"
                 >
-                  DIP 2, Dubai Investment Park - 2, Thani warehouse - 3 11b, Dubai, UAE
+                  {BUSINESS.addressFull}
                 </a>
               </li>
               <li className="flex items-center space-x-3">
                 <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                <a href="https://wa.me/971547302243" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
-                  Workshop +971 54 730 2243
+                <a
+                  href={BUSINESS.whatsappWorkshop}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors"
+                >
+                  Workshop {BUSINESS.phoneWorkshopDisplay}
                 </a>
               </li>
               <li className="flex items-center space-x-3">
                 <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                <a href="https://wa.me/971567191045" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
-                  Detailing +971 56 719 1045
+                <a
+                  href={BUSINESS.whatsappDetailing}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors"
+                >
+                  Detailing {BUSINESS.phonePrimaryDisplay}
                 </a>
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                <span>hello@grandtouchauto.ae</span>
+                <a
+                  href={`mailto:${BUSINESS.email}`}
+                  className="hover:text-primary transition-colors"
+                >
+                  {BUSINESS.email}
+                </a>
               </li>
-            </ul>
-          </div>
-
-          {/* Hours */}
-          <div className="space-y-4">
-            <h4 className="text-lg font-semibold text-foreground">Opening Hours</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start space-x-3">
                 <Clock className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
                 <div>
-                  <p>Monday - Saturday</p>
-                  <p className="text-xs">9:00 AM - 7:00 PM</p>
+                  <p>{BUSINESS.openingHoursDisplay.days}</p>
+                  <p className="text-xs">{BUSINESS.openingHoursDisplay.hours}</p>
+                  <p className="text-xs opacity-75">
+                    {BUSINESS.openingHoursDisplay.sunday}
+                  </p>
                 </div>
               </li>
-              <li className="text-xs opacity-75">Sunday - Closed</li>
             </ul>
           </div>
         </div>
@@ -124,7 +163,7 @@ const Footer = () => {
         <div className="pt-8 border-t border-border/30 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="flex flex-col md:flex-row items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © 2025 Grand Touch Auto. All rights reserved.
+              © {new Date().getFullYear()} {BUSINESS.brandName}. All rights reserved.
             </p>
             <Link
               to="/privacy-policy"
@@ -141,7 +180,7 @@ const Footer = () => {
           </div>
           <div className="flex items-center gap-3">
             <a
-              href={googleMapsUrl}
+              href={BUSINESS.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary shadow-[0_0_28px_rgba(247,181,43,0.22)] transition hover:bg-primary hover:text-primary-foreground"
@@ -151,7 +190,7 @@ const Footer = () => {
               Open Location
             </a>
             <a
-              href="https://www.instagram.com/grandtouchauto/"
+              href={BUSINESS.instagram}
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-primary transition-colors"

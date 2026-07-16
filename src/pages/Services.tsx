@@ -1,11 +1,12 @@
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import BookServiceDialog from "@/components/BookServiceDialog";
-import { Shield, Droplets, Palette, Sparkles, Wrench, Sun, Package, Zap, MessageCircle } from "lucide-react";
+import { Shield, Droplets, Palette, Sparkles, Wrench, Package, Zap, MessageCircle, ArrowRight } from "lucide-react";
 import { updatePageSEO, generateBusinessStructuredData } from "@/lib/seo";
 
 const Services = () => {
@@ -121,7 +122,21 @@ const Services = () => {
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Comprehensive automotive care tailored for Dubai's most discerning vehicle owners
           </p>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+              <Link to="/ppf-dubai">PPF Dubai <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/ceramic-coating-dubai">Ceramic Coating</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/window-tinting-dubai">Window Tinting</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/car-detailing-dubai">Detailing</Link>
+            </Button>
+          </div>
+          <div className="mt-6 flex justify-center">
             <BookServiceDialog>
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow">
                 <MessageCircle className="w-5 h-5 mr-2" />

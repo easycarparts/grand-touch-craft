@@ -153,7 +153,7 @@ const BestPpfStudioDubai = () => {
         aggregateRating: {
           "@type": "AggregateRating",
           ratingValue: "4.9",
-          reviewCount: "80",
+          reviewCount: "83",
         },
       },
       areaServed: {

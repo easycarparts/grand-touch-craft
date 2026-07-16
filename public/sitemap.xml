@@ -45,12 +45,45 @@
     <priority>0.8</priority>
   </url>
 
-  <!-- PPF Landing Pages -->
+  <!-- Service money pages -->
   <url>
-    <loc>https://www.grandtouchauto.ae/best-ppf-studio-dubai</loc>
-    <lastmod>2026-06-17</lastmod>
+    <loc>https://www.grandtouchauto.ae/ppf-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://www.grandtouchauto.ae/guided-sean-with-patrols-v2.jpg</image:loc>
+      <image:title>Paint Protection Film Dubai - Grand Touch Auto</image:title>
+      <image:caption>STEK-certified PPF installation in Dubai Investment Park</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/ceramic-coating-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/window-tinting-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/car-detailing-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/best-ppf-studio-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
     <image:image>
       <image:loc>https://www.grandtouchauto.ae/guided-sean-with-patrols-v2.jpg</image:loc>
       <image:title>Best PPF Studio in Dubai - Grand Touch Studio</image:title>
@@ -60,43 +93,22 @@
 
   <url>
     <loc>https://www.grandtouchauto.ae/ppf-cost-calculator</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.grandtouchauto.ae/ppf-dubai-quote</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <url>
-    <loc>https://www.grandtouchauto.ae/ppf-full-ppf-calculator</loc>
-    <lastmod>2026-06-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <url>
-    <loc>https://www.grandtouchauto.ae/ppf-full-ppf-calculator-guided</loc>
-    <lastmod>2026-06-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <url>
-    <loc>https://www.grandtouchauto.ae/ppf-full-ppf-calculator-guided-v2</loc>
-    <lastmod>2026-06-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.7</priority>
   </url>
   
   <!-- Blog Section -->
   <url>
     <loc>https://www.grandtouchauto.ae/blog</loc>
-    <lastmod>2026-06-19</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -292,6 +304,55 @@
       <image:title>Lexus LX600 PPF in Dubai</image:title>
       <image:caption>Luxury SUV paint protection film planning for Dubai owners</image:caption>
     </image:image>
+  </url>
+
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/stek-vs-xpel-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/stek-vs-suntek-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/gtechniq-vs-ceramic-pro-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/why-cheap-ppf-dubai-is-fake</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/how-dealers-void-ppf-warranty-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/tesla-ppf-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/mercedes-g-wagon-ppf-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.grandtouchauto.ae/blog/what-we-see-removing-cheap-ppf-dubai</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 
   <!-- Legal -->

@@ -47,6 +47,18 @@ const MatteVsGlossPpfDubai = lazy(() => import("./pages/articles/MatteVsGlossPpf
 const NissanPatrolPpfDubai = lazy(() => import("./pages/articles/NissanPatrolPpfDubai"));
 const NewCarPpfDubai = lazy(() => import("./pages/articles/NewCarPpfDubai"));
 const LexusLx600PpfDubai = lazy(() => import("./pages/articles/LexusLx600PpfDubai"));
+const StekVsXpelDubai = lazy(() => import("./pages/articles/StekVsXpelDubai"));
+const StekVsSuntekDubai = lazy(() => import("./pages/articles/StekVsSuntekDubai"));
+const GtechniqVsCeramicProDubai = lazy(() => import("./pages/articles/GtechniqVsCeramicProDubai"));
+const WhyCheapPpfDubaiIsFake = lazy(() => import("./pages/articles/WhyCheapPpfDubaiIsFake"));
+const HowDealersVoidPpfWarrantyDubai = lazy(() => import("./pages/articles/HowDealersVoidPpfWarrantyDubai"));
+const TeslaPpfDubai = lazy(() => import("./pages/articles/TeslaPpfDubai"));
+const MercedesGWagonPpfDubai = lazy(() => import("./pages/articles/MercedesGWagonPpfDubai"));
+const RemovingCheapPpfDubai = lazy(() => import("./pages/articles/RemovingCheapPpfDubai"));
+const PpfDubai = lazy(() => import("./pages/services/PpfDubai"));
+const CeramicCoatingDubai = lazy(() => import("./pages/services/CeramicCoatingDubai"));
+const WindowTintingDubai = lazy(() => import("./pages/services/WindowTintingDubai"));
+const CarDetailingDubai = lazy(() => import("./pages/services/CarDetailingDubai"));
 const PpfDubaiQuote = lazy(() => import("./pages/PpfDubaiQuote"));
 const PpfDubaiQuoteV1 = lazy(() => import("./pages/PpfDubaiQuoteV1"));
 const PpfTikTokGuidedQuote = lazy(() => import("./pages/PpfTikTokGuidedQuote"));
@@ -122,7 +134,10 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/g700-customizer" element={<G700Customizer />} />
-            <Route path="/ppf-dubai" element={<Navigate to="/ppf-cost-calculator" replace />} />
+            <Route path="/ppf-dubai" element={<PpfDubai />} />
+            <Route path="/ceramic-coating-dubai" element={<CeramicCoatingDubai />} />
+            <Route path="/window-tinting-dubai" element={<WindowTintingDubai />} />
+            <Route path="/car-detailing-dubai" element={<CarDetailingDubai />} />
             <Route path="/best-ppf-studio-dubai" element={<BestPpfStudioDubai />} />
             <Route path="/ppf-cost-calculator" element={<PpfCostCalculator />} />
             <Route path="/ppf-full-ppf-calculator" element={<PpfFullPpfCalculator />} />
@@ -256,6 +271,14 @@ function App() {
             <Route path="/blog/nissan-patrol-ppf-dubai" element={<NissanPatrolPpfDubai />} />
             <Route path="/blog/new-car-ppf-dubai" element={<NewCarPpfDubai />} />
             <Route path="/blog/lexus-lx600-ppf-dubai" element={<LexusLx600PpfDubai />} />
+            <Route path="/blog/stek-vs-xpel-dubai" element={<StekVsXpelDubai />} />
+            <Route path="/blog/stek-vs-suntek-dubai" element={<StekVsSuntekDubai />} />
+            <Route path="/blog/gtechniq-vs-ceramic-pro-dubai" element={<GtechniqVsCeramicProDubai />} />
+            <Route path="/blog/why-cheap-ppf-dubai-is-fake" element={<WhyCheapPpfDubaiIsFake />} />
+            <Route path="/blog/how-dealers-void-ppf-warranty-dubai" element={<HowDealersVoidPpfWarrantyDubai />} />
+            <Route path="/blog/tesla-ppf-dubai" element={<TeslaPpfDubai />} />
+            <Route path="/blog/mercedes-g-wagon-ppf-dubai" element={<MercedesGWagonPpfDubai />} />
+            <Route path="/blog/what-we-see-removing-cheap-ppf-dubai" element={<RemovingCheapPpfDubai />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/partners/octane-b2b-7f3k" element={<OctaneB2B />} />

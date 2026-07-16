@@ -29,17 +29,25 @@ type CrossLinkDef = { to: string; label: string; skipIds?: number[] };
 /** Internal links for SEO — skips the current article where `skipIds` matches `article.id`. */
 function crossLinksForArticle(articleId: number, category: string): { to: string; label: string }[] {
   const items: CrossLinkDef[] = [
+    { to: "/ppf-dubai", label: "Paint protection film Dubai" },
     { to: "/ppf-cost-calculator", label: "PPF cost calculator Dubai" },
-    { to: "/ppf-full-ppf-calculator-guided-v2", label: "Guided PPF price calculator" },
-    { to: "/ppf-dubai-quote", label: "Request a PPF Dubai quote" },
     { to: "/blog/ppf-vs-ceramic-dubai", label: "PPF vs ceramic in Dubai" },
+    { to: "/blog/stek-vs-xpel-dubai", label: "STEK vs XPEL in Dubai", skipIds: [17] },
   ];
   if (category === "Detailing") {
     items.push(
-      { to: "/blog/ppf-dubai-full-front-vs-full-body", label: "Front vs full body PPF in Dubai" },
-      { to: "/blog/ppf-cost-dubai-pricing-guide", label: "PPF cost pricing guide (Dubai)" },
+      { to: "/ceramic-coating-dubai", label: "Ceramic coating Dubai" },
+      { to: "/car-detailing-dubai", label: "Car detailing Dubai" },
       { to: "/blog/ceramic-coating-guide", label: "Ceramic coating guide", skipIds: [1] },
+      { to: "/blog/gtechniq-vs-ceramic-pro-dubai", label: "Gtechniq vs Ceramic Pro", skipIds: [19] },
       { to: "/blog/paint-correction-techniques", label: "Paint correction guide", skipIds: [3] },
+    );
+  } else if (category === "Protection") {
+    items.push(
+      { to: "/window-tinting-dubai", label: "Window tinting Dubai" },
+      { to: "/blog/why-cheap-ppf-dubai-is-fake", label: "Why cheap PPF is usually fake", skipIds: [20] },
+      { to: "/blog/ppf-cost-dubai-pricing-guide", label: "PPF cost pricing guide (Dubai)", skipIds: [12] },
+      { to: "/blog/tesla-ppf-dubai", label: "Tesla PPF Dubai guide", skipIds: [22] },
     );
   } else if (category === "Customization") {
     items.push(
@@ -161,6 +169,54 @@ const ArticleContent = ({ content }: { content: string }) => {
           </ol>
         );
       }
+
+      // Markdown pipe tables
+      if (
+        trimmed.includes("|") &&
+        trimmed.split("\n").some((l) => /\|?\s*:?-{3,}:?\s*\|/.test(l))
+      ) {
+        const lines = trimmed
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.includes("|"));
+        const dataLines = lines.filter((l) => !/^\|?[\s|:-]+$/.test(l));
+        const parseRow = (line: string) =>
+          line
+            .replace(/^\|/, "")
+            .replace(/\|$/, "")
+            .split("|")
+            .map((c) => c.trim());
+        const header = dataLines[0] ? parseRow(dataLines[0]) : [];
+        const body = dataLines.slice(1).map(parseRow);
+        return (
+          <div key={index} className="mb-8 overflow-x-auto">
+            <table className="w-full min-w-[480px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {header.map((cell) => (
+                    <th key={cell} className="px-3 py-2 font-semibold text-foreground">
+                      {cell}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {body.map((row, ri) => (
+                  <tr key={ri} className="border-b border-border/60">
+                    {row.map((cell, ci) => (
+                      <td
+                        key={ci}
+                        className="px-3 py-2 text-muted-foreground"
+                        dangerouslySetInnerHTML={{ __html: applyInlineFormatting(cell) }}
+                      />
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
       
       // Regular paragraphs (bold, italic, links)
       if (trimmed.length > 0) {
@@ -222,6 +278,14 @@ const ArticleLayout = ({ article, relatedArticles = [] }: ArticleLayoutProps) =>
       14: 'nissan-patrol-ppf-dubai',
       15: 'new-car-ppf-dubai',
       16: 'lexus-lx600-ppf-dubai',
+      17: 'stek-vs-xpel-dubai',
+      18: 'stek-vs-suntek-dubai',
+      19: 'gtechniq-vs-ceramic-pro-dubai',
+      20: 'why-cheap-ppf-dubai-is-fake',
+      21: 'how-dealers-void-ppf-warranty-dubai',
+      22: 'tesla-ppf-dubai',
+      23: 'mercedes-g-wagon-ppf-dubai',
+      24: 'what-we-see-removing-cheap-ppf-dubai',
     };
     return slugMap[id] || `article-${id}`;
   };

@@ -144,7 +144,7 @@ const Contact = () => {
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-semibold text-foreground">Location</h3>
                       <a
-                        href="https://maps.app.goo.gl/j6CZCqFX2bDYtCLf7"
+                        href="https://maps.app.goo.gl/QYYAMcW8TiEETeHs8"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:text-primary/80 transition-transform inline-flex items-center gap-1 text-sm hover:scale-110"
@@ -170,9 +170,9 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Phone</h3>
                     <p className="text-muted-foreground">
-                      Work Shop +971 54 730 2243<br />
+                      Workshop +971 54 730 2243<br />
                       Detailing +971 56 719 1045<br />
-                      Available 9 AM - 7 PM
+                      Available 9:00 AM - 7:00 PM
                     </p>
                   </div>
                 </div>
@@ -186,7 +186,7 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Email</h3>
                     <p className="text-muted-foreground">
-                    info@grandtouchautorepair.com<br />
+                      hello@grandtouchauto.ae<br />
                       We reply within 24 hours
                     </p>
                   </div>
@@ -201,7 +201,7 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Hours</h3>
                     <div className="text-muted-foreground space-y-1">
-                      <p>Monday - Saturday: 9:00 AM - 6:00 PM</p>
+                      <p>Monday - Saturday: 9:00 AM - 7:00 PM</p>
                       <p>Sunday: Closed</p>
                     </div>
                   </div>

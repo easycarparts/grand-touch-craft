@@ -1,7 +1,9 @@
-const BASE_URL = "https://www.grandtouchauto.ae";
+import { BUSINESS, getLocalBusinessJsonLd } from "@/lib/business";
+
+const BASE_URL = BUSINESS.url;
 
 const toAbsoluteUrl = (value?: string) => {
-  if (!value) return `${BASE_URL}/placeholder.svg`;
+  if (!value) return `${BASE_URL}${BUSINESS.logoPath}`;
   if (value.startsWith("http://") || value.startsWith("https://")) return value;
   if (value.startsWith("/")) return `${BASE_URL}${value}`;
   return `${BASE_URL}/${value}`;
@@ -155,110 +157,65 @@ export const updatePageSEO = (page: string, customData?: any) => {
   }
 };
 
-// Business schema markup for LocalBusiness
+/** AutoRepair / LocalBusiness schema — NAP from `business.ts` only. */
 export const generateBusinessStructuredData = () => {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": "Grand Touch Auto",
-    "description": "Dubai's luxury automotive studio for repair, paint, detailing, PPF, and restoration services",
-    "url": "https://www.grandtouchauto.ae",
-    "telephone": "+971567191045",
-    "email": "info@grandtouchauto.com",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "DIP 2, Dubai Investment Park - 2, Thani warehouse - 3 11b",
-      "addressLocality": "Dubai",
-      "addressRegion": "Dubai",
-      "addressCountry": "AE"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": "25.2048",
-      "longitude": "55.2708"
-    },
-    "openingHours": "Mo-Sa 09:00-18:00",
-    "priceRange": "$$$",
-    "serviceArea": {
-      "@type": "GeoCircle",
-      "geoMidpoint": {
-        "@type": "GeoCoordinates",
-        "latitude": "25.2048",
-        "longitude": "55.2708"
-      },
-      "geoRadius": "50000"
-    },
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://www.grandtouchauto.ae/placeholder.svg",
-      "width": 200,
-      "height": 60
-    },
-    "image": [
-      "https://www.grandtouchauto.ae/service-ceramic.jpg",
-      "https://www.grandtouchauto.ae/service-ppf.jpg",
-      "https://www.grandtouchauto.ae/service-correction.jpg"
-    ],
-    "sameAs": [
-      "https://www.instagram.com/grandtouchauto"
-    ],
-    "hasOfferCatalog": {
+  const base = getLocalBusinessJsonLd();
+  return {
+    ...base,
+    hasOfferCatalog: {
       "@type": "OfferCatalog",
-      "name": "Automotive Services",
-      "itemListElement": [
+      name: "Automotive Services",
+      itemListElement: [
         {
           "@type": "Offer",
-          "itemOffered": {
+          itemOffered: {
             "@type": "Service",
-            "name": "Auto Repair & Diagnostics",
-            "description": "Advanced ECU diagnostics and full mechanical service for luxury and performance vehicles"
-          }
+            name: "Paint Protection Film (PPF)",
+            description:
+              "STEK-certified PPF installation — front, track pack, and full body",
+            url: `${BASE_URL}/ppf-dubai`,
+          },
         },
         {
           "@type": "Offer",
-          "itemOffered": {
+          itemOffered: {
             "@type": "Service",
-            "name": "Paint & Bodywork",
-            "description": "Factory-grade refinishing, color matching, and full body restorations"
-          }
+            name: "Ceramic Coating",
+            description:
+              "Paint correction and ceramic coating for Dubai heat and dust",
+            url: `${BASE_URL}/ceramic-coating-dubai`,
+          },
         },
         {
           "@type": "Offer",
-          "itemOffered": {
+          itemOffered: {
             "@type": "Service",
-            "name": "Detailing & Ceramic Coating",
-            "description": "Multi-stage detailing and nano-ceramic protection for superior gloss and durability"
-          }
+            name: "Window Tinting",
+            description: "Ceramic window tint with heat and UV rejection",
+            url: `${BASE_URL}/window-tinting-dubai`,
+          },
         },
         {
           "@type": "Offer",
-          "itemOffered": {
+          itemOffered: {
             "@type": "Service",
-            "name": "PPF & Vinyl Wrapping",
-            "description": "Premium XPEL/STEK/3M films and custom vinyl wraps for protection and transformation"
-          }
+            name: "Car Detailing & Polishing",
+            description: "Multi-stage paint correction and detailing",
+            url: `${BASE_URL}/car-detailing-dubai`,
+          },
         },
         {
           "@type": "Offer",
-          "itemOffered": {
+          itemOffered: {
             "@type": "Service",
-            "name": "Restoration & Customization",
-            "description": "Classic car restoration and custom modifications"
-          }
+            name: "Auto Repair & Paint",
+            description:
+              "Diagnostics, mechanical service, and factory-grade paintwork",
+          },
         },
-        {
-          "@type": "Offer",
-          "itemOffered": {
-            "@type": "Service",
-            "name": "Off-Road & Performance",
-            "description": "Suspension tuning, lift kits, and performance upgrades"
-          }
-        }
-      ]
-    }
+      ],
+    },
   };
-  
-  return structuredData;
 };
 
 // Structured data for blog posts
@@ -271,11 +228,11 @@ export const generateBlogStructuredData = (posts: any[]) => {
     "url": "https://www.grandtouchauto.ae/blog",
     "publisher": {
       "@type": "Organization",
-      "name": "Grand Touch Auto",
-      "url": "https://www.grandtouchauto.ae",
+      "name": BUSINESS.brandName,
+      "url": BUSINESS.url,
       "logo": {
         "@type": "ImageObject",
-        "url": "https://www.grandtouchauto.ae/placeholder.svg"
+        "url": `${BUSINESS.url}${BUSINESS.logoPath}`
       }
     },
     "blogPost": posts.map(post => ({

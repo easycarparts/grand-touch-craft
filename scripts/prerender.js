@@ -278,6 +278,110 @@ const blogArticlePages = [
       "How gloss, matte, prep, and vehicle size affect the quote",
     ],
   }),
+  makeBlogArticlePage({
+    slug: "stek-vs-xpel-dubai",
+    title: "STEK vs XPEL PPF in Dubai: Which Film Should You Choose?",
+    description:
+      "A Dubai-focused comparison of STEK and XPEL paint protection film for clarity, heat, warranty, and ownership goals.",
+    keywords: "STEK vs XPEL Dubai, STEK PPF Dubai, XPEL PPF Dubai, best PPF Dubai",
+    image: "/guided-911-stek-roll.png",
+    highlights: [
+      "How STEK and XPEL differ for Dubai heat and highway debris",
+      "Warranty and registration realities",
+      "Which owners should choose which film",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "stek-vs-suntek-dubai",
+    title: "STEK vs SunTek PPF in Dubai: Heat, Clarity, and Warranty",
+    description:
+      "Compare STEK and SunTek PPF for Dubai heat, optical clarity, and warranty expectations before booking.",
+    keywords: "STEK vs SunTek Dubai, SunTek PPF Dubai, PPF brands Dubai",
+    image: "/guided-install-detail.png",
+    highlights: [
+      "Heat and clarity differences that matter in the UAE",
+      "Warranty practicalities",
+      "When SunTek may still be a fit",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "gtechniq-vs-ceramic-pro-dubai",
+    title: "Gtechniq vs Ceramic Pro in Dubai: Which Ceramic Coating Wins?",
+    description:
+      "Compare Gtechniq and Ceramic Pro for Dubai wash cycles, UV, and maintenance — and when coating alone is not enough.",
+    keywords: "Gtechniq vs Ceramic Pro Dubai, ceramic coating Dubai brands",
+    image: "/service-ceramic.jpg",
+    highlights: [
+      "Brand differences that matter after Dubai summer",
+      "Maintenance expectations",
+      "When to pair coating with PPF",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "why-cheap-ppf-dubai-is-fake",
+    title: "Why Cheap PPF in Dubai Is Usually Fake (And How to Spot It)",
+    description:
+      "How to spot grey-market and vinyl-thickness film sold as premium PPF in Dubai before you pay a deposit.",
+    keywords: "cheap PPF Dubai, fake PPF Dubai, grey market PPF UAE",
+    image: "/ppf-featured-ppf-warranty-claims-dubai.png",
+    highlights: [
+      "Red flags in half-price PPF quotes",
+      "Registration and warranty checks",
+      "What failed cheap film looks like when removed",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "how-dealers-void-ppf-warranty-dubai",
+    title: "How Dealers Can Void Your Paint Warranty — And What PPF Actually Changes",
+    description:
+      "What dealer paint warranties usually cover in the UAE and how professional PPF fits without false promises.",
+    keywords: "dealer paint warranty Dubai, PPF warranty UAE, new car PPF Dubai",
+    image: "/blog-hero-ppf-worth-dubai.png",
+    highlights: [
+      "What dealer warranties usually exclude",
+      "How documented PPF helps ownership",
+      "Questions to ask before film install",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "tesla-ppf-dubai",
+    title: "Tesla PPF in Dubai: Model Y, Model 3, and Cybertruck Coverage Guide",
+    description:
+      "Coverage priorities for Tesla paint in Dubai heat and highway debris for Model Y, Model 3, and Cybertruck.",
+    keywords: "Tesla PPF Dubai, Model Y PPF Dubai, Model 3 PPF Dubai, Cybertruck PPF Dubai",
+    image: "/guided-cullinan-ppf.png",
+    highlights: [
+      "High-impact zones on Tesla body styles",
+      "Front vs full body decisions",
+      "How to request a Tesla PPF quote",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "mercedes-g-wagon-ppf-dubai",
+    title: "Mercedes G-Wagon PPF in Dubai: Full Body vs Front Package",
+    description:
+      "Compare front packages vs full body STEK PPF for Mercedes G-Class owners driving in Dubai.",
+    keywords: "G-Wagon PPF Dubai, Mercedes G-Class PPF Dubai, G63 PPF Dubai",
+    image: "/guided-sean-with-patrols-v2.jpg",
+    highlights: [
+      "Why G-Wagon paint takes unique abuse",
+      "Front vs full body trade-offs",
+      "Finish choices for G-Class owners",
+    ],
+  }),
+  makeBlogArticlePage({
+    slug: "what-we-see-removing-cheap-ppf-dubai",
+    title: "What We See When We Remove Cheap PPF in Dubai",
+    description:
+      "Studio findings from stripping failed budget film in Dubai — adhesive mess, stained paint, and re-install cost reality.",
+    keywords: "remove PPF Dubai, failed PPF Dubai, PPF damage paint",
+    image: "/guided-rolls-install.png",
+    highlights: [
+      "Common failure modes on cheap film",
+      "Paint risk during removal",
+      "Why re-doing STEK properly costs more later",
+    ],
+  }),
 ];
 
 const g700CustomizerPage = {
@@ -333,7 +437,7 @@ const pages = [
           <li>Off-road and performance — suspension, lifts, and upgrades</li>
         </ul>
         <h2>Contact</h2>
-        <p>DIP 2, Dubai Investment Park — 2, Thani warehouse — 3 11b, Dubai, UAE. Phone +971567191045. Email info@grandtouchauto.com. Monday–Saturday 9:00–18:00.</p>
+        <p>DIP 2, Dubai Investment Park - 2, Thani warehouse - 3 11b, Dubai, UAE. Phone +971567191045. Email hello@grandtouchauto.ae. Monday–Saturday 9:00–19:00.</p>
     `,
     noscriptExtra:
       "<p><strong>Enable JavaScript</strong> for live booking, animations, and the full gallery.</p>",
@@ -428,11 +532,11 @@ const pages = [
         <h1>Contact Grand Touch Auto</h1>
         <p>Book repair, detailing, PPF, paint, or ask for a consultation.</p>
         <h2>Location</h2>
-        <p>DIP 2, Dubai Investment Park — 2, Thani warehouse — 3 11b, Dubai, UAE</p>
+        <p>DIP 2, Dubai Investment Park - 2, Thani warehouse - 3 11b, Dubai, UAE</p>
         <h2>Phone and email</h2>
-        <p>+971567191045 · info@grandtouchauto.com</p>
+        <p>+971567191045 · hello@grandtouchauto.ae</p>
         <h2>Hours</h2>
-        <p>Monday–Saturday 9:00–18:00. Sunday closed.</p>
+        <p>Monday–Saturday 9:00–19:00. Sunday closed.</p>
         <h2>Service areas</h2>
         <p>Dubai including Downtown, Jumeirah, Dubai Marina, Business Bay, and surrounding areas.</p>
     `,
@@ -467,6 +571,67 @@ const pages = [
   },
   g700CustomizerPage,
   ...blogArticlePages,
+  {
+    path: "/ppf-dubai",
+    title: "Paint Protection Film (PPF) Dubai | STEK Certified | Grand Touch Auto",
+    description:
+      "STEK-certified paint protection film in Dubai. Front end, track pack, and full body PPF with warranty registration in DIP 2.",
+    keywords:
+      "paint protection film Dubai, PPF Dubai, STEK PPF Dubai, full body PPF Dubai",
+    ogTitle: "STEK-Certified PPF in Dubai | Grand Touch Auto",
+    ogDescription:
+      "Front, track pack, and full body paint protection film with STEK warranty registration.",
+    image: "/guided-sean-with-patrols-v2.jpg",
+    seoBody: `
+        <h1>Paint Protection Film (PPF) in Dubai</h1>
+        <p>STEK-certified PPF installation at Grand Touch Auto Repair in Dubai Investment Park 2.</p>
+        <h2>Coverage options</h2>
+        <ul>
+          <li>Front end PPF</li>
+          <li>Track pack</li>
+          <li>Full body PPF</li>
+          <li>Colour and matte PPF</li>
+        </ul>
+        <h2>Next step</h2>
+        <p>WhatsApp Sean for a quote or use the guided PPF calculator.</p>
+    `,
+  },
+  {
+    path: "/ceramic-coating-dubai",
+    title: "Ceramic Coating Dubai | GYEON Studio Finish | Grand Touch Auto",
+    description:
+      "Professional ceramic coating in Dubai with paint correction prep for gloss, easier washing, and UV defence.",
+    keywords: "ceramic coating Dubai, GYEON ceramic Dubai, car ceramic coating Dubai",
+    image: "/guided-911-gloss.png",
+    seoBody: `
+        <h1>Ceramic Coating in Dubai</h1>
+        <p>Multi-stage paint correction and ceramic coating packages for Dubai heat and dust.</p>
+    `,
+  },
+  {
+    path: "/window-tinting-dubai",
+    title: "Window Tinting Dubai | Ceramic Tint & Heat Rejection | Grand Touch",
+    description:
+      "Professional window tinting in Dubai with heat-rejecting ceramic film options and clean studio installs.",
+    keywords: "window tinting Dubai, ceramic window tint Dubai, car tint Dubai",
+    image: "/guided-tint-install.png",
+    seoBody: `
+        <h1>Window Tinting in Dubai</h1>
+        <p>Heat-rejecting ceramic tint installed at Grand Touch Studio, DIP 2.</p>
+    `,
+  },
+  {
+    path: "/car-detailing-dubai",
+    title: "Car Detailing & Polishing Dubai | Paint Correction | Grand Touch",
+    description:
+      "Professional car detailing and polishing in Dubai — multi-stage paint correction and prep for ceramic or PPF.",
+    keywords: "car detailing Dubai, paint correction Dubai, car polishing Dubai",
+    image: "/guided-install-detail.png",
+    seoBody: `
+        <h1>Car Detailing and Polishing in Dubai</h1>
+        <p>Paint correction, interior detailing, and protection prep at Grand Touch Auto.</p>
+    `,
+  },
   {
     path: "/best-ppf-studio-dubai",
     title: "Best PPF Studio in Dubai | Certified STEK PPF | Grand Touch Studio",
@@ -521,7 +686,7 @@ const pages = [
           aggregateRating: {
             "@type": "AggregateRating",
             ratingValue: "4.9",
-            reviewCount: "80",
+            reviewCount: "83",
           },
         },
         areaServed: {
