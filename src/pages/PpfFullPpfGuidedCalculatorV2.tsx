@@ -2383,6 +2383,24 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
       // actually leave their number: 5 CRM leads saved here, zero Google
       // conversions recorded, because only the post-price paths fired the tag.
       trackGoogleSubmitLeadConversion(targetPrice ?? estimate ?? undefined);
+
+      // 2026-07-25: the SAME bug existed on Meta. 48% of all captures in the
+      // fixed-funnel era (13 of 27) were bonus-lock partials that never
+      // reached the unlock form — real leads the team called, but ZERO pixel
+      // Lead fired, so Meta was learning from half a signal at ~1 event/day
+      // (it needs ~50/week to leave learning). Every captured phone now fires
+      // Lead once per session; the unlock/WhatsApp paths share the same guard,
+      // so a visitor who later completes still counts exactly once.
+      if (isMetaVariant && !metaLeadFiredRef.current) {
+        metaLeadFiredRef.current = true;
+        trackMetaStandardEvent("Lead", {
+          content_name: "Meta Guided Full PPF Calculator V2",
+          content_category: "PPF",
+          capture_location: "warranty_bonus_lock",
+          value: targetPrice ?? estimate ?? undefined,
+          currency: "AED",
+        });
+      }
     } else {
       trackEvent(
         "lead_save_failed",
@@ -2410,6 +2428,7 @@ const PpfFullPpfGuidedCalculatorV2 = ({ variant = "google" }: PpfFullPpfGuidedCa
     targetPrice,
     trackEvent,
     trackGoogleSubmitLeadConversion,
+    trackMetaStandardEvent,
     variantConfig,
     vehicle,
     warrantyYears,
