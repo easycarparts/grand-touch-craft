@@ -257,6 +257,10 @@ interface AskGrandTouchProps {
    *  WhatsApp is where the deal actually closes. */
   waHref?: string;
   onWhatsAppTap?: () => void;
+  /** Fires the moment a phone is SUBMITTED (before the server confirms), so
+   *  the page can stand down its own capture prompts — asking again after
+   *  they just typed a number reads as broken. */
+  onPhoneSubmitted?: () => void;
 }
 
 const AskGrandTouch = ({
@@ -271,6 +275,7 @@ const AskGrandTouch = ({
   onAssistantTurn,
   waHref,
   onWhatsAppTap,
+  onPhoneSubmitted,
 }: AskGrandTouchProps) => {
   const [open, setOpen] = useState(variant === "inline");
   const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: GREETING }]);
@@ -281,6 +286,10 @@ const AskGrandTouch = ({
   const [exchanges, setExchanges] = useState(0);
   const [asked, setAsked] = useState(false);
   const [ignored, setIgnored] = useState(0);
+  /** A phone submission ALWAYS releases the gate, captured or not — a failed
+   *  extraction must never trap the visitor with no composer (live bug:
+   *  number sent, capture failed server-side, gate stayed forever). */
+  const [phoneSubmitted, setPhoneSubmitted] = useState(false);
   const [touched, setTouched] = useState(false);
   const [suggested, setSuggested] = useState<string[]>([]);
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
@@ -289,7 +298,9 @@ const AskGrandTouch = ({
   const turnRef = useRef(0);
 
   const gated =
-    !captured && ((asked && ignored >= IGNORES_BEFORE_GATE) || exchanges >= GATE_HARD_STOP);
+    !captured &&
+    !phoneSubmitted &&
+    ((asked && ignored >= IGNORES_BEFORE_GATE) || exchanges >= GATE_HARD_STOP);
 
   // Escape closes the LIGHTBOX first — capture phase, so the page's own
   // Escape-closes-the-chat listener never sees the key while a card is open.
@@ -373,6 +384,10 @@ const AskGrandTouch = ({
       setInput("");
       setPhoneInput("");
       setSuggested([]);
+      if (isPhone) {
+        setPhoneSubmitted(true);
+        onPhoneSubmitted?.();
+      }
       setBusy(true);
 
       try {
@@ -451,7 +466,7 @@ const AskGrandTouch = ({
         setBusy(false);
       }
     },
-    [asked, busy, captured, onFirstMessage, onLeadCaptured, followupLadder],
+    [asked, busy, captured, onFirstMessage, onLeadCaptured, onPhoneSubmitted, onAssistantTurn, followupLadder],
   );
 
   // External question chips (elsewhere on the page) send through here. The

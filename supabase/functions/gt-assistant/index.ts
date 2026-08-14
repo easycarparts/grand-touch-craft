@@ -489,7 +489,11 @@ Deno.serve(async (req) => {
   const handoffRequested = parsed.handoff_requested === true || askedHuman || promisedHuman;
 
   // ---- extraction -------------------------------------------------------
-  const phone = verifiedPhone(parsed.phone, userMessage) ?? typedPhone(userMessage);
+  // The studio's own number typed back is never a capture, whichever path
+  // extracted it — a visitor quoting our WhatsApp line must not become a lead.
+  const candidatePhone = verifiedPhone(parsed.phone, userMessage) ?? typedPhone(userMessage);
+  const phone =
+    candidatePhone && candidatePhone.replace(/\D/g, "").endsWith("567191045") ? null : candidatePhone;
   const patch: JsonObject = {
     message_count: (conversation.message_count ?? 0) + 2,
     last_message_at: new Date().toISOString(),

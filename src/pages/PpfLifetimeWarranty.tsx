@@ -13,7 +13,7 @@ import LuxCard from "@/components/gtlux/LuxCard";
 import AskGrandTouch from "@/components/gtlux/AskGrandTouch";
 import { WarrantyCertificateShowcase } from "@/components/gtlux/WarrantyCertificateGT";
 import { GtFaq, GtFilmStrip, GtSection, GtStickyBar, GtTrustRow } from "@/components/gtlux/GtShared";
-import { GT_CERT_SAMPLE, GT_FAQ, GT_IMAGES, GT_PROCESS_STEPS, GT_SIZE_NOTE, GT_TIERS, type GtTierKey } from "@/lib/gtProgram";
+import { GT_CERT_SAMPLE, GT_FAQ, GT_FILM_LADDER, GT_IMAGES, GT_PROCESS_STEPS, GT_SIZE_NOTE, GT_TIERS, type GtTierKey } from "@/lib/gtProgram";
 import logo from "@/assets/logo.svg";
 
 /**
@@ -496,6 +496,7 @@ const PpfLifetimeWarranty = () => {
   const [chatShellHeight, setChatShellHeight] = useState<number | null>(null);
   const exitSaveShownRef = useRef(false);
   const assistantEngagedRef = useRef(false);
+  const assistantPhoneSubmittedRef = useRef(false);
   const [assistantCaptured, setAssistantCaptured] = useState(false);
   const [vehicle, setVehicle] = useState("");
   const [activeClip, setActiveClip] = useState<string | null>(null);
@@ -809,7 +810,11 @@ const PpfLifetimeWarranty = () => {
   /** Closing the chat runs through here: an engaged visitor with no number in
    *  gets one save offer — then the X always works. */
   const attemptCloseChat = useCallback(() => {
-    const uncaptured = !assistantCaptured && phoneStatus !== "saved";
+    // "Submitted a number" counts as captured for UX purposes — re-asking
+    // someone who just typed their number reads as broken, even if the
+    // server-side extraction rejected it.
+    const uncaptured =
+      !assistantCaptured && !assistantPhoneSubmittedRef.current && phoneStatus !== "saved";
     if (assistantEngagedRef.current && uncaptured && !exitSaveShownRef.current) {
       exitSaveShownRef.current = true;
       setExitSave("open");
@@ -1233,6 +1238,9 @@ const PpfLifetimeWarranty = () => {
                       }
                     }}
                     onAssistantTurn={handleAssistantTurn}
+                    onPhoneSubmitted={() => {
+                      assistantPhoneSubmittedRef.current = true;
+                    }}
                     waHref={buildWhatsAppUrl(whatsAppMessage)}
                     onWhatsAppTap={() => {
                       trackMetaStandardEvent("Contact", {
@@ -1638,6 +1646,68 @@ const PpfLifetimeWarranty = () => {
           </div>
         </div>
       </section>
+
+      {/* ── THE FILM — Diamond Pro, spec by spec. The expertise beat: the film
+             steps up with the tier, and every claim on it is verified. ── */}
+      <GtSection
+        eyebrow="The film"
+        title="The film steps up with the tier."
+        sub="Diamond Pro — a Gulf company, engineered for our summer. Signature wears the premium TPU; Concours steps up to X, the PCU flagship."
+      >
+        <div data-funnel-section="film_ladder" className="mx-auto max-w-4xl" data-reveal>
+          <LuxCard as="div">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] border-collapse text-left">
+                <thead>
+                  <tr>
+                    <th className="w-[18%] border-b border-border/60 p-4 align-bottom text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                      The film ladder
+                    </th>
+                    <th className="w-[41%] border-b border-border/60 p-4 align-bottom">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                        GT Signature · AED 12,900
+                      </div>
+                      <div className="mt-1.5 text-[19px] font-semibold text-foreground">
+                        Diamond Pro <span className="text-[13px] font-medium text-primary/90">Premium TPU</span>
+                      </div>
+                    </th>
+                    <th className="w-[41%] border-b border-primary/50 bg-primary/[0.05] p-4 align-bottom">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+                        GT Concours · AED 18,900
+                      </div>
+                      <div className="mt-1.5 text-[19px] font-semibold text-foreground">
+                        Diamond Pro X <span className="text-[13px] font-medium text-primary">PCU Flagship</span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="text-[13.5px] leading-relaxed">
+                  {GT_FILM_LADDER.map((row) => (
+                    <tr key={row.label}>
+                      <th className="border-b border-border/40 p-4 align-top text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        {row.label}
+                      </th>
+                      <td className="border-b border-border/40 p-4 align-top text-foreground/80">{row.tpu}</td>
+                      <td className="border-b border-border/40 bg-primary/[0.04] p-4 align-top text-foreground/90">
+                        {row.x}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="border-l-2 border-primary/60 bg-primary/[0.04] px-6 py-5 text-[14px] italic leading-relaxed text-foreground/85 md:px-8">
+              Whichever film your tier wears, the GT warranty sits on top — film and labour, yellowing
+              covered, no UV carve-out. Two documents, one car.
+            </p>
+          </LuxCard>
+          <p className="mx-auto mt-6 max-w-2xl text-center text-[13px] leading-relaxed text-muted-foreground">
+            Almost all PPF is TPU, and Dubai is heat, humidity and UV all year — the two things TPU
+            chemistry struggles with over decades. X swaps its soft segment for a polycarbonate backbone
+            that resists both. That&rsquo;s why the film is a choice made on data, never on thickness.
+          </p>
+        </div>
+      </GtSection>
 
       {/* ── THE QUESTIONS THAT DECIDE IT — Sean's answers, verbatim voice. ── */}
       <GtSection
