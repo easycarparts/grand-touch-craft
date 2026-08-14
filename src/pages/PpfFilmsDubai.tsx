@@ -13,6 +13,7 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import LuxCard from "@/components/gtlux/LuxCard";
+import FilmLadder from "@/components/gtlux/FilmLadder";
 import { GtFaq, GtSection, GtStickyBar, GtTrustRow } from "@/components/gtlux/GtShared";
 import { updatePageSEO } from "@/lib/seo";
 import {
@@ -316,54 +317,7 @@ const PpfFilmsDubai = () => {
           sub="A Gulf company, established in Kuwait in 2018 with an office here in Dubai. This film was engineered for our summer, not adapted to it — and the film itself steps up with the tier."
         >
           <div className="mx-auto max-w-4xl">
-            <LuxCard as="div">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] border-collapse text-left">
-                  <thead>
-                    <tr>
-                      <th className="w-[18%] border-b border-border/60 p-4 align-bottom text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                        The film ladder
-                      </th>
-                      <th className="w-[41%] border-b border-border/60 p-4 align-bottom">
-                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                          GT Signature · AED 12,900
-                        </div>
-                        <div className="mt-1.5 text-[19px] font-semibold text-foreground">
-                          Diamond Pro{" "}
-                          <span className="text-[13px] font-medium text-primary/90">Premium TPU</span>
-                        </div>
-                      </th>
-                      <th className="w-[41%] border-b border-primary/50 bg-primary/[0.05] p-4 align-bottom">
-                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
-                          GT Concours · AED 18,900
-                        </div>
-                        <div className="mt-1.5 text-[19px] font-semibold text-foreground">
-                          Diamond Pro X{" "}
-                          <span className="text-[13px] font-medium text-primary">PCU Flagship</span>
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-[13.5px] leading-relaxed">
-                    {GT_FILM_LADDER.map((row) => (
-                      <tr key={row.label}>
-                        <th className="border-b border-border/40 p-4 align-top text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          {row.label}
-                        </th>
-                        <td className="border-b border-border/40 p-4 align-top text-foreground/80">{row.tpu}</td>
-                        <td className="border-b border-border/40 bg-primary/[0.04] p-4 align-top text-foreground/90">
-                          {row.x}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="border-l-2 border-primary/60 bg-primary/[0.04] px-6 py-5 text-[14px] italic leading-relaxed text-foreground/85 md:px-8">
-                Whichever film your tier wears, the GT warranty sits on top — film and labour, yellowing
-                covered, no UV carve-out. Two documents, one car.
-              </p>
-            </LuxCard>
+            <FilmLadder />
 
             <div className="mx-auto mt-10 max-w-3xl space-y-4 text-[14.5px] leading-relaxed text-muted-foreground">
               <p>
