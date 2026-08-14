@@ -338,6 +338,48 @@ const TermsAndConditions = () => {
             </div>
           </section>
 
+          {/* 17. Addendum — GT Protection Program (appended 14 Aug 2026; the
+              page's original sections and date above are unchanged). */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-foreground border-b border-border pb-2">
+              17. Addendum — The Grand Touch Protection Program &amp; GT Owner&apos;s Warranty
+            </h2>
+            <p className="text-sm text-muted-foreground italic">
+              Addendum effective: 14 August 2026. Applies to vehicles enrolled in a Grand Touch Protection
+              Program tier on or after this date.
+            </p>
+            <div className="text-muted-foreground space-y-3 leading-relaxed">
+              <p>
+                <strong className="text-foreground">17.1 Scope and precedence:</strong> This Addendum applies to vehicles enrolled in the Grand Touch Protection Program (GT Essential, GT Signature, or GT Concours). For those vehicles, this Addendum prevails over Sections 6 and 7 above to the extent of any conflict. The signed, numbered GT Owner&apos;s Warranty certificate issued at handover, together with the full warranty terms published at{" "}
+                <Link to="/ppf-warranty-dubai" className="text-primary hover:underline">
+                  grandtouchauto.ae/ppf-warranty-dubai
+                </Link>
+                , governs each enrolled vehicle; this Addendum is a summary of those terms.
+              </p>
+              <p>
+                <strong className="text-foreground">17.2 The GT Owner&apos;s Warranty (film and labour):</strong> In place of the default position in clause 6.1, Program installations carry Grand Touch&apos;s own written warranty covering both the film and the labour of the installation. On GT Signature and GT Concours the warranty runs for as long as the original purchaser owns the vehicle (&quot;lifetime&quot;); on GT Essential it runs for 5 years. Covered defects include yellowing, cracking, peeling, bubbling, delamination, edge-lift, and installation defects — with no carve-out for UV or heat exposure. In addition, the film manufacturer&apos;s warranty is registered to the vehicle on every Program installation; the customer holds both documents.
+              </p>
+              <p>
+                <strong className="text-foreground">17.3 No-fault panel replacements:</strong> GT Signature includes 3 and GT Concours includes 6 no-fault panel replacements: damage to the film from any cause (for example a scrape, a trolley, or a minor accident) entitles the owner to free replacement of the film on the affected exterior panel, film and labour included, one panel per event, until the tier&apos;s allocation is used. These are a Program benefit, not a warranty claim; unused replacements are personal to the original purchaser and do not transfer. GT Essential does not include panel replacements.
+              </p>
+              <p>
+                <strong className="text-foreground">17.4 Inspections:</strong> Program vehicles receive free inspections at 6 and 12 months after installation and yearly thereafter (30-day attendance window, with reminders sent). In place of the position in clauses 6.3–6.4, a missed inspection does not void cover: it converts lifetime cover to the 5-year base term. Rework of the film by any third party ends cover for the affected panel.
+              </p>
+              <p>
+                <strong className="text-foreground">17.5 Transfer:</strong> On GT Signature and GT Concours, the defect cover (film and labour) transfers once with the vehicle to one subsequent registered owner, for the remainder of that owner&apos;s time with the vehicle, provided the new owner applies in writing within 30 days of the sale and presents the vehicle for a free transfer inspection at our Dubai studio. Unused panel replacements and complimentary aftercare do not transfer. No second transfer is possible. The GT Essential warranty is personal to the original purchaser and does not transfer. All cover ends on permanent export of the vehicle from the UAE.
+              </p>
+              <p>
+                <strong className="text-foreground">17.6 Pricing:</strong> Program prices are published, apply to full-body installation only, and are identical for every vehicle within a tier. All prices are subject to VAT.
+              </p>
+              <p>
+                <strong className="text-foreground">17.7 Remedy:</strong> The remedy under the GT Owner&apos;s Warranty is repair or replacement of the film on the affected panel at our studio, free of charge. Replacement film continues the original warranty term; it does not restart it.
+              </p>
+              <p>
+                <strong className="text-foreground">17.8 Exclusions:</strong> The standard exclusions in these Terms continue to apply where not inconsistent with this Addendum, including vandalism, automatic brush washes and improper care, third-party rework, and undisclosed non-original paint (Section 5). Impact and accident damage is not a warranty defect; on GT Signature and GT Concours it is addressed through the no-fault panel replacements in clause 17.3.
+              </p>
+            </div>
+          </section>
+
           <section className="mt-12 p-6 bg-card border border-border rounded-lg">
             <p className="text-muted-foreground text-sm leading-relaxed">
               By requesting a quote, accepting an estimate, booking an appointment, paying a deposit or any amount towards the Services, or leaving your vehicle with us, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
