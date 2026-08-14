@@ -21,7 +21,11 @@
     <!-- End Google Tag Manager -->
     
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- interactive-widget: Android Chrome must RESIZE the layout viewport when
+         the keyboard opens, or fixed full-height surfaces (the chat) keep their
+         composer parked underneath it. iOS ignores this; the chat also sizes
+         itself from visualViewport for that. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
     <title>Grand Touch Auto – Dubai's Luxury Garage for Repair, Paint, Detailing & PPF</title>
     <meta name="description" content="From precision diagnostics to high-gloss ceramic finishes, Grand Touch Auto delivers full-service automotive excellence in Dubai. Repair, paint, restoration, detailing & PPF." />
     <meta name="author" content="Grand Touch Auto" />

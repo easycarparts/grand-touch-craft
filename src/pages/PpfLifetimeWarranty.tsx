@@ -491,6 +491,9 @@ const PpfLifetimeWarranty = () => {
   // Shown once per session, honest copy, WhatsApp escape hatch alongside.
   const [exitSave, setExitSave] = useState<"hidden" | "open" | "saving" | "saved" | "invalid" | "error">("hidden");
   const [exitPhone, setExitPhone] = useState("");
+  /** Mobile chat height driven by visualViewport, so the composer rides on top
+   *  of the keyboard instead of hiding under it. null = CSS classes rule. */
+  const [chatShellHeight, setChatShellHeight] = useState<number | null>(null);
   const exitSaveShownRef = useRef(false);
   const assistantEngagedRef = useRef(false);
   const [assistantCaptured, setAssistantCaptured] = useState(false);
@@ -886,6 +889,33 @@ const PpfLifetimeWarranty = () => {
     };
   }, [chatOpen, attemptCloseChat]);
 
+  // Keyboard-aware chat height: keyboards shrink only the VISUAL viewport
+  // (iOS always; Android too on older Chrome), so a 100dvh shell keeps its
+  // composer underneath the keys. Track visualViewport while the chat is open
+  // and let it own the shell height on mobile widths only.
+  useEffect(() => {
+    if (!chatOpen) {
+      setChatShellHeight(null);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const sync = () => {
+      const mobile = window.matchMedia("(max-width: 767px)").matches;
+      setChatShellHeight(mobile ? Math.round(vv.height) : null);
+    };
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      setChatShellHeight(null);
+    };
+  }, [chatOpen]);
+
   const whatsAppMessage = useMemo(() => {
     const carPart = vehicle.trim() ? ` Car: ${vehicle.trim()}.` : "";
     const warranty = tier === "essential" ? "5-year warranty" : "lifetime warranty";
@@ -1158,7 +1188,14 @@ const PpfLifetimeWarranty = () => {
                 aria-modal="true"
                 aria-label="Ask Grand Touch"
               >
-                <div className="gtwf-chatshell relative flex h-[100dvh] w-full flex-col md:h-[min(84vh,800px)] md:w-[min(600px,94vw)]">
+                <div
+                  className="gtwf-chatshell relative flex h-[100dvh] w-full flex-col md:h-[min(84vh,800px)] md:w-[min(600px,94vw)]"
+                  // Mobile keyboards shrink only the VISUAL viewport (iOS
+                  // always; Android before the interactive-widget meta lands).
+                  // Sizing the shell from visualViewport keeps the composer
+                  // sitting on top of the keyboard instead of underneath it.
+                  style={chatShellHeight ? { height: `${chatShellHeight}px` } : undefined}
+                >
                   <button
                     type="button"
                     onClick={attemptCloseChat}

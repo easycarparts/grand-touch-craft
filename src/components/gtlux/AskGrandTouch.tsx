@@ -313,6 +313,19 @@ const AskGrandTouch = ({
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, busy, gated]);
 
+  // When the keyboard opens the thread loses height — keep it pinned to the
+  // latest message instead of leaving the visitor staring mid-history.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const pin = () => {
+      const el = threadRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight });
+    };
+    vv.addEventListener("resize", pin);
+    return () => vv.removeEventListener("resize", pin);
+  }, []);
+
   /**
    * Restore the thread on mount. The messages already live in the DB keyed by
    * session id, so leaving the page or moving between pages resumes the same
