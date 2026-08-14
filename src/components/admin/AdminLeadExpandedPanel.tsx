@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { Link } from "react-router-dom";
 import { CheckCircle2, Trash2 } from "lucide-react";
 
 import { G700BuildSummaryCard } from "@/components/admin/G700BuildSummaryCard";
@@ -65,6 +66,40 @@ type LeadSourceDraft = {
   utmCampaign: string;
   externalCampaignName: string;
   gclid: string;
+};
+
+type EasyAutoConversationSummary = {
+  externalConversationId: string;
+  sourceStatus: string | null;
+  sourceStage: string | null;
+  serviceType: string;
+  sourceUpdatedAt: string;
+};
+
+type EasyAutoTranscriptMessage = {
+  id: string;
+  externalMessageId: string;
+  role: "user" | "assistant";
+  body: string;
+  occurredAt: string;
+};
+
+type GtAssistantConversationSummary = {
+  id: string;
+  sessionId: string;
+  programInterest: string | null;
+  buyerFocus: string | null;
+  intentScore: number;
+  messageCount: number;
+  lastMessageAt: string;
+  pagePath: string | null;
+};
+
+type GtAssistantTranscriptMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
 };
 
 const leadSourcePlatformOptions = [
@@ -257,6 +292,14 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
   } = props;
 
   const [latestSnapshot, setLatestSnapshot] = useState<LeadSnapshotSummary | null>(null);
+  const [easyAutoConversation, setEasyAutoConversation] = useState<EasyAutoConversationSummary | null>(null);
+  const [easyAutoMessages, setEasyAutoMessages] = useState<EasyAutoTranscriptMessage[]>([]);
+  const [easyAutoTranscriptLoading, setEasyAutoTranscriptLoading] = useState(false);
+  const [easyAutoTranscriptError, setEasyAutoTranscriptError] = useState<string | null>(null);
+  const [gtChatConversation, setGtChatConversation] = useState<GtAssistantConversationSummary | null>(null);
+  const [gtChatMessages, setGtChatMessages] = useState<GtAssistantTranscriptMessage[]>([]);
+  const [gtChatLoading, setGtChatLoading] = useState(false);
+  const [gtChatError, setGtChatError] = useState<string | null>(null);
   const leadSourceDraft = leadSourceDrafts[lead.id] ?? makeLeadSourceDraft(lead);
 
   useEffect(() => {
@@ -301,6 +344,159 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
       cancelled = true;
     };
   }, [lead.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadEasyAutoTranscript = async () => {
+      if (!supabase || lead.funnel_name !== "easyauto_whatsapp_ppf") {
+        setEasyAutoConversation(null);
+        setEasyAutoMessages([]);
+        setEasyAutoTranscriptError(null);
+        return;
+      }
+
+      setEasyAutoTranscriptLoading(true);
+      setEasyAutoTranscriptError(null);
+
+      const [conversationResult, messagesResult] = await Promise.all([
+        supabase
+          .from("easyauto_ppf_conversations")
+          .select("external_conversation_id, source_status, source_stage, service_type, source_updated_at")
+          .eq("lead_id", lead.id)
+          .order("source_updated_at", { ascending: false })
+          .limit(1),
+        supabase
+          .from("easyauto_ppf_messages")
+          .select("id, external_message_id, role, body, occurred_at")
+          .eq("lead_id", lead.id)
+          .order("occurred_at", { ascending: true }),
+      ]);
+
+      if (cancelled) return;
+
+      if (conversationResult.error || messagesResult.error) {
+        console.warn("Failed to load EasyAuto transcript", conversationResult.error || messagesResult.error);
+        setEasyAutoConversation(null);
+        setEasyAutoMessages([]);
+        setEasyAutoTranscriptError("Transcript could not be loaded.");
+        setEasyAutoTranscriptLoading(false);
+        return;
+      }
+
+      const conversation = conversationResult.data?.[0];
+      setEasyAutoConversation(
+        conversation
+          ? {
+              externalConversationId: conversation.external_conversation_id,
+              sourceStatus: conversation.source_status,
+              sourceStage: conversation.source_stage,
+              serviceType: conversation.service_type,
+              sourceUpdatedAt: conversation.source_updated_at,
+            }
+          : null,
+      );
+      setEasyAutoMessages(
+        (messagesResult.data ?? []).map((message) => ({
+          id: message.id,
+          externalMessageId: message.external_message_id,
+          role: message.role as "user" | "assistant",
+          body: message.body,
+          occurredAt: message.occurred_at,
+        })),
+      );
+      setEasyAutoTranscriptLoading(false);
+    };
+
+    void loadEasyAutoTranscript();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lead.funnel_name, lead.id, lead.last_activity_at]);
+
+  // Ask Grand Touch (site chat) transcript — same pattern as the EasyAuto one.
+  // Conversations link to leads via gt_assistant_conversations.lead_id the
+  // moment the bot captures a number; messages hang off the conversation row.
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadGtChatTranscript = async () => {
+      if (!supabase || lead.funnel_name !== "gt-assistant") {
+        setGtChatConversation(null);
+        setGtChatMessages([]);
+        setGtChatError(null);
+        return;
+      }
+
+      setGtChatLoading(true);
+      setGtChatError(null);
+
+      const conversationResult = await supabase
+        .from("gt_assistant_conversations")
+        .select("id, session_id, program_interest, buyer_focus, intent_score, message_count, last_message_at, page_path")
+        .eq("lead_id", lead.id)
+        .order("last_message_at", { ascending: false })
+        .limit(1);
+
+      if (cancelled) return;
+
+      const conversation = conversationResult.data?.[0];
+      if (conversationResult.error || !conversation) {
+        if (conversationResult.error) {
+          console.warn("Failed to load Ask Grand Touch conversation", conversationResult.error);
+          setGtChatError("Conversation could not be loaded.");
+        }
+        setGtChatConversation(null);
+        setGtChatMessages([]);
+        setGtChatLoading(false);
+        return;
+      }
+
+      setGtChatConversation({
+        id: conversation.id,
+        sessionId: conversation.session_id,
+        programInterest: conversation.program_interest,
+        buyerFocus: conversation.buyer_focus,
+        intentScore: conversation.intent_score ?? 0,
+        messageCount: conversation.message_count ?? 0,
+        lastMessageAt: conversation.last_message_at,
+        pagePath: conversation.page_path,
+      });
+
+      const messagesResult = await supabase
+        .from("gt_assistant_messages")
+        .select("id, role, content, created_at")
+        .eq("conversation_id", conversation.id)
+        .order("created_at", { ascending: true });
+
+      if (cancelled) return;
+
+      if (messagesResult.error) {
+        console.warn("Failed to load Ask Grand Touch transcript", messagesResult.error);
+        setGtChatError("Transcript could not be loaded.");
+        setGtChatMessages([]);
+        setGtChatLoading(false);
+        return;
+      }
+
+      setGtChatMessages(
+        (messagesResult.data ?? []).map((message) => ({
+          id: message.id,
+          role: message.role as "user" | "assistant",
+          content: message.content,
+          createdAt: message.created_at,
+        })),
+      );
+      setGtChatLoading(false);
+    };
+
+    void loadGtChatTranscript();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lead.funnel_name, lead.id, lead.last_activity_at]);
 
   const latestSnapshotPayload = latestSnapshot?.payload ?? {};
   const selectedPackage =
@@ -390,6 +586,16 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                   <TabsTrigger value="history" className="text-sm">
                                     Activity
                                   </TabsTrigger>
+                                  {lead.funnel_name === "easyauto_whatsapp_ppf" ? (
+                                    <TabsTrigger value="transcript" className="text-sm">
+                                      WhatsApp
+                                    </TabsTrigger>
+                                  ) : null}
+                                  {lead.funnel_name === "gt-assistant" ? (
+                                    <TabsTrigger value="site_chat" className="text-sm">
+                                      Site chat
+                                    </TabsTrigger>
+                                  ) : null}
                                 </TabsList>
 
                                 <TabsContent value="overview" className="space-y-4">
@@ -2161,6 +2367,146 @@ export function AdminLeadExpandedPanel(props: AdminLeadExpandedPanelProps) {
                                     </Card>
                                   </div>
                                 </TabsContent>
+                                {lead.funnel_name === "easyauto_whatsapp_ppf" ? (
+                                  <TabsContent value="transcript" className="space-y-4">
+                                    <Card className="border-white/10 bg-black/20 p-4">
+                                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                          <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                                            WhatsApp Conversation
+                                          </p>
+                                          {easyAutoConversation ? (
+                                            <p className="mt-2 text-xs text-slate-500">
+                                              Updated {formatTimestamp(easyAutoConversation.sourceUpdatedAt)}
+                                            </p>
+                                          ) : null}
+                                        </div>
+                                        {easyAutoConversation ? (
+                                          <div className="flex flex-wrap gap-2">
+                                            <Badge variant="outline" className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200">
+                                              {formatTokenLabel(easyAutoConversation.serviceType)}
+                                            </Badge>
+                                            {easyAutoConversation.sourceStatus ? (
+                                              <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-300">
+                                                {formatTokenLabel(easyAutoConversation.sourceStatus)}
+                                              </Badge>
+                                            ) : null}
+                                          </div>
+                                        ) : null}
+                                      </div>
+
+                                      <ScrollArea className="mt-4 h-[520px] pr-4">
+                                        {easyAutoTranscriptLoading ? (
+                                          <p className="text-sm text-slate-400">Loading conversation...</p>
+                                        ) : easyAutoTranscriptError ? (
+                                          <p className="text-sm text-rose-200">{easyAutoTranscriptError}</p>
+                                        ) : easyAutoMessages.length ? (
+                                          <div className="space-y-3">
+                                            {easyAutoMessages.map((message) => (
+                                              <div
+                                                key={message.id}
+                                                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                                              >
+                                                <div
+                                                  className={`max-w-[88%] rounded-lg border px-3 py-2.5 sm:max-w-[72%] ${
+                                                    message.role === "user"
+                                                      ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-50"
+                                                      : "border-white/10 bg-white/5 text-slate-100"
+                                                  }`}
+                                                >
+                                                  <p className="whitespace-pre-wrap break-words text-sm leading-6">
+                                                    {message.body}
+                                                  </p>
+                                                  <p className="mt-2 text-[11px] text-slate-500">
+                                                    {message.role === "user" ? "Customer" : "EasyAuto assistant"} · {formatTimestamp(message.occurredAt)}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <p className="text-sm text-slate-400">No transcript messages are available.</p>
+                                        )}
+                                      </ScrollArea>
+                                    </Card>
+                                  </TabsContent>
+                                ) : null}
+                                {lead.funnel_name === "gt-assistant" ? (
+                                  <TabsContent value="site_chat" className="space-y-4">
+                                    <Card className="border-white/10 bg-black/20 p-4">
+                                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                          <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                                            Ask Grand Touch Conversation
+                                          </p>
+                                          {gtChatConversation ? (
+                                            <p className="mt-2 text-xs text-slate-500">
+                                              {gtChatConversation.pagePath || "on site"} · last message{" "}
+                                              {formatTimestamp(gtChatConversation.lastMessageAt)} ·{" "}
+                                              <Link
+                                                to="/admin/assistant-chats"
+                                                className="text-amber-300 underline underline-offset-4"
+                                              >
+                                                all chats
+                                              </Link>
+                                            </p>
+                                          ) : null}
+                                        </div>
+                                        {gtChatConversation ? (
+                                          <div className="flex flex-wrap gap-2">
+                                            {gtChatConversation.programInterest ? (
+                                              <Badge variant="outline" className="border-amber-400/20 bg-amber-500/10 text-amber-200">
+                                                {formatTokenLabel(gtChatConversation.programInterest)}
+                                              </Badge>
+                                            ) : null}
+                                            {gtChatConversation.buyerFocus ? (
+                                              <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-300">
+                                                {formatTokenLabel(gtChatConversation.buyerFocus)}
+                                              </Badge>
+                                            ) : null}
+                                            <Badge variant="outline" className="border-white/10 bg-white/5 text-slate-300">
+                                              intent {gtChatConversation.intentScore}
+                                            </Badge>
+                                          </div>
+                                        ) : null}
+                                      </div>
+
+                                      <ScrollArea className="mt-4 h-[520px] pr-4">
+                                        {gtChatLoading ? (
+                                          <p className="text-sm text-slate-400">Loading conversation...</p>
+                                        ) : gtChatError ? (
+                                          <p className="text-sm text-rose-200">{gtChatError}</p>
+                                        ) : gtChatMessages.length ? (
+                                          <div className="space-y-3">
+                                            {gtChatMessages.map((message) => (
+                                              <div
+                                                key={message.id}
+                                                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                                              >
+                                                <div
+                                                  className={`max-w-[88%] rounded-lg border px-3 py-2.5 sm:max-w-[72%] ${
+                                                    message.role === "user"
+                                                      ? "border-amber-400/20 bg-amber-500/10 text-amber-50"
+                                                      : "border-white/10 bg-white/5 text-slate-100"
+                                                  }`}
+                                                >
+                                                  <p className="whitespace-pre-wrap break-words text-sm leading-6">
+                                                    {message.content}
+                                                  </p>
+                                                  <p className="mt-2 text-[11px] text-slate-500">
+                                                    {message.role === "user" ? "Visitor" : "Ask Grand Touch"} · {formatTimestamp(message.createdAt)}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <p className="text-sm text-slate-400">No transcript messages are available.</p>
+                                        )}
+                                      </ScrollArea>
+                                    </Card>
+                                  </TabsContent>
+                                ) : null}
                               </Tabs>
     </div>
   );

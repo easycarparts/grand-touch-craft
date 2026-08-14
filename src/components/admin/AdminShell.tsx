@@ -61,6 +61,9 @@ export const AdminShell = ({
             <NavLink to="/admin/close-rates" className={navLinkClass}>
               Close rates
             </NavLink>
+            <NavLink to="/admin/assistant-chats" className={navLinkClass}>
+              AI chats
+            </NavLink>
             <NavLink to="/admin/users" className={navLinkClass}>
               Users
             </NavLink>
