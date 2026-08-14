@@ -254,7 +254,7 @@ const ServicePillarPage = ({
             <ul className="mt-4 space-y-2 text-sm text-white/70">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />
-                STEK-certified PPF and GYEON detailing processes
+                Diamond Pro-certified PPF and GYEON detailing processes
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#f7b52b]" />

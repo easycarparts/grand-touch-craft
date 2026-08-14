@@ -300,10 +300,54 @@ export const GT_CERT_SAMPLE = {
  * read cheap). Only brands GT actually installs. NOTE: no Avery Dennison.
  */
 export const GT_FILMS = [
-  { name: "STEK", note: "Flagship and value TPU lines — the backbone of the roster." },
-  { name: "Diamond Pro", note: "Polycarbonate urethane (PCU) — engineered for Gulf heat, humidity and UV." },
-  { name: "Supreme", note: "Specialist films for colour and custom work." },
-  { name: "Gyeon", note: "Certified coatings — over film and every uncovered surface." },
+  {
+    name: "Diamond Pro — Premium TPU",
+    note: "The GT Signature film. Heat-activated self-healing, factory hydrophobic, manufacturer warranty registered to your car.",
+  },
+  {
+    name: "Diamond Pro X — PCU Flagship",
+    note: "The GT Concours film. Polycarbonate urethane — a harder chemistry than TPU, engineered for Gulf heat, humidity and UV, with a 15-year manufacturer registration.",
+  },
+  {
+    name: "Gyeon",
+    note: "Certified coatings — over the film and every uncovered surface.",
+  },
+];
+
+/** The film ladder, spec by spec — shared by the films page and the warranty
+ *  funnel. Verified claims only: the dE figure is Diamond Pro's published UV
+ *  test, and 15 years is anchored to X ONLY. */
+export const GT_FILM_LADDER: { label: string; tpu: string; x: string }[] = [
+  {
+    label: "Chemistry",
+    tpu: "Premium thermoplastic polyurethane (TPU) — the material almost all quality PPF is made of",
+    x: "Polycarbonate urethane (PCU) — a carbonate backbone in place of TPU's soft segment. A harder chemistry, built to survive heat, humidity and UV for decades",
+  },
+  {
+    label: "Self-healing",
+    tpu: "Heat-activated top coat — light swirls vanish in the Dubai sun",
+    x: "Heat-activated top coat — light swirls vanish in the Dubai sun",
+  },
+  {
+    label: "Hydrophobic",
+    tpu: "Factory hydrophobic finish — water beads off, the car stays cleaner longer",
+    x: "Factory hydrophobic finish — R9–R10 rated",
+  },
+  {
+    label: "UV, tested",
+    tpu: "Built to hold clarity in Gulf heat",
+    x: "Colour shift under ΔE 1 after 1,000 hours of UV exposure — no measurable yellowing",
+  },
+  {
+    label: "In writing",
+    tpu: "Fading and colour change named in the manufacturer's warranty — and registered to your car",
+    x: "Fading and colour change named in the manufacturer's warranty — registered to your car for 15 years",
+  },
+  {
+    label: "Removal",
+    tpu: "Removal-tested clean — no damage to original paint, no glue residue",
+    x: "Removal-tested clean — no damage to original paint, no glue residue",
+  },
 ];
 
 export const GT_FILMS_LINE =
@@ -321,7 +365,7 @@ export const GT_FAQ: GtFaqItem[] = [
   },
   {
     q: "What film brands do you use?",
-    a: "Genuine film from our certified roster — STEK, Diamond Pro, Supreme, with Gyeon coatings — chosen for your car and program. We register the manufacturer's warranty to your car as standard, and your GT warranty sits on top. The film brand warranties the plastic. We warranty the whole job, for life.",
+    a: "Diamond Pro, and we say it with pride: GT Signature runs their premium self-healing TPU, GT Concours steps up to Diamond Pro X — the PCU flagship, developed for the Middle East, with a 15-year manufacturer registration. Gyeon handles the coatings. The manufacturer's warranty is registered to your car as standard, and your GT warranty sits on top. The film brand warranties the plastic. We warranty the whole job, for life.",
   },
   {
     q: "What does the lifetime warranty actually cover?",
@@ -394,7 +438,8 @@ export const GT_IMAGES = {
   seanWith911: "/guided-sean-with-911.png",
   seanWithPatrols: "/guided-sean-with-patrols-v2.jpg",
   installDetail: "/guided-install-detail.png",
-  stekRoll: "/guided-911-stek-roll.png",
+  cullinanPpf: "/guided-cullinan-ppf.png",
+  gloss911: "/guided-911-gloss.png",
   rollsInstall: "/guided-rolls-install.png",
 };
 
@@ -407,12 +452,12 @@ export const GT_PROCESS_STEPS = [
   {
     title: "Precision-cut for your exact model",
     body: "Patterns cut for your car, refined by hand where the pattern isn't good enough.",
-    image: GT_IMAGES.stekRoll,
+    image: GT_IMAGES.rollsInstall,
   },
   {
     title: "Edges wrapped out of sight",
     body: "The film disappears into the panel gaps. Run your finger along the edge — that's the test.",
-    image: GT_IMAGES.rollsInstall,
+    image: GT_IMAGES.gloss911,
   },
   {
     title: "The delivery walkaround",

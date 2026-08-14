@@ -228,7 +228,7 @@ const blogArticlePages = [
     description:
       "Compare gloss and matte PPF in Dubai so you can choose the finish that fits your car, your style, and your real-world use.",
     keywords:
-      "matte PPF Dubai, gloss PPF Dubai, colour PPF Dubai, car PPF Dubai, STEK PPF Dubai",
+      "matte PPF Dubai, gloss PPF Dubai, colour PPF Dubai, car PPF Dubai, Diamond Pro PPF Dubai",
     image: "/ppf-featured-ppf-dubai-full-front-vs-full-body-option-1.png",
     highlights: [
       "How gloss and matte PPF change the car visually",
@@ -658,7 +658,7 @@ const pages = [
         <h2>What makes the GT Owner's Warranty different?</h2>
         <p>It covers film AND labour for as long as you own the car — most shops' workmanship warranty is one year. The film manufacturer's warranty is registered to your car as standard, and the GT warranty sits on top. Scraped it in a car park? That's not a warranty claim — that's a free no-fault panel replacement. And when you sell the car the cover transfers once, with the vehicle, to the next owner — so it holds value at resale. Full terms are published word for word.</p>
         <h2>Which film brands does Grand Touch use?</h2>
-        <p>Genuine film from a certified roster — STEK, Diamond Pro, Supreme, with Gyeon coatings — selected per vehicle and program tier, manufacturer warranty registered on every car. The film brand warranties the plastic; Grand Touch warranties the whole job.</p>
+        <p>Diamond Pro is the film — premium TPU on GT Signature, Diamond Pro X (the PCU flagship, 15-year manufacturer registration) on GT Concours, with Gyeon coatings — manufacturer warranty registered on every car. The film brand warranties the plastic; Grand Touch warranties the whole job.</p>
         <h2>Why not take a 7,000 dirham quote?</h2>
         <p>A 7,000 full-body quote is real — for what it is: value film, tucked edges, a one-year workmanship warranty, often no registered manufacturer warranty at all. It's a different product. Compare warranties before prices.</p>
         <h2>Booking</h2>
@@ -824,22 +824,22 @@ const pages = [
   },
   {
     path: "/ppf-films-dubai",
-    title: "PPF Film Brands Dubai — STEK, Diamond Pro, Supreme | Grand Touch Auto",
+    title: "PPF Film Dubai — Diamond Pro TPU & Diamond Pro X | Grand Touch Auto",
     description:
       "The films Grand Touch uses — and why the installer matters more than the brand. Genuine film, manufacturer warranty registered on every car, GT warranty on top.",
     keywords:
-      "STEK Dubai, PPF film brands Dubai, best PPF film, Diamond Pro PPF, Gyeon Dubai, genuine PPF film",
+      "Diamond Pro PPF Dubai, Diamond Pro X, PCU PPF film, best PPF film, Gyeon Dubai, genuine PPF film",
     ogTitle: "The films we use — and why that's the wrong question",
-    ogDescription: "STEK, Diamond Pro, Supreme, Gyeon — genuine, registered, and backed by the GT warranty on top.",
+    ogDescription: "Diamond Pro premium TPU and Diamond Pro X (PCU flagship), with Gyeon coatings — genuine, registered, backed by the GT warranty on top.",
     image: "/guided-911-stek-roll.png",
     seoBody: `
         <h1>The films Grand Touch uses — and why that's the wrong question</h1>
         <p>Most film in Dubai comes from the same handful of factories. Results differ because installs differ. We fit genuine film from our certified roster, register the manufacturer's warranty to your car — and back the whole job with ours.</p>
         <h2>The certified roster</h2>
         <ul>
-          <li>STEK — flagship and value TPU lines, the backbone of the roster</li>
+          <li>Diamond Pro — premium self-healing TPU, the GT Signature film</li>
           <li>Diamond Pro — polycarbonate urethane (PCU), engineered for Gulf heat, humidity and UV</li>
-          <li>Supreme — specialist films for colour and custom work</li>
+          <li>Diamond Pro X — the PCU flagship, 15-year registration, the GT Concours film</li>
           <li>Gyeon — certified coatings, over film and every uncovered surface</li>
         </ul>
         <h2>Who chooses the film?</h2>
@@ -888,14 +888,14 @@ const pages = [
   },
   {
     path: "/best-ppf-studio-dubai",
-    title: "Best PPF Studio in Dubai | Certified STEK PPF | Grand Touch Studio",
+    title: "Best PPF Studio in Dubai | Certified Diamond Pro PPF | Grand Touch Studio",
     description:
-      "Grand Touch Studio by Grand Touch Auto Repair is one of Dubai's leading certified PPF studios for STEK PPF, colour PPF, tinting, paint, and customisation.",
+      "Grand Touch Studio by Grand Touch Auto Repair is one of Dubai's leading certified PPF studios — Diamond Pro film, colour PPF, tinting, paint, and customisation.",
     keywords:
-      "best PPF studio Dubai, best PPF installer Dubai, STEK PPF Dubai, colour PPF Dubai, paint protection film Dubai, GYEON installer Dubai, Grand Touch Studio",
+      "best PPF studio Dubai, best PPF installer Dubai, Diamond Pro PPF Dubai, colour PPF Dubai, paint protection film Dubai, GYEON installer Dubai, Grand Touch Studio",
     ogTitle: "One of Dubai's Leading Certified PPF Studios",
     ogDescription:
-      "Certified STEK and GYEON installation, Sean-led advice, warranty registration, colour PPF, tinting, paint, and customisation in DIP 2.",
+      "Certified Diamond Pro and GYEON installation, Sean-led advice, warranty registration, colour PPF, tinting, paint, and customisation in DIP 2.",
     image: "/guided-sean-with-patrols-v2.jpg",
     ogImageAlt: "Sean at Grand Touch Studio with PPF vehicles in Dubai",
     seoBody: `
@@ -903,7 +903,7 @@ const pages = [
         <p>Grand Touch Studio is the PPF, detailing, colour PPF, tinting, and customisation side of Grand Touch Auto Repair in Dubai Investment Park 2.</p>
         <h2>Why choose Grand Touch for PPF in Dubai</h2>
         <ul>
-          <li>Certified STEK and GYEON installer with STEK as the main PPF focus</li>
+          <li>Certified Diamond Pro and GYEON installer — Diamond Pro premium TPU and Diamond Pro X (PCU) as the PPF focus</li>
           <li>Sean-led advice before choosing clear gloss, matte, colour PPF, or warranty route</li>
           <li>Manufacturer warranty registration where applicable plus Grand Touch installation guarantee</li>
           <li>Two-week inspection, six-month free refresh, and lifetime PPF inspection support</li>
@@ -962,10 +962,10 @@ const pages = [
           },
           {
             "@type": "Question",
-            name: "Are you certified STEK and GYEON installers?",
+            name: "Are you certified Diamond Pro and GYEON installers?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "Yes. Grand Touch works as a certified STEK and GYEON installer, with STEK as the main PPF focus and GYEON materials used across detailing and protection processes.",
+              text: "Yes. Grand Touch is a certified Diamond Pro and GYEON studio — Diamond Pro premium TPU and Diamond Pro X (PCU) as the PPF focus, with GYEON materials across detailing and protection processes.",
             },
           },
           {

@@ -28,6 +28,7 @@ import {
   GT_FAQ,
   GT_FILMS,
   GT_FILMS_LINE,
+  GT_FILM_LADDER,
   GT_IMAGES,
   GT_WA,
   type GtFaqItem,
@@ -185,16 +186,16 @@ const PpfFilmsDubai = () => {
 
   useEffect(() => {
     updatePageSEO("ppf-films-dubai", {
-      title: "PPF Film Brands Dubai — STEK, Diamond Pro, Supreme | What Grand Touch Uses",
+      title: "PPF Film Dubai — Diamond Pro TPU & Diamond Pro X | What Grand Touch Uses",
       description:
-        "The certified film roster at Grand Touch Dubai — STEK, Diamond Pro and Supreme PPF with Gyeon coatings. Every film genuine, the manufacturer's warranty registered to your car, and the GT warranty on top. Plus how to verify genuine film before any shop cuts it.",
+        "The film at Grand Touch Dubai — Diamond Pro premium TPU on GT Signature and Diamond Pro X, the PCU flagship, on GT Concours, with Gyeon coatings. Every film genuine, the manufacturer's warranty registered to your car, and the GT warranty on top. Plus how to verify genuine film before any shop cuts it.",
       keywords:
-        "STEK Dubai, Diamond Pro PPF, Supreme PPF Dubai, Gyeon Dubai, best PPF film brand, genuine PPF film Dubai, PPF brands Dubai, paint protection film brands",
+        "Diamond Pro PPF Dubai, Diamond Pro X, PCU PPF film, Gyeon Dubai, best PPF film brand, genuine PPF film Dubai, PPF brands Dubai, paint protection film brands",
       ogTitle: "The Films We Use — and Why That's the Wrong Question | Grand Touch",
       ogDescription:
-        "STEK, Diamond Pro, Supreme, Gyeon — genuine film from a certified roster, registered to your car, backed by the GT warranty on top.",
+        "Diamond Pro premium TPU and Diamond Pro X (PCU flagship), with Gyeon coatings — genuine, registered to your car, backed by the GT warranty on top.",
       url: PAGE_URL,
-      image: GT_IMAGES.stekRoll,
+      image: GT_IMAGES.cullinanPpf,
     });
 
     injectJsonLd(JSONLD_BUSINESS_ID, getLocalBusinessJsonLd());
@@ -216,7 +217,7 @@ const PpfFilmsDubai = () => {
         <section className="relative isolate overflow-hidden">
           <div className="absolute inset-0 -z-10" aria-hidden>
             <img
-              src={GT_IMAGES.stekRoll}
+              src={GT_IMAGES.cullinanPpf}
               alt=""
               className="h-full w-full object-cover opacity-[0.2] saturate-[0.6]"
               loading="eager"
@@ -228,7 +229,7 @@ const PpfFilmsDubai = () => {
             {/* Left — eyebrow, H1, sub, proof, CTAs */}
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-                Films &amp; materials — the certified roster
+                Films &amp; materials — Diamond Pro
               </div>
               <h1 className="mt-4 !text-4xl leading-[1.08] sm:!text-5xl lg:!text-[3.4rem]">
                 The films we use — and why that&rsquo;s the wrong question.
@@ -278,7 +279,7 @@ const PpfFilmsDubai = () => {
             <LuxCard className="w-full" as="section">
               <div className="p-6 md:p-7">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                  The certified roster
+                  The film ladder
                 </div>
                 <ul className="mt-5 space-y-3.5">
                   {GT_FILMS.map((film) => (
@@ -308,38 +309,89 @@ const PpfFilmsDubai = () => {
           </div>
         </section>
 
-        {/* ————— The roster, in detail ————— */}
+        {/* ————— Diamond Pro, in depth ————— */}
         <GtSection
-          eyebrow="The roster"
-          title="Four names. One standard."
-          sub="Certified, genuine, registered — brands are the credential, the install is the product."
+          eyebrow="The film"
+          title="Diamond Pro — chosen on data, not badge."
+          sub="A Gulf company, established in Kuwait in 2018 with an office here in Dubai. This film was engineered for our summer, not adapted to it — and the film itself steps up with the tier."
         >
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {GT_FILMS.map((film) => (
-              <LuxCard key={film.name} className="h-full" as="article">
-                <div className="flex h-full flex-col items-center p-6 text-center md:p-7">
-                  <span aria-hidden className="mb-5 h-1.5 w-1.5 rotate-45 bg-primary/60" />
-                  <div className="text-[17px] font-medium uppercase tracking-[0.24em] text-foreground">
-                    {film.name}
-                  </div>
-                  <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
-                    {film.note}
-                  </p>
-                </div>
-              </LuxCard>
-            ))}
+          <div className="mx-auto max-w-4xl">
+            <LuxCard as="div">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[680px] border-collapse text-left">
+                  <thead>
+                    <tr>
+                      <th className="w-[18%] border-b border-border/60 p-4 align-bottom text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                        The film ladder
+                      </th>
+                      <th className="w-[41%] border-b border-border/60 p-4 align-bottom">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                          GT Signature · AED 12,900
+                        </div>
+                        <div className="mt-1.5 text-[19px] font-semibold text-foreground">
+                          Diamond Pro{" "}
+                          <span className="text-[13px] font-medium text-primary/90">Premium TPU</span>
+                        </div>
+                      </th>
+                      <th className="w-[41%] border-b border-primary/50 bg-primary/[0.05] p-4 align-bottom">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+                          GT Concours · AED 18,900
+                        </div>
+                        <div className="mt-1.5 text-[19px] font-semibold text-foreground">
+                          Diamond Pro X{" "}
+                          <span className="text-[13px] font-medium text-primary">PCU Flagship</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[13.5px] leading-relaxed">
+                    {GT_FILM_LADDER.map((row) => (
+                      <tr key={row.label}>
+                        <th className="border-b border-border/40 p-4 align-top text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          {row.label}
+                        </th>
+                        <td className="border-b border-border/40 p-4 align-top text-foreground/80">{row.tpu}</td>
+                        <td className="border-b border-border/40 bg-primary/[0.04] p-4 align-top text-foreground/90">
+                          {row.x}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="border-l-2 border-primary/60 bg-primary/[0.04] px-6 py-5 text-[14px] italic leading-relaxed text-foreground/85 md:px-8">
+                Whichever film your tier wears, the GT warranty sits on top — film and labour, yellowing
+                covered, no UV carve-out. Two documents, one car.
+              </p>
+            </LuxCard>
+
+            <div className="mx-auto mt-10 max-w-3xl space-y-4 text-[14.5px] leading-relaxed text-muted-foreground">
+              <p>
+                <strong className="text-foreground">Why the chemistry matters here.</strong> Almost all PPF
+                is TPU. Polyester-based TPU is vulnerable to hydrolysis — heat plus moisture. Polyether-based
+                TPU oxidises and yellows under UV. Dubai is heat, humidity and UV, all year. Diamond Pro X
+                swaps that soft segment for a polycarbonate backbone that resists both — the same polymer
+                family long-term medical implants reach for, because it survives a hot, wet, oxidising
+                environment for decades.
+              </p>
+              <p>
+                The honest trade-off: PCU is a harder film, less forgiving on complex curves — which is an
+                argument about the installer, not against the film. It&rsquo;s also why we&rsquo;ll never
+                sell you film on thickness: every flagship film on the market is about the same thickness,
+                so it settles nothing. Chemistry and evidence settle it.
+              </p>
+              <p className="text-xs">
+                Which film goes on which car is decided by your program — see{" "}
+                <Link
+                  to="/ppf-dubai"
+                  className="font-semibold text-foreground underline underline-offset-4 hover:text-primary"
+                >
+                  the Protection Program
+                </Link>
+                .
+              </p>
+            </div>
           </div>
-          <p className="mx-auto mt-8 max-w-2xl text-center text-xs leading-relaxed text-muted-foreground">
-            Which film goes on which car is decided by vehicle and program — see how the roster
-            maps to the tiers on{" "}
-            <Link
-              to="/ppf-dubai"
-              className="font-semibold text-foreground underline underline-offset-4 hover:text-primary"
-            >
-              the Protection Program
-            </Link>
-            .
-          </p>
         </GtSection>
 
         {/* ————— The selection clause ————— */}

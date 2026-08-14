@@ -16,7 +16,7 @@ const Footer = () => {
               className="h-10 w-auto"
             />
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Dubai&apos;s STEK-certified studio for PPF, ceramic coating, window
+              Dubai&apos;s Diamond Pro-certified studio for PPF, ceramic coating, window
               tinting, detailing, paint, and workshop repairs.
             </p>
             <a
