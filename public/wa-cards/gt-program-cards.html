@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GT Protection Program — WhatsApp Cards</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:hsl(38 92% 58%);
+    --gold-deep:hsl(34 80% 46%);
+    --gold-pale:hsl(42 90% 72%);
+    --lava:hsl(18 95% 58%);
+    --lava-pale:hsl(20 95% 70%);
+    --ink:hsl(0 0% 92%);
+    --muted:hsl(38 15% 62%);
+    --paper:linear-gradient(160deg,hsl(220 8% 11%),hsl(220 6% 8%) 55%,hsl(220 8% 10%));
+    --foil:linear-gradient(115deg,hsl(34 75% 44%) 0%,hsl(42 95% 68%) 28%,hsl(38 92% 55%) 50%,hsl(45 96% 78%) 72%,hsl(34 75% 44%) 100%);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:hsl(0 0% 5%);font-family:'Poppins',system-ui,sans-serif;color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;padding:56px 40px 90px;min-width:1160px}
+  .sheet-head{text-align:center;margin-bottom:10px}
+  .sheet-head .eyebrow{font-size:12px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin:0 0 8px}
+  .sheet-head h1{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:600;margin:0}
+  .sheet-head p{font-size:13px;color:hsl(0 0% 52%);margin:8px 0 0}
+
+  .card-label{font-size:13px;font-weight:600;letter-spacing:.34em;text-transform:uppercase;
+    color:hsl(38 12% 48%);margin:64px 0 16px;text-align:center}
+  .card-label b{color:var(--muted);font-weight:600}
+
+  /* ================= CARD — exactly 1080 x 1350 ================= */
+  .card{position:relative;flex:none;width:1080px;height:1350px;background:var(--paper);overflow:hidden;
+    display:flex;flex-direction:column;padding:78px 88px 54px;
+    box-shadow:0 40px 90px -20px hsl(0 0% 0% / .8)}
+  /* foil frame — hairline on standard cards, full gold on the featured one */
+  .card::before{content:"";position:absolute;inset:22px;border:1.5px solid transparent;
+    border-image:var(--foil) 1;opacity:.55;pointer-events:none;z-index:3}
+  .card::after{content:"";position:absolute;inset:36px;border:.5px solid hsl(38 60% 45% / .45);pointer-events:none;z-index:3}
+  .card.feat{box-shadow:0 40px 90px -20px hsl(0 0% 0% / .8), inset 0 0 120px hsl(38 92% 58% / .07)}
+  .card.feat::before{border-width:3px;opacity:1}
+  .card.feat::after{border-color:hsl(38 60% 50% / .6)}
+
+  /* watermark monogram + vignette texture */
+  .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1}
+  .wm span{font-family:'Cormorant Garamond',serif;font-size:640px;font-weight:600;
+    color:hsl(38 60% 50% / .045);line-height:1;letter-spacing:-.05em}
+  .vign{position:absolute;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(120% 90% at 50% 0%,hsl(38 80% 55% / .05),transparent 55%),
+               radial-gradient(140% 110% at 50% 115%,hsl(0 0% 0% / .5),transparent 55%)}
+
+  .content{position:relative;z-index:2;display:flex;flex-direction:column;flex:1;text-align:center}
+
+  /* MOST CHOSEN pill — straddles the foil frame */
+  .pill{position:absolute;top:1px;left:50%;transform:translateX(-50%);z-index:4;
+    background:var(--foil);color:hsl(28 80% 14%);font-size:19px;font-weight:600;
+    letter-spacing:.26em;text-transform:uppercase;padding:11px 36px 10px 42px;border-radius:99px;
+    box-shadow:0 6px 24px hsl(38 92% 58% / .35)}
+
+  .marque{font-size:20px;font-weight:600;letter-spacing:.42em;text-transform:uppercase;color:var(--muted);margin-bottom:34px}
+  .marque i{font-style:normal;color:hsl(38 60% 50% / .8)}
+
+  .tname{font-family:'Cormorant Garamond',serif;font-size:92px;font-weight:600;letter-spacing:.05em;line-height:1.02;margin:0;color:var(--ink)}
+  .tagline{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;font-size:41px;line-height:1.2;margin-top:10px;
+    background:var(--foil);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .rule{display:flex;align-items:center;gap:16px;margin:30px auto;width:440px}
+  .rule::before,.rule::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,hsl(38 60% 50% / .6))}
+  .rule::after{background:linear-gradient(90deg,hsl(38 60% 50% / .6),transparent)}
+  .rule .dot{width:7px;height:7px;transform:rotate(45deg);background:var(--gold)}
+
+  .p-eyebrow{font-size:20px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:var(--muted)}
+  .p-main{margin-top:10px;font-weight:600;font-size:104px;line-height:1.06;color:hsl(0 0% 98%)}
+  .p-main .cur{font-size:44px;font-weight:600;color:hsl(0 0% 98%);letter-spacing:.06em;vertical-align:18px;margin-right:8px}
+  .p-sizes{margin-top:12px;font-size:24px;color:var(--muted);letter-spacing:.02em}
+  .p-sizes i{font-style:normal;color:hsl(38 60% 50% / .8);padding:0 6px}
+
+  .warranty{margin:30px auto 0;max-width:850px;font-size:30px;font-weight:600;line-height:1.42;color:hsl(0 0% 96%)}
+  .warranty .wkey{background:var(--foil);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .chip{display:inline-flex;align-items:center;gap:14px;margin:24px auto 0;padding:15px 34px;border-radius:99px;
+    border:1.5px solid hsl(18 95% 58% / .6);background:hsl(18 95% 58% / .08);
+    font-size:26px;font-weight:600;color:var(--lava-pale);letter-spacing:.01em;
+    box-shadow:0 0 34px hsl(18 95% 58% / .15)}
+  .chip .flame{width:9px;height:9px;transform:rotate(45deg);background:var(--lava);flex:none;
+    box-shadow:0 0 12px hsl(18 95% 58% / .8)}
+
+  .bullets{list-style:none;margin:36px 0 0;padding:0;text-align:left;display:flex;flex-direction:column;gap:15px}
+  .bullets li{position:relative;padding-left:44px;font-size:28px;font-weight:400;line-height:1.44;color:hsl(38 8% 84%)}
+  .bullets li::before{content:"";position:absolute;left:8px;top:.52em;width:9px;height:9px;
+    transform:rotate(45deg);background:var(--foil)}
+
+  .foot-strip{margin-top:auto;padding-top:26px;border-top:1px solid hsl(38 40% 40% / .35);
+    font-size:23px;font-weight:500;letter-spacing:.1em;color:hsl(0 0% 90%)}
+  .foot-strip i{font-style:normal;color:var(--gold);padding:0 12px}
+</style>
+</head>
+<body>
+
+  <div class="sheet-head">
+    <p class="eyebrow">Grand Touch Auto · GT Protection Program</p>
+    <h1>WhatsApp Program Cards</h1>
+    <p>Three cards, each 1080 × 1350. Screenshot each card individually to send in chat.</p>
+  </div>
+
+  <!-- ============ CARD 1 · GT ESSENTIAL ============ -->
+  <p class="card-label">Card 1 <b>· GT Essential</b></p>
+  <div class="card">
+    <div class="wm"><span>GT</span></div>
+    <div class="vign"></div>
+    <div class="content">
+      <div class="marque">Grand Touch Auto <i>·</i> DIP 2 <i>·</i> Dubai</div>
+      <h2 class="tname">GT Essential</h2>
+      <div class="tagline">Protected, properly.</div>
+      <div class="rule"><span class="dot"></span></div>
+
+      <div class="p-eyebrow">Full Body · Every Car · +VAT</div>
+      <div class="p-main"><span class="cur">AED</span>7,900</div>
+      <div class="p-sizes">One price, every car <i>·</i> no SUV or exotic surcharge</div>
+
+      <p class="warranty"><span class="wkey">GT 5-Year Warranty</span> — film and workmanship, in writing</p>
+
+      <ul class="bullets">
+        <li>Self-healing gloss TPU film, GT-certified</li>
+        <li>Every painted exterior panel + headlights</li>
+        <li>Health check at month 12</li>
+        <li>2 days in the studio</li>
+      </ul>
+
+      <div class="foot-strip">grandtouchauto.ae <i>·</i> WhatsApp +971 56 719 1045</div>
+    </div>
+  </div>
+
+  <!-- ============ CARD 2 · GT SIGNATURE ============ -->
+  <p class="card-label">Card 2 <b>· GT Signature</b></p>
+  <div class="card feat">
+    <div class="pill">Most Chosen</div>
+    <div class="wm"><span>GT</span></div>
+    <div class="vign"></div>
+    <div class="content">
+      <div class="marque">Grand Touch Auto <i>·</i> DIP 2 <i>·</i> Dubai</div>
+      <h2 class="tname">GT Signature</h2>
+      <div class="tagline">Forget the film. It's covered for life.</div>
+      <div class="rule"><span class="dot"></span></div>
+
+      <div class="p-eyebrow">Full Body · Every Car · +VAT</div>
+      <div class="p-main"><span class="cur">AED</span>12,900</div>
+      <div class="p-sizes">One price, every car <i>·</i> no SUV or exotic surcharge</div>
+
+      <p class="warranty"><span class="wkey">GT Lifetime Warranty</span> — as long as you own the car, film and labour, in writing</p>
+
+      <div class="chip"><span class="flame"></span>3 free panel replacements — any damage, any cause, ever</div>
+
+      <ul class="bullets">
+        <li>Our flagship film — self-healing, hydrophobic, built for Gulf heat</li>
+        <li>Every painted panel + headlights, door jambs, boot strip</li>
+        <li>Edges wrapped out of sight — the film disappears into the panel gaps</li>
+        <li>Wash + inspection at 6 and 12 months, then yearly — free, for life</li>
+        <li>Transfers once when you sell — the next owner inherits the cover</li>
+        <li>3 days in the studio — we don't rush film</li>
+      </ul>
+
+      <div class="foot-strip">grandtouchauto.ae <i>·</i> WhatsApp +971 56 719 1045</div>
+    </div>
+  </div>
+
+  <!-- ============ CARD 3 · GT CONCOURS ============ -->
+  <p class="card-label">Card 3 <b>· GT Concours</b></p>
+  <div class="card">
+    <div class="wm"><span>GT</span></div>
+    <div class="vign"></div>
+    <div class="content">
+      <div class="marque">Grand Touch Auto <i>·</i> DIP 2 <i>·</i> Dubai</div>
+      <h2 class="tname">GT Concours</h2>
+      <div class="tagline">For the cars that deserve everything.</div>
+      <div class="rule"><span class="dot"></span></div>
+
+      <div class="p-eyebrow">Full Body · Every Car · +VAT</div>
+      <div class="p-main"><span class="cur">AED</span>18,900</div>
+      <div class="p-sizes">One price, every car <i>·</i> no SUV or exotic surcharge</div>
+
+      <p class="warranty">Everything in <span class="wkey">Signature</span>, plus concours-level care</p>
+
+      <div class="chip"><span class="flame"></span>6 free panel replacements — any damage, any cause</div>
+
+      <ul class="bullets">
+        <li>Concours preparation — completely seamless, invisible finish</li>
+        <li>Paint perfected before film; ceramic over film and every uncovered surface</li>
+        <li>Every visit: inspection, wash + full ceramic refresh over the film — free, every time</li>
+        <li>Full photo/video protection dossier of your exact car</li>
+        <li>Priority booking, collection &amp; delivery · 5 days in the studio</li>
+      </ul>
+
+      <div class="foot-strip">grandtouchauto.ae <i>·</i> WhatsApp +971 56 719 1045</div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from "react-router-dom";
 import { RequireAdmin } from "@/components/admin/RequireAdmin";
 
 /**
@@ -29,6 +29,7 @@ const PpfFullPpfCalculator = lazy(() => import("./pages/PpfFullPpfCalculator"));
 const PpfFullPpfGuidedCalculator = lazy(() => import("./pages/PpfFullPpfGuidedCalculator"));
 const PpfFullPpfGuidedCalculatorV2 = lazy(() => import("./pages/PpfFullPpfGuidedCalculatorV2"));
 const PpfMetaPriceBuilder = lazy(() => import("./pages/PpfMetaPriceBuilder"));
+const PpfLifetimeWarranty = lazy(() => import("./pages/PpfLifetimeWarranty"));
 const PpfWhatsAppDirect = lazy(() => import("./pages/PpfWhatsAppDirect"));
 const TintDubaiQuoteFunnel = lazy(() => import("./pages/TintDubaiQuoteFunnel"));
 const TintDubaiFastFunnel = lazy(() => import("./pages/TintDubaiFastFunnel"));
@@ -42,6 +43,9 @@ const PpfVsCeramicDubai = lazy(() => import("./pages/articles/PpfVsCeramicDubai"
 const PpfDubaiFullFrontVsFullBody = lazy(() => import("./pages/articles/PpfDubaiFullFrontVsFullBody"));
 const PpfLongevityDubaiHeat = lazy(() => import("./pages/articles/PpfLongevityDubaiHeat"));
 const PpfWarrantyClaimsDubai = lazy(() => import("./pages/articles/PpfWarrantyClaimsDubai"));
+const PpfWarrantyDubai = lazy(() => import("./pages/PpfWarrantyDubai"));
+const PpfInstallationProcess = lazy(() => import("./pages/PpfInstallationProcess"));
+const PpfFilmsDubai = lazy(() => import("./pages/PpfFilmsDubai"));
 const PpfCostDubaiPricingGuide = lazy(() => import("./pages/articles/PpfCostDubaiPricingGuide"));
 const MatteVsGlossPpfDubai = lazy(() => import("./pages/articles/MatteVsGlossPpfDubai"));
 const NissanPatrolPpfDubai = lazy(() => import("./pages/articles/NissanPatrolPpfDubai"));
@@ -55,7 +59,8 @@ const HowDealersVoidPpfWarrantyDubai = lazy(() => import("./pages/articles/HowDe
 const TeslaPpfDubai = lazy(() => import("./pages/articles/TeslaPpfDubai"));
 const MercedesGWagonPpfDubai = lazy(() => import("./pages/articles/MercedesGWagonPpfDubai"));
 const RemovingCheapPpfDubai = lazy(() => import("./pages/articles/RemovingCheapPpfDubai"));
-const PpfDubai = lazy(() => import("./pages/services/PpfDubai"));
+// GT Protection Program pillar (rebuilt 2026-08-05); the old SEO pillar remains at ./pages/services/PpfDubai, unrouted.
+const PpfDubai = lazy(() => import("./pages/PpfDubai"));
 const CeramicCoatingDubai = lazy(() => import("./pages/services/CeramicCoatingDubai"));
 const WindowTintingDubai = lazy(() => import("./pages/services/WindowTintingDubai"));
 const CarDetailingDubai = lazy(() => import("./pages/services/CarDetailingDubai"));
@@ -72,6 +77,7 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const AdminLeadTasks = lazy(() => import("./pages/AdminLeadTasks"));
 const AdminCloseRates = lazy(() => import("./pages/AdminCloseRates"));
+const AdminAssistantChats = lazy(() => import("./pages/AdminAssistantChats"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
@@ -102,6 +108,31 @@ const RouteFallback = () => (
   </div>
 );
 
+/**
+ * React Router keeps the previous scroll offset on navigation, so following a
+ * link from mid-page lands you mid-page (or at the bottom) on the new route.
+ * Reset to top on every PUSH; leave POP alone so browser back/forward restores
+ * naturally, and honour in-page #anchors.
+ */
+const ScrollToTop = () => {
+  const { pathname, hash } = useLocation();
+  const navigationType = useNavigationType();
+
+  useEffect(() => {
+    if (navigationType === "POP") return;
+    if (hash) {
+      const target = document.getElementById(hash.slice(1));
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+  }, [pathname, hash, navigationType]);
+
+  return null;
+};
+
 function App() {
   // Hide SEO content when React app loads
   useEffect(() => {
@@ -125,6 +156,7 @@ function App() {
             v7_relativeSplatPath: true
           }}
         >
+          <ScrollToTop />
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -135,6 +167,9 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/g700-customizer" element={<G700Customizer />} />
             <Route path="/ppf-dubai" element={<PpfDubai />} />
+            <Route path="/ppf-warranty-dubai" element={<PpfWarrantyDubai />} />
+            <Route path="/ppf-installation-process" element={<PpfInstallationProcess />} />
+            <Route path="/ppf-films-dubai" element={<PpfFilmsDubai />} />
             <Route path="/ceramic-coating-dubai" element={<CeramicCoatingDubai />} />
             <Route path="/window-tinting-dubai" element={<WindowTintingDubai />} />
             <Route path="/car-detailing-dubai" element={<CarDetailingDubai />} />
@@ -155,6 +190,8 @@ function App() {
             <Route path="/ppf-dubai-price-v2" element={<PpfFullPpfGuidedCalculatorV2 variant="builder" />} />
             {/* Meta-ads one-screen price builder (Jul 2026): Meta pixel only, two film lines. */}
             <Route path="/ppf-meta-builder" element={<PpfMetaPriceBuilder />} />
+            {/* GT warranty funnel (2026-08): Meta LP where the toy is the cover, not the price. */}
+            <Route path="/ppf-lifetime-warranty" element={<PpfLifetimeWarranty />} />
             {/* FAST tint funnel (Jul 2026): price visible with zero clicks, one-action
                 capture (WhatsApp tap or phone submit). Replaced the guided 3-step
                 funnel after 0 leads from ~360 paid clicks — old version kept on
@@ -200,6 +237,14 @@ function App() {
               element={
                 <RequireAdmin>
                   <AdminCloseRates />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/assistant-chats"
+              element={
+                <RequireAdmin>
+                  <AdminAssistantChats />
                 </RequireAdmin>
               }
             />

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GT Owner's Warranty — Demo Card (screenshot at 1080×1350)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Allura&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{ --gold:hsl(38 92% 58%); --gold-soft:hsl(38 45% 62%); --muted:hsl(38 12% 62%); }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{ background:#1a1a1a; font-family:'Poppins',sans-serif; display:flex; justify-content:center; padding:40px; }
+  .label{ position:fixed; top:8px; left:12px; color:#666; font-size:12px; }
+  .card{
+    position:relative; width:1080px; height:1350px; overflow:hidden; border-radius:18px;
+    background:
+      radial-gradient(140% 110% at 20% 0%, hsl(38 45% 16% / .35), transparent 55%),
+      linear-gradient(165deg, hsl(0 0% 10%), hsl(0 0% 6%) 60%, hsl(0 0% 8%));
+    box-shadow:0 60px 120px -40px #000;
+    padding:70px 76px; display:flex; flex-direction:column;
+  }
+  .frame{ position:absolute; inset:22px; border:1.5px solid hsl(38 92% 58% / .55); border-radius:10px; pointer-events:none; }
+  .frame::after{ content:""; position:absolute; inset:7px; border:1px solid hsl(38 92% 58% / .22); border-radius:6px; }
+  .specimen{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;
+    transform:rotate(-24deg); font:600 150px 'Poppins'; letter-spacing:.28em;
+    color:hsl(38 92% 58% / .06); text-transform:uppercase;
+  }
+  .marque{ text-align:center; font-size:20px; letter-spacing:.42em; text-transform:uppercase; color:var(--gold); font-weight:600; }
+  .sub{ text-align:center; margin-top:10px; font-size:15px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); }
+  h1{ margin-top:34px; text-align:center; font:600 64px 'Cormorant Garamond',Georgia,serif; color:hsl(0 0% 96%); letter-spacing:.02em; }
+  .certno{ text-align:center; margin-top:10px; font-size:17px; color:var(--gold-soft); letter-spacing:.18em; }
+  .rule{ width:220px; height:1px; margin:30px auto; background:linear-gradient(90deg, transparent, var(--gold), transparent); position:relative; }
+  .rule i{ position:absolute; left:50%; top:-3px; width:7px; height:7px; transform:translateX(-50%) rotate(45deg); background:var(--gold); }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:26px 40px; margin-top:6px; }
+  .cell .k{ font-size:13.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+  .cell .v{ margin-top:7px; font:500 30px 'Cormorant Garamond',Georgia,serif; color:hsl(0 0% 94%); }
+  .covenant{
+    margin-top:38px; padding:30px 34px; border-left:2px solid hsl(38 92% 58% / .6);
+    font:italic 500 27px/1.5 'Cormorant Garamond',Georgia,serif; color:hsl(38 20% 86%);
+    background:hsl(38 92% 58% / .04);
+  }
+  .covers{ margin-top:34px; display:grid; grid-template-columns:1fr 1fr; gap:16px 34px; }
+  .cover{ display:flex; gap:14px; align-items:flex-start; font-size:19.5px; color:hsl(0 0% 84%); line-height:1.4; }
+  .cover i{ flex:none; margin-top:4px; width:18px; height:18px; border-radius:999px; border:1.5px solid hsl(38 92% 58% / .8); position:relative; }
+  .cover i::after{ content:""; position:absolute; left:4px; top:4px; right:4px; bottom:4px; border-radius:999px; background:hsl(38 92% 58% / .8); }
+  .sigs{ margin-top:auto; display:grid; grid-template-columns:1fr auto 1fr; align-items:end; gap:30px; padding-top:30px; }
+  .sig .line{ border-top:1px solid hsl(38 92% 58% / .45); padding-top:10px; font-size:13.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); text-align:center; }
+  .sig .script{ font:42px 'Allura',cursive; color:hsl(38 60% 78%); text-align:center; margin-bottom:6px; }
+  .seal{
+    width:132px; height:132px; border-radius:999px; align-self:center;
+    background:radial-gradient(circle at 35% 30%, hsl(43 95% 66%), hsl(35 85% 48%) 55%, hsl(30 70% 38%));
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 14px 34px -12px #000, inset 0 2px 6px hsl(50 100% 80% / .5);
+  }
+  .seal span{ font:600 44px 'Cormorant Garamond',Georgia,serif; color:hsl(30 60% 20%); letter-spacing:.05em; }
+  .foot{
+    margin-top:36px; padding-top:24px; border-top:1px solid hsl(38 92% 58% / .28);
+    display:flex; justify-content:space-between; gap:18px;
+    font-size:15.5px; color:hsl(38 15% 70%); letter-spacing:.02em;
+  }
+  .foot b{ color:hsl(0 0% 90%); font-weight:500; }
+</style>
+</head>
+<body>
+  <p class="label">Screenshot the card below at 1080×1350 → save as public/wa-cards/gt-warranty-demo.png</p>
+  <div class="card">
+    <div class="frame"></div>
+    <div class="specimen">Specimen</div>
+
+    <p class="marque">Grand Touch Auto</p>
+    <p class="sub">DIP 2 · Dubai · Est. six years</p>
+    <h1>The Owner's Warranty</h1>
+    <p class="certno">CERTIFICATE Nº GT-2026-0047 · GT SIGNATURE</p>
+    <div class="rule"><i></i></div>
+
+    <div class="grid">
+      <div class="cell"><p class="k">Registered Owner</p><p class="v">Khalid Al Mansoori</p></div>
+      <div class="cell"><p class="k">Vehicle</p><p class="v">Mercedes-AMG G 63</p></div>
+      <div class="cell"><p class="k">Chassis</p><p class="v">W1N ···· ···· 4471</p></div>
+      <div class="cell"><p class="k">Installed</p><p class="v">14 August 2026</p></div>
+    </div>
+
+    <p class="covenant">Grand Touch warrants this installation — film and labour — against yellowing, cracking, peeling, bubbling and lifting, for as long as the registered owner keeps this vehicle, and transfers once with the vehicle to one subsequent owner.</p>
+
+    <div class="covers">
+      <div class="cover"><i></i>Film and labour, for life — not parts-only</div>
+      <div class="cover"><i></i>Yellowing covered — no UV or heat carve-out</div>
+      <div class="cover"><i></i>3 no-fault panel replacements, any cause</div>
+      <div class="cover"><i></i>Free wash + inspection, every year, for life</div>
+      <div class="cover"><i></i>Transfers once to the next owner</div>
+      <div class="cover"><i></i>Manufacturer's warranty registered beneath</div>
+    </div>
+
+    <div class="sigs">
+      <div class="sig"><p class="script">Sean</p><p class="line">Founder · Grand Touch</p></div>
+      <div class="seal"><span>GT</span></div>
+      <div class="sig"><p class="script">&nbsp;</p><p class="line">Registered Owner</p></div>
+    </div>
+
+    <div class="foot">
+      <span><b>Published online</b> word for word</span>
+      <span><b>Automated reminders</b> for every inspection</span>
+      <span><b>Transferable once</b> to the next owner</span>
+    </div>
+  </div>
+</body>
+</html>

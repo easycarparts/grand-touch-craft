@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GT Film Ladder — TPU vs Diamond Pro X Card (screenshot at 1080×1350)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{ --gold:hsl(38 92% 58%); --gold-soft:hsl(38 45% 62%); --muted:hsl(38 12% 62%); }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{ background:#1a1a1a; font-family:'Poppins',sans-serif; display:flex; justify-content:center; padding:40px; }
+  .label{ position:fixed; top:8px; left:12px; color:#666; font-size:12px; }
+  .card{
+    position:relative; width:1080px; height:1350px; overflow:hidden; border-radius:18px;
+    background:
+      radial-gradient(140% 110% at 20% 0%, hsl(38 45% 16% / .35), transparent 55%),
+      linear-gradient(165deg, hsl(0 0% 10%), hsl(0 0% 6%) 60%, hsl(0 0% 8%));
+    box-shadow:0 60px 120px -40px #000;
+    padding:70px 76px; display:flex; flex-direction:column;
+  }
+  .frame{ position:absolute; inset:22px; border:1.5px solid hsl(38 92% 58% / .55); border-radius:10px; pointer-events:none; }
+  .frame::after{ content:""; position:absolute; inset:7px; border:1px solid hsl(38 92% 58% / .22); border-radius:6px; }
+  .marque{ text-align:center; font-size:20px; letter-spacing:.42em; text-transform:uppercase; color:var(--gold); font-weight:600; }
+  .sub{ text-align:center; margin-top:10px; font-size:15px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); }
+  h1{ margin-top:30px; text-align:center; font:600 60px 'Cormorant Garamond',Georgia,serif; color:hsl(0 0% 96%); letter-spacing:.02em; }
+  .rule{ width:220px; height:1px; margin:28px auto; background:linear-gradient(90deg, transparent, var(--gold), transparent); position:relative; }
+  .rule i{ position:absolute; left:50%; top:-3px; width:7px; height:7px; transform:translateX(-50%) rotate(45deg); background:var(--gold); }
+  .tier{
+    border:1px solid hsl(38 92% 58% / .28); border-radius:14px; padding:40px 42px 36px;
+    background:hsl(0 0% 100% / .015); position:relative;
+  }
+  .tier + .tier{ margin-top:30px; }
+  .tier.x{ border:1.5px solid hsl(38 92% 58% / .75); background:hsl(38 92% 58% / .05); }
+  .tier .who{ font-size:14px; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); }
+  .tier.x .who{ color:var(--gold-soft); }
+  .tier .film{ margin-top:12px; font:600 46px 'Cormorant Garamond',Georgia,serif; color:hsl(0 0% 96%); }
+  .tier .film small{ font:500 26px 'Cormorant Garamond',Georgia,serif; color:var(--gold-soft); margin-left:12px; }
+  .chip{
+    position:absolute; top:-16px; right:32px; padding:8px 18px; border-radius:999px;
+    background:linear-gradient(120deg, hsl(43 95% 62%), hsl(35 85% 50%)); color:hsl(30 60% 16%);
+    font-size:13.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    box-shadow:0 10px 24px -10px #000;
+  }
+  .specs{ margin-top:24px; display:grid; gap:18px; }
+  .spec{ display:flex; gap:14px; align-items:flex-start; font-size:21px; color:hsl(0 0% 85%); line-height:1.45; }
+  .spec b{ color:hsl(0 0% 96%); font-weight:600; }
+  .spec i{ flex:none; margin-top:6px; width:16px; height:16px; border-radius:999px; border:1.5px solid hsl(38 92% 58% / .8); position:relative; }
+  .spec i::after{ content:""; position:absolute; left:3.5px; top:3.5px; right:3.5px; bottom:3.5px; border-radius:999px; background:hsl(38 92% 58% / .8); }
+  .arrow{ text-align:center; margin:20px 0 -6px; color:var(--gold); font-size:26px; letter-spacing:.4em; }
+  .covenant{
+    margin-top:auto; padding:30px 36px; border-left:2px solid hsl(38 92% 58% / .6);
+    font:italic 500 27px/1.55 'Cormorant Garamond',Georgia,serif; color:hsl(38 20% 86%);
+    background:hsl(38 92% 58% / .04);
+  }
+  .foot{
+    margin-top:34px; padding-top:24px; border-top:1px solid hsl(38 92% 58% / .28);
+    display:flex; justify-content:space-between; gap:18px;
+    font-size:15.5px; color:hsl(38 15% 70%); letter-spacing:.02em;
+  }
+  .foot b{ color:hsl(0 0% 90%); font-weight:500; }
+</style>
+</head>
+<body>
+  <p class="label">Screenshot the card below at 1080×1350 → save as public/wa-cards/gt-film-ladder.png</p>
+  <div class="card">
+    <div class="frame"></div>
+
+    <p class="marque">Grand Touch Auto</p>
+    <p class="sub">The Film · Diamond Pro · Built for the Gulf</p>
+    <h1>The film steps up with the tier</h1>
+    <div class="rule"><i></i></div>
+
+    <div class="tier">
+      <p class="who">GT Signature · AED 12,900</p>
+      <p class="film">Diamond Pro <small>Premium TPU</small></p>
+      <div class="specs">
+        <div class="spec"><i></i><span><b>Heat-activated self-healing</b> top coat — swirls vanish in the sun</span></div>
+        <div class="spec"><i></i><span><b>Factory hydrophobic</b> — water beads off, the car stays cleaner longer</span></div>
+        <div class="spec"><i></i><span><b>Manufacturer warranty registered</b> to your car — you hold the proof</span></div>
+      </div>
+    </div>
+
+    <p class="arrow">···</p>
+
+    <div class="tier x">
+      <span class="chip">15-year film registration</span>
+      <p class="who">GT Concours · AED 18,900</p>
+      <p class="film">Diamond Pro X <small>PCU Flagship</small></p>
+      <div class="specs">
+        <div class="spec"><i></i><span><b>Polycarbonate backbone</b> — a harder chemistry than TPU, engineered for decades of Gulf heat, humidity and UV</span></div>
+        <div class="spec"><i></i><span><b>Colour shift under ΔE 1</b> after 1,000 hours of UV testing — no measurable yellowing</span></div>
+        <div class="spec"><i></i><span><b>Fading named in the warranty,</b> in writing — and registered for 15 years</span></div>
+      </div>
+    </div>
+
+    <p class="covenant">Whichever film your tier wears, the GT warranty sits on top — film and labour, yellowing covered, no UV carve-out.</p>
+
+    <div class="foot">
+      <span><b>Certified</b> Diamond Pro studio</span>
+      <span><b>Developed for</b> the Middle East</span>
+      <span><b>Two documents,</b> one car</span>
+    </div>
+  </div>
+</body>
+</html>

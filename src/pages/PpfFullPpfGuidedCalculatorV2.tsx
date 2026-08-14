@@ -685,7 +685,7 @@ const trustFaqs: Array<{ question: string; answer: string }> = [
   {
     question: "Is the warranty transferable if I sell the car?",
     answer:
-      "Yes. STEK registration is tied to the vehicle, not the owner, so a future buyer inherits the remaining warranty term and inspection support. We hand over the documentation so the next owner can prove the install is legitimate.",
+      "Yes — once. Our warranty transfers with the car to one subsequent owner: they apply within 30 days of the sale and bring the car in for a free transfer inspection. The film manufacturer's registration is tied to the vehicle rather than the owner, so that carries over with it, and we hand over the documentation so the next owner can prove the install is legitimate.",
   },
 ];
 

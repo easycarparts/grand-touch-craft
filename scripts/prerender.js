@@ -572,28 +572,282 @@ const pages = [
   g700CustomizerPage,
   ...blogArticlePages,
   {
-    path: "/ppf-dubai",
-    title: "Paint Protection Film (PPF) Dubai | STEK Certified | Grand Touch Auto",
+    path: "/ppf-lifetime-warranty",
+    title: "Lifetime-Warranty PPF from AED 12,900 — Film & Labour | Grand Touch",
     description:
-      "STEK-certified paint protection film in Dubai. Front end, track pack, and full body PPF with warranty registration in DIP 2.",
+      "Full-body PPF with a lifetime warranty on film AND labour — signed, numbered, published word for word. One price, every car. It even transfers when you sell.",
     keywords:
-      "paint protection film Dubai, PPF Dubai, STEK PPF Dubai, full body PPF Dubai",
-    ogTitle: "STEK-Certified PPF in Dubai | Grand Touch Auto",
+      "ppf lifetime warranty dubai, ppf dubai, paint protection film dubai, ppf price dubai, full body ppf dubai, ppf warranty dubai, best ppf dubai",
+    ogTitle: "Lifetime-warranty PPF from AED 12,900 — film and labour, in writing",
     ogDescription:
-      "Front, track pack, and full body paint protection film with STEK warranty registration.",
-    image: "/guided-sean-with-patrols-v2.jpg",
+      "Build your cover: lifetime warranty, free panel replacements, transfer when you sell. Watch what the cheaper number removes.",
     seoBody: `
-        <h1>Paint Protection Film (PPF) in Dubai</h1>
-        <p>STEK-certified PPF installation at Grand Touch Auto Repair in Dubai Investment Park 2.</p>
-        <h2>Coverage options</h2>
+        <h1>PPF in Dubai with a lifetime warranty — one price, every car</h1>
+        <p>Full-body paint protection film from AED 12,900 +VAT with the GT Owner's Warranty: film AND labour, for as long as you own the car — signed, numbered and handed over at delivery, with the full terms published word for word. The cover transfers once, with the vehicle, when you sell.</p>
+        <h2>The three programs</h2>
+        <table>
+          <tr><th>Program</th><th>Full body</th><th>Warranty</th><th>Free panel replacements</th></tr>
+          <tr><td>GT Essential</td><td>AED 7,900</td><td>5 years, film and workmanship</td><td>None — AED 1,000+ per panel when you need one</td></tr>
+          <tr><td>GT Signature (most chosen)</td><td>AED 12,900</td><td>Lifetime — film AND labour</td><td>3 — any damage, any cause</td></tr>
+          <tr><td>GT Concours</td><td>AED 18,900</td><td>Lifetime — film AND labour</td><td>6 — any damage, any cause, plus ceramic renewed free at every visit</td></tr>
+        </table>
+        <p>One price, every car — a G-Class, a Patrol and a 911 pay the same as a sedan. No SUV or exotic surcharge. Full body only. All prices +VAT.</p>
+        <h2>Why is there no discount?</h2>
+        <p>The number only moves when cover comes off: remove the free panel replacements and a panel is AED 1,000+ the day you need one; remove the lifetime and the cover has an end date; remove the transfer and the warranty dies the day the car is sold. The stripped version already exists — GT Essential at 7,900 — and it is honest about what it is.</p>
+        <h2>Is yellowing covered?</h2>
+        <p>Yes — film and labour, with no manufacturing-defect carve-out for UV and heat. In a Dubai summer, that carve-out is the distinction that decides a claim.</p>
+        <h2>What happens when you sell the car?</h2>
+        <p>The warranty transfers once, with the vehicle, to one subsequent owner — registered at the studio in about twenty minutes, free of charge. Full-body PPF with a lifetime warranty the buyer inherits is a line on your resale listing, not a receipt in the glovebox.</p>
+        <p>~15 cars a month, deliberately. WhatsApp +971 56 719 1045 with your car and preferred week. Full program at /ppf-dubai. Warranty terms at /ppf-warranty-dubai.</p>
+    `,
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: "GT Protection Program — PPF with Lifetime Warranty, Dubai",
+        serviceType: "Paint Protection Film installation",
+        provider: {
+          "@type": "AutoRepair",
+          name: "Grand Touch Auto Repair",
+          url: "https://www.grandtouchauto.ae",
+          telephone: "+971567191045",
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "DIP 2, Dubai Investment Park - 2, Thani warehouse - 3 11b",
+            addressLocality: "Dubai",
+            addressCountry: "AE",
+          },
+          aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "83" },
+        },
+        areaServed: { "@type": "City", name: "Dubai" },
+        hasOfferCatalog: {
+          "@type": "OfferCatalog",
+          name: "GT Protection Program",
+          itemListElement: [
+            { "@type": "Offer", name: "GT Essential — full body PPF", priceSpecification: { "@type": "PriceSpecification", price: 7900, priceCurrency: "AED" } },
+            { "@type": "Offer", name: "GT Signature — full body PPF", priceSpecification: { "@type": "PriceSpecification", price: 12900, priceCurrency: "AED" } },
+            { "@type": "Offer", name: "GT Concours — full vehicle PPF", priceSpecification: { "@type": "PriceSpecification", price: 18900, priceCurrency: "AED" } },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    path: "/ppf-dubai",
+    title: "PPF Dubai — The Grand Touch Protection Program | Lifetime Warranty & Real Prices",
+    description:
+      "PPF in Dubai, backed for life. Three programs with real prices from AED 7,900, a written lifetime warranty (film and labour), and free no-fault panel replacements.",
+    keywords:
+      "PPF Dubai, paint protection film Dubai, PPF price Dubai, PPF lifetime warranty Dubai, best PPF Dubai, full body PPF Dubai",
+    ogTitle: "PPF in Dubai, backed for life — The Grand Touch Protection Program",
+    ogDescription:
+      "Three programs. Real prices. A written lifetime warranty — signed before you leave the bay.",
+    image: "/guided-cullinan-ppf.png",
+    seoBody: `
+        <h1>PPF in Dubai, backed for life — The Grand Touch Protection Program</h1>
+        <p>Three paint protection film programs with real published prices and a written, installer-backed warranty. Every car: paint prepared to showroom standard, dust-controlled bay, precision-cut for the exact model, triple-checked before handover.</p>
+        <h2>How much does PPF cost in Dubai?</h2>
+        <p>At Grand Touch: full body AED 7,900 (GT Essential), AED 12,900 (GT Signature — most chosen), AED 18,900 (GT Concours), all +VAT. Full body only — no partial coverage. One price, every car — no SUV, large-SUV or exotic surcharge. A G-Class, a Patrol or a 911 pays exactly what a sedan pays.</p>
+        <h2>The three programs</h2>
+        <table>
+          <tr><th>Program</th><th>Full body (sedan)</th><th>Warranty</th><th>Included</th></tr>
+          <tr><td>GT Essential</td><td>AED 7,900</td><td>GT 5-Year — film and workmanship</td><td>Self-healing gloss TPU, every painted panel + headlights, month-12 health check, 2 days in studio</td></tr>
+          <tr><td>GT Signature (most chosen)</td><td>AED 12,900</td><td>GT LIFETIME — film AND labour, as long as you own it</td><td>3 free no-fault panel replacements (any damage, any cause), Diamond Pro premium TPU film, door jambs + boot loading strip, edges wrapped out of sight, free wash + inspection at 6 and 12 months then yearly for life, 3 days in studio</td></tr>
+          <tr><td>GT Concours</td><td>AED 18,900 (full vehicle)</td><td>GT LIFETIME + concours care</td><td>Diamond Pro X film (the PCU flagship, 15-year manufacturer registration), 6 free no-fault panel replacements, concours preparation, ceramic over film and all uncovered surfaces, free full ceramic refresh at every visit, protection dossier, collection and delivery, 5 days in studio</td></tr>
+        </table>
+        <h2>What makes the GT Owner's Warranty different?</h2>
+        <p>It covers film AND labour for as long as you own the car — most shops' workmanship warranty is one year. The film manufacturer's warranty is registered to your car as standard, and the GT warranty sits on top. Scraped it in a car park? That's not a warranty claim — that's a free no-fault panel replacement. And when you sell the car the cover transfers once, with the vehicle, to the next owner — so it holds value at resale. Full terms are published word for word.</p>
+        <h2>Which film brands does Grand Touch use?</h2>
+        <p>Genuine film from a certified roster — STEK, Diamond Pro, Supreme, with Gyeon coatings — selected per vehicle and program tier, manufacturer warranty registered on every car. The film brand warranties the plastic; Grand Touch warranties the whole job.</p>
+        <h2>Why not take a 7,000 dirham quote?</h2>
+        <p>A 7,000 full-body quote is real — for what it is: value film, tucked edges, a one-year workmanship warranty, often no registered manufacturer warranty at all. It's a different product. Compare warranties before prices.</p>
+        <h2>Booking</h2>
+        <p>~15 cars a month, deliberately. No booking fee — WhatsApp +971 56 719 1045 with your car and preferred week. Full warranty terms at /ppf-warranty-dubai. Installation process at /ppf-installation-process. Films at /ppf-films-dubai.</p>
+    `,
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: "The Grand Touch Protection Program — PPF Dubai",
+        serviceType: "Paint Protection Film installation",
+        provider: {
+          "@type": "AutoRepair",
+          name: "Grand Touch Auto Repair",
+          url: "https://www.grandtouchauto.ae",
+          telephone: "+971567191045",
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "DIP 2, Dubai Investment Park - 2, Thani warehouse - 3 11b",
+            addressLocality: "Dubai",
+            addressCountry: "AE",
+          },
+          aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "83" },
+        },
+        areaServed: { "@type": "City", name: "Dubai" },
+        hasOfferCatalog: {
+          "@type": "OfferCatalog",
+          name: "GT Protection Program",
+          itemListElement: [
+            {
+              "@type": "Offer",
+              name: "GT Essential — full body PPF",
+              priceSpecification: { "@type": "PriceSpecification", price: 7900, priceCurrency: "AED" },
+              description: "GT 5-Year Warranty (film and workmanship), self-healing gloss TPU, every painted panel + headlights, month-12 health check.",
+              warranty: { "@type": "WarrantyPromise", durationOfWarranty: { "@type": "QuantitativeValue", value: 5, unitCode: "ANN" } },
+            },
+            {
+              "@type": "Offer",
+              name: "GT Signature — full body PPF",
+              priceSpecification: { "@type": "PriceSpecification", price: 12900, priceCurrency: "AED" },
+              description: "GT Lifetime Warranty (film and labour, as long as you own the car), 3 free no-fault panel replacements, Diamond Pro premium TPU film, free wash + inspections for life.",
+            },
+            {
+              "@type": "Offer",
+              name: "GT Concours — full vehicle PPF",
+              priceSpecification: { "@type": "PriceSpecification", price: 18900, priceCurrency: "AED" },
+              description: "Lifetime warranty, 6 free no-fault panel replacements, paint correction, ceramic over film with free refresh at every visit, protection dossier.",
+            },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    path: "/ppf-warranty-dubai",
+    title: "PPF Lifetime Warranty Dubai — The GT Owner's Warranty | Grand Touch Auto",
+    description:
+      "The only PPF warranty in Dubai you can actually hold: film AND labour, for as long as you own the car — signed, numbered, registered. Full terms published.",
+    keywords:
+      "PPF warranty Dubai, PPF lifetime warranty, paint protection film warranty Dubai, PPF warranty claim Dubai",
+    ogTitle: "The GT Owner's Warranty — lifetime, film and labour, in writing",
+    ogDescription:
+      "Signed, numbered, registered before you leave the bay. Free no-fault panel replacements included.",
+    image: "/guided-sean-with-911.png",
+    seoBody: `
+        <h1>The GT Owner's Warranty — a lifetime PPF warranty you can actually hold</h1>
+        <p>Every GT Signature and Concours installation leaves with a signed, numbered warranty certificate: film AND labour, for as long as the registered owner keeps the vehicle.</p>
+        <h2>What does the lifetime warranty cover?</h2>
+        <p>Yellowing, cracking, peeling, bubbling, edge-lift and installation defects — film and labour — for life on Signature and Concours (5 years on Essential). Underneath it, the film manufacturer's warranty is registered to your car as standard. You get both.</p>
+        <h2>No-fault panel replacements</h2>
+        <p>Any damage, any cause — a scrape, a trolley, a bad wash — that panel's film is replaced free. Three times on Signature, six times on Concours. Impact damage isn't a warranty claim at Grand Touch; it's a panel replacement.</p>
+        <h2>What keeps the warranty active?</h2>
+        <p>Free inspections at 6 and 12 months, then yearly (about 20 minutes: wash, edge check). A missed inspection converts cover to the 5-year base term — it never hard-voids. Concours visits include a free full ceramic refresh over the film.</p>
+        <h2>Is the warranty transferable if I sell the car?</h2>
+        <p>On GT Signature and GT Concours — yes, once. The lifetime cover transfers with the vehicle to one subsequent registered owner for the rest of its life. The new owner applies in writing within 30 days of the sale and brings the car in for a free transfer inspection at our Dubai studio; the inspection schedule then continues and binds them. The defect cover on film and labour transfers. Unused no-fault panel replacements and complimentary aftercare stay with the original purchaser. GT Essential's 5-year warranty does not transfer. Cover ends if the vehicle is permanently exported from the UAE.</p>
+        <h2>What voids it?</h2>
+        <p>Very little, and it's all published: third-party rework ends cover for that panel; automatic brush washes and improper care are excluded; resprayed panels are noted at install.</p>
+        <h2>How do claims work?</h2>
+        <p>WhatsApp photos to +971 56 719 1045, same-week inspection slot, approved work completed free within about 14 days, logged against your certificate number.</p>
+        <h2>Program prices</h2>
+        <p>GT Essential full body AED 7,900 (5-year warranty) · GT Signature AED 12,900 (lifetime, most chosen) · GT Concours AED 18,900 (lifetime + concours care). +VAT.</p>
+    `,
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "What does the GT lifetime PPF warranty cover?",
+            acceptedAnswer: { "@type": "Answer", text: "Yellowing, cracking, peeling, bubbling, edge-lift and installation defects — film and labour — for as long as you own the car, kept active by free yearly inspections. Full terms are published word for word." },
+          },
+          {
+            "@type": "Question",
+            name: "What is a no-fault panel replacement?",
+            acceptedAnswer: { "@type": "Answer", text: "Any damage, any cause — a scrape, a trolley, a bad wash — the affected panel's film is replaced free: three times on GT Signature, six times on GT Concours." },
+          },
+          {
+            "@type": "Question",
+            name: "What voids the warranty?",
+            acceptedAnswer: { "@type": "Answer", text: "A missed free inspection converts cover to the 5-year base term (never a hard void); third-party rework on a panel ends cover for that panel; automatic brush washes and improper care are excluded." },
+          },
+          {
+            "@type": "Question",
+            name: "Is the film manufacturer's warranty included too?",
+            acceptedAnswer: { "@type": "Answer", text: "Yes — Grand Touch registers the manufacturer's warranty to your car on every installation, and the GT Owner's Warranty sits on top. Two warranties, one car." },
+          },
+          {
+            "@type": "Question",
+            name: "Is the GT PPF warranty transferable if I sell the car?",
+            acceptedAnswer: { "@type": "Answer", text: "On GT Signature and GT Concours, yes — once. The lifetime cover transfers with the vehicle to one subsequent owner for the rest of its life: the new owner applies within 30 days of the sale and brings the car in for a free transfer inspection at the Dubai studio. The defect cover on film and labour transfers; unused no-fault panel replacements stay with the original purchaser. GT Essential's 5-year warranty does not transfer." },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    path: "/ppf-installation-process",
+    title: "PPF Installation Process Dubai — The GT Install Standard | Grand Touch Auto",
+    description:
+      "How a Grand Touch car is done: paint prepared to showroom standard, precision-cut patterns, edges wrapped out of sight, triple-checked, delivered with a walkaround.",
+    keywords:
+      "PPF installation Dubai, how is PPF installed, PPF edges peeling, bad PPF installation, PPF process",
+    ogTitle: "How a Grand Touch car is done — the GT Install Standard",
+    ogDescription: "Every step of a proper PPF installation, and how to judge any shop's work in 5 minutes.",
+    image: "/guided-install-detail.png",
+    seoBody: `
+        <h1>How a Grand Touch car is done — the GT Install Standard</h1>
+        <p>Every car, every tier: paint prepared to showroom standard, dust-controlled bay, precision-cut for your exact model, triple-checked before handover.</p>
+        <h2>The steps</h2>
         <ul>
-          <li>Front end PPF</li>
-          <li>Track pack</li>
-          <li>Full body PPF</li>
-          <li>Colour and matte PPF</li>
+          <li>Paint prepared to showroom standard — wash, decontamination and clay before any film touches the car</li>
+          <li>Precision-cut for your exact model — patterns refined by hand where needed</li>
+          <li>Edges wrapped out of sight — the film disappears into the panel gaps</li>
+          <li>Triple-checked before handover — three quality passes under proper light</li>
+          <li>The delivery walkaround — we walk YOU around every edge, then sign and register your certificate</li>
+          <li>Your first inspection visit — free at 6 months, keeping your warranty active</li>
         </ul>
-        <h2>Next step</h2>
-        <p>WhatsApp Sean for a quote or use the guided PPF calculator.</p>
+        <h2>How to judge ANY shop's PPF in 5 minutes</h2>
+        <ul>
+          <li>Run your finger under the film edge at the bumper — a lifted or exposed cut edge means shortcuts</li>
+          <li>Look into the panel gaps — film should disappear, not stop short</li>
+          <li>Ask for the workmanship warranty in writing — it's usually one year</li>
+          <li>Ask for the film manufacturer's warranty registration proof</li>
+          <li>Check the door jambs and sensor cutouts — the angles shiny reels never show</li>
+        </ul>
+        <p>Free 5-minute edge inspection on any car, any shop's work — WhatsApp +971 56 719 1045.</p>
+    `,
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        name: "The GT Install Standard — how Grand Touch installs PPF",
+        step: [
+          { "@type": "HowToStep", name: "Paint preparation", text: "Wash, decontamination and clay to showroom standard before any film touches the car." },
+          { "@type": "HowToStep", name: "Precision cutting", text: "Patterns cut for the exact model, refined by hand where the pattern isn't good enough." },
+          { "@type": "HowToStep", name: "Installation with wrapped edges", text: "Film edges wrapped out of sight so the film disappears into the panel gaps." },
+          { "@type": "HowToStep", name: "Triple-check QC", text: "Three quality passes under proper light before the car is released." },
+          { "@type": "HowToStep", name: "Delivery walkaround", text: "The owner is walked around every edge; the warranty certificate is signed and registered." },
+        ],
+      },
+    ],
+  },
+  {
+    path: "/ppf-films-dubai",
+    title: "PPF Film Brands Dubai — STEK, Diamond Pro, Supreme | Grand Touch Auto",
+    description:
+      "The films Grand Touch uses — and why the installer matters more than the brand. Genuine film, manufacturer warranty registered on every car, GT warranty on top.",
+    keywords:
+      "STEK Dubai, PPF film brands Dubai, best PPF film, Diamond Pro PPF, Gyeon Dubai, genuine PPF film",
+    ogTitle: "The films we use — and why that's the wrong question",
+    ogDescription: "STEK, Diamond Pro, Supreme, Gyeon — genuine, registered, and backed by the GT warranty on top.",
+    image: "/guided-911-stek-roll.png",
+    seoBody: `
+        <h1>The films Grand Touch uses — and why that's the wrong question</h1>
+        <p>Most film in Dubai comes from the same handful of factories. Results differ because installs differ. We fit genuine film from our certified roster, register the manufacturer's warranty to your car — and back the whole job with ours.</p>
+        <h2>The certified roster</h2>
+        <ul>
+          <li>STEK — flagship and value TPU lines, the backbone of the roster</li>
+          <li>Diamond Pro — polycarbonate urethane (PCU), engineered for Gulf heat, humidity and UV</li>
+          <li>Supreme — specialist films for colour and custom work</li>
+          <li>Gyeon — certified coatings, over film and every uncovered surface</li>
+        </ul>
+        <h2>Who chooses the film?</h2>
+        <p>Grand Touch selects the film that best fits your vehicle and program tier from the certified roster. You can request a specific brand within your tier's specification — the GT warranty applies either way.</p>
+        <h2>How to verify genuine film</h2>
+        <p>Genuine rolls carry serial/QR verification, and authorized installations come with manufacturer warranty registration. Many 6,000–7,000 dirham quotes use gray-market or unregistered rolls — the customer gets no registered manufacturer warranty at all. Ask any quote for registration proof; every Grand Touch car has it.</p>
+        <h2>Program prices</h2>
+        <p>Full body from AED 7,900 (Essential) · 12,900 (Signature, lifetime warranty) · 18,900 (Concours). +VAT. Details at /ppf-dubai.</p>
     `,
   },
   {

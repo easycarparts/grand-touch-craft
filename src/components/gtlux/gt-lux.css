@@ -1,0 +1,189 @@
+/* GT Lux layer — gold-leaf theatre on black textured surfaces.
+   Design rules: docs/gt-program-design-spec.md. GPU transforms + opacity only.
+   Everything respects prefers-reduced-motion. */
+
+/* ---------- Textured black card ---------- */
+.gtlux-card {
+  position: relative;
+  background:
+    radial-gradient(120% 90% at 20% 0%, hsl(220 8% 12%) 0%, hsl(220 6% 8%) 55%, hsl(220 8% 10%) 100%);
+  border-radius: 12px;
+  /* NOT hidden: badges/pills intentionally straddle the top edge. Texture and
+     sheen layers clip themselves via border-radius + inset instead. */
+  overflow: visible;
+  isolation: isolate;
+}
+.gtlux-card::before {
+  /* linen/noise texture */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.5;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.72 0 0 0 0 0.45 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* ---------- Cursor-tracked specular sheen ----------
+   Parent sets --gt-mx / --gt-my (0..1) via JS; children with .gtlux-foil
+   shift their gradient toward the light. */
+.gtlux-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    32rem circle at calc(var(--gt-mx, 0.5) * 100%) calc(var(--gt-my, 0.35) * 100%),
+    hsl(42 95% 70% / 0.09) 0%,
+    hsl(38 92% 58% / 0.04) 26%,
+    transparent 58%
+  );
+  /* Hidden until the pointer is actually on the card — otherwise every card
+     wears a permanent glow blob near its top, which reads as an artefact. */
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+.gtlux-card:hover > .gtlux-sheen {
+  opacity: 1;
+}
+
+.gtlux-foil {
+  background-image: linear-gradient(
+    calc(90deg + (var(--gt-mx, 0.5) - 0.5) * 60deg),
+    hsl(34 75% 42%) 0%,
+    hsl(42 95% 66%) calc(28% + (var(--gt-mx, 0.5) - 0.5) * 24%),
+    hsl(38 92% 54%) 50%,
+    hsl(45 96% 76%) calc(72% + (var(--gt-mx, 0.5) - 0.5) * 24%),
+    hsl(34 75% 42%) 100%
+  );
+}
+.gtlux-foil-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Mobile / no-pointer: slow ambient light pan instead of cursor tracking */
+@media (hover: none) {
+  .gtlux-ambient {
+    animation: gtlux-ambient-pan 9s ease-in-out infinite alternate;
+  }
+  @keyframes gtlux-ambient-pan {
+    from { --gt-mx: 0.22; --gt-my: 0.25; }
+    to { --gt-mx: 0.78; --gt-my: 0.55; }
+  }
+}
+@property --gt-mx { syntax: "<number>"; inherits: true; initial-value: 0.5; }
+@property --gt-my { syntax: "<number>"; inherits: true; initial-value: 0.35; }
+
+/* ---------- Gold pinstripe draw + smoke ----------
+   SVG is a replaced element: without explicit width/height it renders at its
+   300x150 intrinsic size regardless of inset. Size it explicitly, and let the
+   rect fill it via CSS geometry properties (calc() is invalid in SVG attrs). */
+.gtlux-pinstripe {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: calc(100% - 20px);
+  height: calc(100% - 20px);
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+}
+.gtlux-pinstripe rect {
+  x: 0;
+  y: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: url(#gtlux-foil-stroke);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+.gtlux-pinstripe.is-drawing rect {
+  stroke-dasharray: var(--gt-perimeter, 3000);
+  stroke-dashoffset: var(--gt-perimeter, 3000);
+  animation: gtlux-draw 2.8s cubic-bezier(0.6, 0, 0.2, 1) 0.3s forwards;
+}
+@keyframes gtlux-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.gtlux-smoke {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle, hsl(40 60% 75% / 0.14) 0%, hsl(40 40% 60% / 0.05) 45%, transparent 70%);
+  filter: blur(6px);
+  opacity: 0;
+  animation: gtlux-smoke-rise 5s ease-out infinite;
+}
+@keyframes gtlux-smoke-rise {
+  0% { opacity: 0; transform: translateY(6px) translateX(0) scale(0.6); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-64px) translateX(14px) scale(1.5); }
+}
+
+/* ---------- Gold-leaf stamp ---------- */
+.gtlux-stamp {
+  opacity: 0;
+  transform: scale(1.9) rotate(-14deg);
+  filter: drop-shadow(0 8px 18px hsl(0 0% 0% / 0.55));
+}
+.gtlux-stamp.is-stamped {
+  animation: gtlux-stamp-down 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
+}
+@keyframes gtlux-stamp-down {
+  0% { opacity: 0; transform: scale(1.9) rotate(-14deg); }
+  60% { opacity: 1; transform: scale(0.94) rotate(-5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-6deg); }
+}
+.gtlux-stamp-shockwave {
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  border: 1px solid hsl(38 92% 58% / 0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+.gtlux-stamp.is-stamped + .gtlux-stamp-shockwave {
+  animation: gtlux-shockwave 0.7s ease-out 0.32s forwards;
+}
+@keyframes gtlux-shockwave {
+  0% { opacity: 0.8; transform: scale(0.7); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+/* ---------- Shine sweep (one-off glint across foil elements) ---------- */
+.gtlux-glint {
+  position: relative;
+  overflow: hidden;
+}
+.gtlux-glint::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(105deg, transparent 42%, hsl(45 100% 88% / 0.35) 50%, transparent 58%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.gtlux-glint.is-glinting::after {
+  animation: gtlux-glint-sweep 1.4s ease-in-out 1.2s 1;
+}
+@keyframes gtlux-glint-sweep {
+  to { transform: translateX(120%); }
+}
+
+/* ---------- Reduced motion: everything lands instantly, nothing loops ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .gtlux-pinstripe.is-drawing rect { animation: none; stroke-dasharray: none; stroke-dashoffset: 0; }
+  .gtlux-smoke { display: none; }
+  .gtlux-stamp { opacity: 1; transform: scale(1) rotate(-6deg); animation: none !important; }
+  .gtlux-glint.is-glinting::after { animation: none; }
+  .gtlux-ambient { animation: none; }
+}
