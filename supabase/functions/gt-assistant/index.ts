@@ -173,7 +173,9 @@ async function callClaude(system: string, history: ChatMessage[]): Promise<JsonO
   const messages = history;
   const delays = [0, 400, 1200];
   let lastError: unknown = null;
-  for (const delay of delays) {
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    const delay = delays[attempt];
+    const lastAttempt = attempt === delays.length - 1;
     if (delay) await new Promise((r) => setTimeout(r, delay));
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -184,13 +186,15 @@ async function callClaude(system: string, history: ChatMessage[]): Promise<JsonO
           "Content-Type": "application/json",
         },
         // No temperature: deprecated on the Claude 5 family (API rejects it).
-        // 1200 tokens: the JSON envelope (reply + followups + extraction
-        // fields) overflowed 700 on value-stack replies and truncated mid-JSON.
+        // 2000 tokens: two-ask turns ("show me tints AND price") overflowed
+        // 1200 mid-JSON and shipped an 11-character fragment to a live
+        // visitor (2026-08-14). The persona caps reply length; the envelope
+        // needs the headroom.
         body: JSON.stringify({
           model: claudeModel,
           system,
           messages,
-          max_tokens: 1200,
+          max_tokens: 2000,
         }),
       });
       if (res.status === 429 || res.status >= 500) {
@@ -199,6 +203,7 @@ async function callClaude(system: string, history: ChatMessage[]): Promise<JsonO
       }
       if (!res.ok) throw new Error(`anthropic ${res.status}: ${(await res.text()).slice(0, 300)}`);
       const data = await res.json();
+      const truncated = data?.stop_reason === "max_tokens";
       const text = (data?.content ?? [])
         .filter((b: JsonObject) => b.type === "text")
         .map((b: JsonObject) => b.text)
@@ -215,8 +220,16 @@ async function callClaude(system: string, history: ChatMessage[]): Promise<JsonO
             return JSON.parse(block[0]) as JsonObject;
           } catch { /* fall through */ }
         }
-        // Truncated JSON (e.g. cut at max_tokens): pull the reply string out
-        // so the visitor NEVER sees raw JSON in the bubble.
+        // A response cut at max_tokens is a FAILED attempt, not material to
+        // salvage — regenerate. Only the final attempt ships a salvaged
+        // fragment (a partial answer beats an apology, but only as last
+        // resort — the live failure was a mid-word fragment shipped first).
+        if (truncated && !lastAttempt) {
+          lastError = new Error("anthropic response truncated at max_tokens");
+          continue;
+        }
+        // Truncated JSON on the last attempt: pull the reply string out so
+        // the visitor NEVER sees raw JSON in the bubble.
         const replyMatch = cleaned.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)/);
         if (replyMatch) {
           try {
