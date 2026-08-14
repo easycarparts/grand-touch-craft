@@ -7,6 +7,9 @@ project_id = "grand-touch-craft"
 [functions.telegram-crm-alerts]
 verify_jwt = false
 
+[functions.easyauto-ppf-intake]
+verify_jwt = false
+
 [api]
 enabled = true
 # Port to use for the API URL.

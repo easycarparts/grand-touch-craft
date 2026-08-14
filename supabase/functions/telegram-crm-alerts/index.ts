@@ -35,6 +35,7 @@ type LeadAlertRow = {
   utm_campaign: string | null;
   external_ad_name: string | null;
   external_campaign_name: string | null;
+  import_metadata: Record<string, unknown>;
 };
 
 type FollowupAlertRow = {
@@ -170,10 +171,21 @@ const toWhatsAppPhone = (value: string | null) => {
   return digits || null;
 };
 
-const getWhatsAppLink = (phone: string | null) => {
+const getWhatsAppLink = (phone: string | null, prefill?: string | null) => {
   const normalized = toWhatsAppPhone(phone);
   if (!normalized) return null;
-  return `https://wa.me/${normalized}`;
+  const text = prefill?.trim() ? `?text=${encodeURIComponent(prefill.trim())}` : "";
+  return `https://wa.me/${normalized}${text}`;
+};
+
+/** Sean's first-touch opener, prefilled into the WhatsApp link so the tap in
+ *  Telegram IS the reply. Speed-to-lead is the close-rate lever — anything
+ *  that removes typing between "alert" and "message sent" pays for itself. */
+const buildSeanOpener = (name: string | null, vehicleLabel: string | null) => {
+  const first = (name ?? "").trim().split(/\s+/)[0] || "";
+  const vehicle = collapseRepeatedPhrase(vehicleLabel);
+  const about = vehicle ? `your ${vehicle}` : "the Protection Program";
+  return `Hi${first ? ` ${first}` : ""}, Sean from Grand Touch here — got your message about ${about}. When suits a quick chat?`;
 };
 
 const FUNNEL_DISPLAY_LABELS: Record<string, string> = {
@@ -275,7 +287,7 @@ const fetchLeadAlertDetails = async (leadId: string) => {
   const { data, error } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, funnel_name, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign, external_ad_name, external_campaign_name",
+      "id, full_name, phone, email, vehicle_label, source_platform, landing_page_variant, funnel_name, lead_source_type, status, quality_label, latest_quote_estimate, submitted_at, whatsapp_clicked_at, created_at, last_activity_at, utm_campaign, external_ad_name, external_campaign_name, import_metadata",
     )
     .eq("id", leadId)
     .maybeSingle();
@@ -297,12 +309,49 @@ const fetchFollowupAlertDetails = async (followupId: string) => {
   return (data as FollowupAlertRow | null) ?? null;
 };
 
-const buildWhatsAppCta = (phone: string | null) => {
-  const link = getWhatsAppLink(phone);
-  return link ? `\n<a href="${escapeHtml(link)}">💬 Open WhatsApp</a>` : "";
+const buildWhatsAppCta = (phone: string | null, opener?: string | null) => {
+  const link = getWhatsAppLink(phone, opener);
+  return link ? `\n<a href="${escapeHtml(link)}">💬 ${opener ? "Reply on WhatsApp — message prefilled" : "Open WhatsApp"}</a>` : "";
+};
+
+const metadataText = (metadata: Record<string, unknown>, key: string) => {
+  const value = metadata[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+};
+
+const buildEasyAutoPpfMessage = (lead: LeadAlertRow) => {
+  const metadata = lead.import_metadata ?? {};
+  const phone = escapeHtml(lead.phone || "");
+  const vehicle = escapeHtml(collapseRepeatedPhrase(lead.vehicle_label) || "Vehicle details pending");
+  const service = escapeHtml((metadataText(metadata, "service_type") ?? "PPF").replaceAll("_", " "));
+  const quote = lead.latest_quote_estimate === null ? null : formatCurrency(lead.latest_quote_estimate);
+  const latest = metadataText(metadata, "latest_customer_message");
+  const delivery = metadataText(metadata, "delivery_eta");
+  const campaign = metadataText(metadata, "referral_headline") || lead.external_campaign_name;
+  const urgent = Boolean(metadata.customer_accepted || metadata.handed_off || metadata.human_requested);
+  const crmUrl = `https://grandtouchauto.ae/admin/leads?lead=${encodeURIComponent(lead.id)}`;
+
+  return [
+    `${urgent ? "🔴" : "🟢"} <b>${urgent ? "HUMAN NEEDED · PPF" : "ENGAGED PPF LEAD"}</b>`,
+    "",
+    `🚘 <b>${vehicle}</b> · ${service}`,
+    quote ? `💰 <b>${escapeHtml(quote)}</b>` : null,
+    delivery ? `🗓 Delivery: ${escapeHtml(delivery)}` : null,
+    latest ? `💬 “${escapeHtml(latest.slice(0, 350))}”` : null,
+    "",
+    phone ? `📞 ${phone}` : null,
+    campaign ? `🎯 ${escapeHtml(campaign)}` : null,
+    `📌 ${escapeHtml(lead.status)} · ${escapeHtml(lead.quality_label)} quality`,
+    "",
+    `<a href="${escapeHtml(crmUrl)}">Open in Grand Touch CRM</a>`,
+    buildWhatsAppCta(lead.phone, buildSeanOpener(lead.full_name, lead.vehicle_label)).trim() || null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 };
 
 const buildNewLeadMessage = (lead: LeadAlertRow, titleFallback: string) => {
+  if (lead.funnel_name === "easyauto_whatsapp_ppf") return buildEasyAutoPpfMessage(lead);
   const leadName = escapeHtml(lead.full_name || "Unnamed lead");
   const phone = escapeHtml(lead.phone || "No phone captured");
   const email = escapeHtml(lead.email || "No email captured");
@@ -330,7 +379,7 @@ const buildNewLeadMessage = (lead: LeadAlertRow, titleFallback: string) => {
     `${leadState}`,
     `${whatsappState}`,
     `🕒 <b>Last activity</b>: ${escapeHtml(formatTimestamp(lead.last_activity_at || lead.created_at))}`,
-    buildWhatsAppCta(lead.phone),
+    buildWhatsAppCta(lead.phone, buildSeanOpener(lead.full_name, lead.vehicle_label)),
   ]
     .filter(Boolean)
     .join("\n");
@@ -357,7 +406,7 @@ const buildFollowupCreatedMessage = (followup: FollowupAlertRow, titleFallback: 
     `⏰ <b>Due</b>: ${escapeHtml(formatTimestamp(followup.due_at))}`,
     `📣 <b>Channel</b>: ${escapeHtml(followup.channel)}`,
     `📝 <b>Notes</b>: ${notes}`,
-    buildWhatsAppCta(lead?.phone || null),
+    buildWhatsAppCta(lead?.phone || null, lead ? buildSeanOpener(lead.full_name, lead.vehicle_label) : null),
   ]
     .filter(Boolean)
     .join("\n");
@@ -437,7 +486,7 @@ const fetchFollowupWindow = async (window: "overdue" | "today" | "tomorrow") => 
 
   const { data, error } = await query.order("due_at", { ascending: true }).limit(6);
   if (error) throw error;
-  return (data as DigestFollowupRow[]) ?? [];
+  return (data as unknown as DigestFollowupRow[]) ?? [];
 };
 
 const renderLeadLine = (lead: LeadSummaryRow, index: number) => {
@@ -446,14 +495,14 @@ const renderLeadLine = (lead: LeadSummaryRow, index: number) => {
   const vehicle = escapeHtml(collapseRepeatedPhrase(lead.vehicle_label) || "No vehicle");
   const source = escapeHtml(formatSourceLabel(lead.source_platform, null, lead.funnel_name));
   const estimate = escapeHtml(formatCurrency(lead.latest_quote_estimate));
-  const whatsapp = getWhatsAppLink(lead.phone);
+  const whatsapp = getWhatsAppLink(lead.phone, buildSeanOpener(lead.full_name, lead.vehicle_label));
 
   return [
     `${index + 1}. <b>${name}</b>`,
     `   📞 ${phone}`,
     `   🚘 ${vehicle}`,
     `   📍 ${source} • 💎 ${escapeHtml(lead.quality_label)} • 💰 ${estimate}`,
-    whatsapp ? `   <a href="${escapeHtml(whatsapp)}">💬 WhatsApp now</a>` : "",
+    whatsapp ? `   <a href="${escapeHtml(whatsapp)}">💬 WhatsApp now — prefilled</a>` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -465,7 +514,10 @@ const renderFollowupLine = (followup: DigestFollowupRow, index: number, emoji: s
   const vehicle = escapeHtml(collapseRepeatedPhrase(lead?.vehicle_label) || "No vehicle");
   const source = escapeHtml(formatSourceLabel(lead?.source_platform || null, null, lead?.funnel_name || null));
   const notes = escapeHtml(followup.notes || "No notes");
-  const whatsapp = getWhatsAppLink(lead?.phone || null);
+  const whatsapp = getWhatsAppLink(
+    lead?.phone || null,
+    lead ? buildSeanOpener(lead.full_name, lead.vehicle_label) : null,
+  );
 
   return [
     `${index + 1}. <b>${name}</b> ${emoji}`,
