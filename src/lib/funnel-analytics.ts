@@ -485,6 +485,18 @@ export const captureLeadSnapshot = async ({
     return { ok: false, reason: message };
   }
 
+  // Speed-to-lead: a captured number must reach Sean's Telegram NOW, not when
+  // some later action happens to sweep the alert queue (partials used to sit
+  // pending for minutes). The lead/queue rows are written synchronously by DB
+  // triggers inside the insert above, so one fire-and-forget sweep delivers.
+  if (supabase) {
+    void supabase.functions
+      .invoke("telegram-crm-alerts", { body: { mode: "deliver_queue_public" } })
+      .catch(() => {
+        /* alert delivery is best-effort here — the queue sweep also runs on other actions */
+      });
+  }
+
   return { ok: true };
 };
 

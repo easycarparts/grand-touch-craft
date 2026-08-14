@@ -612,6 +612,20 @@ Deno.serve(async (req) => {
     } else {
       await supabase.from("leads").update(leadRow).eq("id", leadId);
     }
+
+    // Speed-to-lead: the DB trigger has already queued the Telegram alert —
+    // sweep the queue NOW instead of waiting for some later action to. Fire
+    // and forget; the visitor's reply never waits on Telegram.
+    if (phone) {
+      void fetch(`${supabaseUrl}/functions/v1/telegram-crm-alerts`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceRoleKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mode: "deliver_queue_public" }),
+      }).catch((e) => console.error("gt-assistant alert sweep failed", e));
+    }
   }
 
   await supabase.from("gt_assistant_conversations").update(patch).eq("id", conversation.id);
